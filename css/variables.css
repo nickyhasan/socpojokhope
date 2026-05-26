@@ -1,0 +1,48 @@
+/* 
+  School of Character (SoC) - Pojok Hope
+  DESIGN SYSTEM & VARIABLES
+  Applying the 60/30/10 color rule with high-contrast child-friendly aesthetics.
+*/
+
+:root {
+  /* Colors - 60% Dominant (Backgrounds: Off-white/Cream) */
+  --bg-dominant: #FDFBF8;         /* Warm Off-White */
+  --bg-contrast: #F6F2E9;         /* Light Sand/Cream */
+  --bg-card: #FFFFFF;             /* Pure White for inner cards */
+
+  /* Colors - 30% Secondary (Navbar, Footer, Card Bases: Deep Teal/Dark Cyan) */
+  --color-secondary: #0C4A60;     /* Deep Teal Base */
+  --color-secondary-dark: #072D3B;/* Dark Teal for headings/footers */
+  --color-secondary-light: #156D8C;/* Hover Teal */
+  --color-secondary-tint: #E8F3F6; /* Soft Teal Overlay background */
+
+  /* Colors - 10% Accents (Buttons, Links, AI Widgets: Orange & Leaf Green) */
+  --accent-orange: #FF6B35;       /* Bright Orange Main Action */
+  --accent-orange-hover: #E85B28; /* Slightly Darker Orange */
+  --accent-orange-tint: #FFF0EB;  /* Light Orange glow */
+
+  /* Secondary Accent - Leaf Green (Programs, Outdoor Learning) */
+  --accent-green: #4CAF50;        /* Leaf Green */
+  --accent-green-hover: #3E8E41;  /* Darker Leaf Green */
+  --accent-green-tint: #EEF8EF;   /* Soft Green tint */
+
+  /* Neutral Text and Borders */
+  --text-dark: #2F3E46;           /* Charcoal Text for body readability */
+  --text-light: #FDFBF8;          /* Cream White for dark teal background text */
+  --text-muted: #6B7280;          /* Secondary gray text */
+  --border-color: #E2DDD5;        /* Soft Cream border */
+  --border-radius-sm: 8px;
+  --border-radius-md: 16px;
+  --border-radius-lg: 24px;       /* Playful, friendly rounded corners */
+
+  /* Typography */
+  --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Layout and Transition Details */
+  --navbar-height: 80px;
+  --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow-sm: 0 4px 6px -1px rgba(12, 74, 96, 0.05), 0 2px 4px -1px rgba(12, 74, 96, 0.03);
+  --shadow-md: 0 10px 15px -3px rgba(12, 74, 96, 0.08), 0 4px 6px -2px rgba(12, 74, 96, 0.04);
+  --shadow-lg: 0 20px 25px -5px rgba(12, 74, 96, 0.1), 0 10px 10px -5px rgba(12, 74, 96, 0.04);
+}

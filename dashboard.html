@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Dashboard Pojok Hope - School of Character. Platform interaktif monitoring raport karakter, jadwal, dan kehadiran siswa.">
+  <title>Dashboard Pojok Hope | School of Character</title>
+
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="icon" type="image/png" href="assets/logo.png">
+</head>
+<body>
+
+<div class="dashboard-layout">
+
+  <!-- ==================== SIDEBAR ==================== -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <img src="assets/logo.png" alt="SoC Logo" class="sidebar-logo">
+      <div class="sidebar-brand-text">
+        School Of Character
+        <span>Pojok Hope</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-menu">
+      <a href="#" class="menu-item active" id="menu-dashboard" data-view="ringkasan">
+        <i class="fas fa-chart-pie"></i> Ringkasan
+      </a>
+      <a href="#" class="menu-item" id="menu-schedule" data-view="jadwal">
+        <i class="fas fa-calendar-alt"></i> Jadwal Kelas
+      </a>
+      <a href="#" class="menu-item" id="menu-report" data-view="rapor">
+        <i class="fas fa-file-invoice"></i> Rapor Siswa
+      </a>
+      <a href="#" class="menu-item" id="menu-kehadiran" data-view="kehadiran">
+        <i class="fas fa-calendar-check"></i>
+        <span id="kehadiran-label">Kehadiran</span>
+      </a>
+      <a href="index.html" class="menu-item return-home">
+        <i class="fas fa-arrow-left"></i> Beranda Utama
+      </a>
+    </nav>
+
+    <div class="sidebar-user">
+      <img src="assets/team2.jpg" alt="User Avatar" class="user-avatar" id="sidebar-avatar-img">
+      <div class="user-info">
+        <span class="user-name" id="user-display-name">Budi Santoso</span>
+        <span class="user-role" id="user-display-role">Siswa</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ==================== MAIN CONTENT ==================== -->
+  <main class="main-content">
+
+    <!-- Top Header -->
+    <header class="top-header">
+      <div class="header-left">
+        <button class="sidebar-toggle" id="sidebar-toggle-btn" aria-label="Toggle Sidebar">
+          <i class="fas fa-bars"></i>
+        </button>
+        <h1 class="header-title" id="header-title-text">Panel Dashboard</h1>
+      </div>
+
+      <div class="header-actions">
+        <div class="role-selector" id="role-selector-container">
+          <span class="role-label">Mode:</span>
+          <button class="role-toggle-btn" id="role-toggle-btn">
+            <i class="fas fa-chalkboard-teacher"></i> Switch ke Guru
+          </button>
+        </div>
+        <div class="notification-bell">
+          <i class="fas fa-bell"></i>
+          <span class="notification-badge">2</span>
+        </div>
+        <a href="login.html" class="logout-btn" title="Keluar">
+          <i class="fas fa-sign-out-alt"></i>
+        </a>
+      </div>
+    </header>
+
+    <!-- ==================== DASHBOARD VIEWPORT ==================== -->
+    <div class="dashboard-viewport">
+
+      <!-- ===================================================== -->
+      <!-- VIEW 1: RINGKASAN (default active)                   -->
+      <!-- ===================================================== -->
+      <section id="view-ringkasan" class="dashboard-view active">
+
+        <!-- STUDENT RINGKASAN -->
+        <div id="ringkasan-siswa">
+          <div class="welcome-banner">
+            <div class="welcome-text">
+              <h2>Selamat datang kembali, Budi! 👋</h2>
+              <p>Mari terus asah potensi terbaikmu dan tumbuhkan kebiasaan karakter mulia hari ini.</p>
+            </div>
+            <div class="welcome-stats">
+              <div class="stat-card-mini">
+                <span class="stat-value" id="stat-attendance">95%</span>
+                <span class="stat-label">Kehadiran</span>
+              </div>
+              <div class="stat-card-mini">
+                <span class="stat-value">A</span>
+                <span class="stat-label">Rapor Karakter</span>
+              </div>
+              <div class="stat-card-mini">
+                <span class="stat-value" id="stat-english-grade">B+</span>
+                <span class="stat-label">English</span>
+              </div>
+              <div class="stat-card-mini">
+                <span class="stat-value" id="stat-math-grade">A-</span>
+                <span class="stat-label">Matematika</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Attendance notice bar -->
+          <div class="attendance-notice-bar">
+            <i class="fas fa-calendar-check"></i>
+            <span>Persentase kehadiran bulan Mei: <strong id="attendance-percent">95%</strong> — Luar biasa! Pertahankan semangat hadir.</span>
+          </div>
+
+          <div class="dashboard-grid">
+            <!-- Rapor quick summary -->
+            <div class="dashboard-card card-large">
+              <div class="card-header">
+                <h3><i class="fas fa-star text-orange"></i> Ringkasan Perkembangan Siswa</h3>
+                <span class="badge badge-orange">Mei 2026</span>
+              </div>
+              <p class="card-desc">Evaluasi komprehensif karakter, English, dan Matematika bulan ini.</p>
+              <div class="character-reports">
+                <div class="report-section-header"><i class="fas fa-heart text-orange"></i> Karakter Mulia</div>
+                <div class="trait-progress-box">
+                  <div class="trait-header"><span class="trait-name">Empati &amp; Berbagi</span><span class="trait-score" id="score-empathy">88 / 100</span></div>
+                  <div class="progress-bar-container"><div class="progress-bar fill-orange" style="width:88%"></div></div>
+                  <span class="trait-desc">Budi menunjukkan sikap peduli tinggi dengan membantu merapikan ruang kelas.</span>
+                </div>
+                <div class="trait-progress-box">
+                  <div class="trait-header"><span class="trait-name">Kejujuran</span><span class="trait-score" id="score-honesty">95 / 100</span></div>
+                  <div class="progress-bar-container"><div class="progress-bar fill-green" style="width:95%"></div></div>
+                  <span class="trait-desc">Sangat jujur mengakui kesalahan saat memecahkan pensil milik teman.</span>
+                </div>
+                <div class="trait-progress-box">
+                  <div class="trait-header"><span class="trait-name">Tanggung Jawab</span><span class="trait-score" id="score-responsibility">85 / 100</span></div>
+                  <div class="progress-bar-container"><div class="progress-bar fill-teal" style="width:85%"></div></div>
+                  <span class="trait-desc">Menyelesaikan semua latihan Matematika tepat waktu.</span>
+                </div>
+                <div class="trait-progress-box">
+                  <div class="trait-header"><span class="trait-name">Sopan Santun</span><span class="trait-score" id="score-respect">90 / 100</span></div>
+                  <div class="progress-bar-container"><div class="progress-bar fill-orange" style="width:90%"></div></div>
+                  <span class="trait-desc">Selalu menyapa guru dengan salam ramah sebelum masuk kelas.</span>
+                </div>
+
+                <div class="report-section-header" style="margin-top:1.5rem"><i class="fas fa-language text-teal"></i> English Speaking</div>
+                <div class="trait-progress-box">
+                  <div class="trait-header"><span class="trait-name">Fluency</span><span class="trait-score" id="score-eng-fluency">82 / 100</span></div>
+                  <div class="progress-bar-container"><div class="progress-bar fill-teal" style="width:82%"></div></div>
+                  <span class="trait-desc">Mampu bercerita sederhana menggunakan kosakata harian.</span>
+                </div>
+                <div class="trait-progress-box">
+                  <div class="trait-header"><span class="trait-name">Reading Comprehension</span><span class="trait-score" id="score-eng-reading">78 / 100</span></div>
+                  <div class="progress-bar-container"><div class="progress-bar fill-green" style="width:78%"></div></div>
+                  <span class="trait-desc">Menjawab 8 dari 10 pertanyaan dongeng dengan benar.</span>
+                </div>
+
+                <div class="report-section-header" style="margin-top:1.5rem"><i class="fas fa-calculator text-green"></i> Mathematics</div>
+                <div class="trait-progress-box">
+                  <div class="trait-header"><span class="trait-name">Logika &amp; Problem Solving</span><span class="trait-score" id="score-math-logic">91 / 100</span></div>
+                  <div class="progress-bar-container"><div class="progress-bar fill-orange" style="width:91%"></div></div>
+                  <span class="trait-desc">Memecahkan soal puzzle angka 4 digit dalam &lt; 2 menit.</span>
+                </div>
+                <div class="trait-progress-box">
+                  <div class="trait-header"><span class="trait-name">Aritmatika</span><span class="trait-score" id="score-math-arith">87 / 100</span></div>
+                  <div class="progress-bar-container"><div class="progress-bar fill-teal" style="width:87%"></div></div>
+                  <span class="trait-desc">Nilai latihan perkalian meningkat dari bulan sebelumnya.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sidebar: schedule + AI quick link -->
+            <div class="dashboard-side-column">
+              <div class="dashboard-card">
+                <div class="card-header"><h3><i class="fas fa-calendar-day text-teal"></i> Jadwal Pekan Ini</h3></div>
+                <div class="schedule-list">
+                  <div class="schedule-item">
+                    <div class="schedule-date orange"><span class="date-day">05</span><span class="date-month">Jun</span></div>
+                    <div class="schedule-details"><h4>English Speaking</h4><p><i class="far fa-clock"></i> 14:00 WITA</p><span class="class-type font-green">Outdoor</span></div>
+                  </div>
+                  <div class="schedule-item">
+                    <div class="schedule-date green"><span class="date-day">12</span><span class="date-month">Jun</span></div>
+                    <div class="schedule-details"><h4>Mathematics Fun</h4><p><i class="far fa-clock"></i> 14:00 WITA</p><span class="class-type font-teal">Kelas Pojok Hope</span></div>
+                  </div>
+                  <div class="schedule-item highlighted">
+                    <div class="schedule-date teal"><span class="date-day">15</span><span class="date-month">Jun</span></div>
+                    <div class="schedule-details"><h4>Pendidikan Karakter</h4><p><i class="far fa-clock"></i> 14:00 WITA</p><span class="badge badge-orange font-mini">Seluruh Siswa</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div><!-- /ringkasan-siswa -->
+
+        <!-- TEACHER RINGKASAN -->
+        <div id="ringkasan-guru" style="display:none">
+          <div class="welcome-banner teacher-banner">
+            <div class="welcome-text">
+              <h2>Selamat datang kembali, Mentor Rahma! 👩‍🏫</h2>
+              <p>Gunakan panel ini untuk input nilai, kelola jadwal, dan koordinasi Outdoor Learning.</p>
+            </div>
+            <div class="welcome-stats">
+              <div class="stat-card-mini"><span class="stat-value">12</span><span class="stat-label">Siswa Aktif</span></div>
+              <div class="stat-card-mini"><span class="stat-value">2</span><span class="stat-label">Kelas Hari Ini</span></div>
+            </div>
+          </div>
+
+          <div class="dashboard-grid">
+            <!-- Teacher scoring -->
+            <div class="dashboard-card card-large">
+              <div class="card-header">
+                <h3><i class="fas fa-edit text-green"></i> Input Nilai Komprehensif</h3>
+                <span class="badge badge-green">Perlu Penilaian</span>
+              </div>
+              <p class="card-desc">Input nilai Karakter, English, dan Matematika untuk setiap siswa menggunakan slider interaktif.</p>
+              <div class="scoring-container">
+                <div class="student-select-header">
+                  <label for="student-selector">Pilih Siswa:</label>
+                  <select id="student-selector" class="custom-select">
+                    <option value="budi">Budi Santoso</option>
+                    <option value="aisyah">Aisyah Putri</option>
+                    <option value="fajar">Fajar Ramadhan</option>
+                    <option value="siti">Siti Nurhaliza</option>
+                  </select>
+                </div>
+
+                <div class="scoring-category-label"><i class="fas fa-heart text-orange"></i> Karakter</div>
+                <div class="scoring-sliders-list">
+                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Empati &amp; Berbagi</span><span class="slider-val-badge" id="slider-empathy-val">88</span></div><input type="range" min="50" max="100" value="88" class="range-slider slider-orange" id="slider-empathy"></div>
+                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Kejujuran</span><span class="slider-val-badge" id="slider-honesty-val">95</span></div><input type="range" min="50" max="100" value="95" class="range-slider slider-green" id="slider-honesty"></div>
+                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Tanggung Jawab</span><span class="slider-val-badge" id="slider-responsibility-val">85</span></div><input type="range" min="50" max="100" value="85" class="range-slider slider-teal" id="slider-responsibility"></div>
+                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Sopan Santun</span><span class="slider-val-badge" id="slider-respect-val">90</span></div><input type="range" min="50" max="100" value="90" class="range-slider slider-orange" id="slider-respect"></div>
+                </div>
+
+                <div class="scoring-category-label" style="margin-top:1.5rem"><i class="fas fa-language text-teal"></i> English</div>
+                <div class="scoring-sliders-list">
+                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Fluency</span><span class="slider-val-badge" id="slider-eng-fluency-val">82</span></div><input type="range" min="50" max="100" value="82" class="range-slider slider-teal" id="slider-eng-fluency"></div>
+                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Reading Comprehension</span><span class="slider-val-badge" id="slider-eng-reading-val">78</span></div><input type="range" min="50" max="100" value="78" class="range-slider slider-green" id="slider-eng-reading"></div>
+                </div>
+
+                <div class="scoring-category-label" style="margin-top:1.5rem"><i class="fas fa-calculator text-green"></i> Matematika</div>
+                <div class="scoring-sliders-list">
+                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Logika &amp; Problem Solving</span><span class="slider-val-badge" id="slider-math-logic-val">91</span></div><input type="range" min="50" max="100" value="91" class="range-slider slider-orange" id="slider-math-logic"></div>
+                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Aritmatika</span><span class="slider-val-badge" id="slider-math-arith-val">87</span></div><input type="range" min="50" max="100" value="87" class="range-slider slider-teal" id="slider-math-arith"></div>
+                </div>
+
+                <div class="scoring-actions">
+                  <button class="btn btn-secondary btn-sm" id="btn-save-score"><i class="fas fa-save"></i> Simpan Semua Nilai</button>
+                  <span id="save-status-msg" class="status-msg text-green hidden">✓ Tersimpan!</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Teacher right column -->
+            <div class="dashboard-side-column">
+              <div class="dashboard-card">
+                <div class="card-header"><h3><i class="fas fa-chalkboard-teacher text-teal"></i> Jadwal Mengajar</h3></div>
+                <div class="teacher-schedule-list">
+                  <div class="t-schedule-item active">
+                    <div class="t-schedule-time"><span>Hari Ini</span><strong>14:00</strong></div>
+                    <div class="t-schedule-info"><h4>Matematika Fun</h4><p>Kelompok B</p><span class="status-indicator live">Sedang Berlangsung</span></div>
+                  </div>
+                  <div class="t-schedule-item">
+                    <div class="t-schedule-time"><span>Kamis</span><strong>14:00</strong></div>
+                    <div class="t-schedule-info"><h4>Bahasa Inggris Dongeng</h4><p>Kelompok A</p><span class="status-indicator">Mendatang</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="dashboard-card planner-card">
+                <div class="card-header"><h3><i class="fas fa-campground text-green"></i> Planner Outdoor</h3><span class="badge badge-green">Juli 2026</span></div>
+                <p class="planner-subtitle">Monitor volunteer terdaftar untuk Outdoor Learning Rumah Alam.</p>
+                <div class="planner-metrics">
+                  <div class="metric-row"><span>Target Volunteer:</span><strong>8 Relawan</strong></div>
+                  <div class="metric-row"><span>Terdaftar:</span><strong class="text-orange">5 Relawan</strong></div>
+                  <div class="metric-bar-container"><div class="metric-bar fill-green" style="width:62.5%"></div></div>
+                </div>
+                <div class="volunteer-list-preview"><div class="vol-pic-group">
+                  <span class="vol-initial bg-orange" title="Ahmad">A</span>
+                  <span class="vol-initial bg-green" title="Rini">R</span>
+                  <span class="vol-initial bg-teal" title="Sarah">S</span>
+                  <span class="vol-initial bg-secondary" title="Dandi">D</span>
+                  <span class="vol-initial bg-accent" title="Elisa">E</span>
+                  <span class="vol-plus">+3 lagi</span>
+                </div></div>
+                <button class="btn btn-outline btn-sm btn-full" id="btn-broadcast-planner"><i class="fas fa-bullhorn"></i> Broadcast Kebutuhan Volunteer</button>
+              </div>
+            </div>
+          </div>
+        </div><!-- /ringkasan-guru -->
+
+      </section><!-- /view-ringkasan -->
+
+      <!-- ===================================================== -->
+      <!-- VIEW 2: JADWAL KELAS                                  -->
+      <!-- ===================================================== -->
+      <section id="view-jadwal" class="dashboard-view">
+        <div class="view-header">
+          <h2 class="view-title"><i class="fas fa-calendar-alt text-teal"></i> Jadwal Kelas</h2>
+          <p class="view-subtitle">Daftar kelas yang telah berlangsung dan kelas mendatang di School of Character Pojok Hope.</p>
+        </div>
+
+        <!-- Month navigator -->
+        <div class="month-nav">
+          <button class="month-nav-btn"><i class="fas fa-chevron-left"></i></button>
+          <span class="month-nav-label">Juni 2026</span>
+          <button class="month-nav-btn"><i class="fas fa-chevron-right"></i></button>
+        </div>
+
+        <!-- Upcoming classes list -->
+        <div class="jadwal-container">
+
+          <!-- Past / Done classes -->
+          <div class="jadwal-group-label">
+            <span class="jadwal-group-badge done">✓ Selesai</span>
+            <span>Kelas yang Sudah Berlangsung</span>
+          </div>
+
+          <div class="jadwal-list">
+            <div class="jadwal-card jadwal-done">
+              <div class="jadwal-date-chip orange">
+                <span class="jd-day">15</span><span class="jd-month">Mei</span>
+              </div>
+              <div class="jadwal-info">
+                <h4>Pendidikan Karakter — Sesi Gotong Royong</h4>
+                <p class="jadwal-meta"><i class="far fa-clock"></i> 14:00–16:30 WITA &nbsp;|&nbsp; <i class="fas fa-map-marker-alt"></i> Kelas Pojok Hope</p>
+                <p class="jadwal-meta"><i class="fas fa-users"></i> 12 Siswa hadir</p>
+              </div>
+              <span class="jadwal-status-badge done">✓ Selesai</span>
+            </div>
+
+            <div class="jadwal-card jadwal-done">
+              <div class="jadwal-date-chip teal">
+                <span class="jd-day">22</span><span class="jd-month">Mei</span>
+              </div>
+              <div class="jadwal-info">
+                <h4>English Speaking — Story Telling Fun</h4>
+                <p class="jadwal-meta"><i class="far fa-clock"></i> 14:00–15:30 WITA &nbsp;|&nbsp; <i class="fas fa-map-marker-alt"></i> Outdoor Area</p>
+                <p class="jadwal-meta"><i class="fas fa-users"></i> 10 Siswa hadir</p>
+              </div>
+              <span class="jadwal-status-badge done">✓ Selesai</span>
+            </div>
+
+            <div class="jadwal-card jadwal-done">
+              <div class="jadwal-date-chip green">
+                <span class="jd-day">29</span><span class="jd-month">Mei</span>
+              </div>
+              <div class="jadwal-info">
+                <h4>Mathematics Fun — Puzzle Logika</h4>
+                <p class="jadwal-meta"><i class="far fa-clock"></i> 14:00–15:30 WITA &nbsp;|&nbsp; <i class="fas fa-map-marker-alt"></i> Kelas Pojok Hope</p>
+                <p class="jadwal-meta"><i class="fas fa-users"></i> 11 Siswa hadir</p>
+              </div>
+              <span class="jadwal-status-badge done">✓ Selesai</span>
+            </div>
+          </div>
+
+          <!-- Upcoming classes -->
+          <div class="jadwal-group-label" style="margin-top:2rem">
+            <span class="jadwal-group-badge upcoming">📅 Mendatang</span>
+            <span>Kelas yang Akan Datang</span>
+          </div>
+
+          <div class="jadwal-list">
+            <div class="jadwal-card jadwal-today">
+              <div class="jadwal-date-chip orange">
+                <span class="jd-day">05</span><span class="jd-month">Jun</span>
+              </div>
+              <div class="jadwal-info">
+                <h4>English Speaking &amp; Reading — Sesi Aktif</h4>
+                <p class="jadwal-meta"><i class="far fa-clock"></i> 14:00–15:30 WITA &nbsp;|&nbsp; <i class="fas fa-map-marker-alt"></i> Outdoor Area</p>
+                <p class="jadwal-meta"><i class="fas fa-info-circle"></i> Bawa buku cerita favorit!</p>
+              </div>
+              <span class="jadwal-status-badge today">🔴 Hari Ini</span>
+            </div>
+
+            <div class="jadwal-card">
+              <div class="jadwal-date-chip green">
+                <span class="jd-day">12</span><span class="jd-month">Jun</span>
+              </div>
+              <div class="jadwal-info">
+                <h4>Mathematics Fun Learning — Perkalian &amp; Pembagian</h4>
+                <p class="jadwal-meta"><i class="far fa-clock"></i> 14:00–15:30 WITA &nbsp;|&nbsp; <i class="fas fa-map-marker-alt"></i> Kelas Pojok Hope</p>
+                <p class="jadwal-meta"><i class="fas fa-info-circle"></i> Siapkan alat tulis dan papan hitung.</p>
+              </div>
+              <span class="jadwal-status-badge upcoming">Mendatang</span>
+            </div>
+
+            <div class="jadwal-card">
+              <div class="jadwal-date-chip orange">
+                <span class="jd-day">15</span><span class="jd-month">Jun</span>
+              </div>
+              <div class="jadwal-info">
+                <h4>Pendidikan Karakter Rutin — Kepemimpinan</h4>
+                <p class="jadwal-meta"><i class="far fa-clock"></i> 14:00–16:30 WITA &nbsp;|&nbsp; <i class="fas fa-map-marker-alt"></i> Kelas Pojok Hope</p>
+                <p class="jadwal-meta"><i class="fas fa-users"></i> Seluruh Siswa Wajib Hadir</p>
+              </div>
+              <span class="jadwal-status-badge upcoming">Mendatang</span>
+            </div>
+
+            <div class="jadwal-card">
+              <div class="jadwal-date-chip teal">
+                <span class="jd-day">26</span><span class="jd-month">Jun</span>
+              </div>
+              <div class="jadwal-info">
+                <h4>English &amp; Character — Dongeng Moral</h4>
+                <p class="jadwal-meta"><i class="far fa-clock"></i> 14:00–15:30 WITA &nbsp;|&nbsp; <i class="fas fa-map-marker-alt"></i> Outdoor Area</p>
+                <p class="jadwal-meta"><i class="fas fa-star"></i> Sesi spesial dengan bintang tamu!</p>
+              </div>
+              <span class="jadwal-status-badge upcoming">Mendatang</span>
+            </div>
+
+            <div class="jadwal-card jadwal-special">
+              <div class="jadwal-date-chip green">
+                <span class="jd-day">18</span><span class="jd-month">Jul</span>
+              </div>
+              <div class="jadwal-info">
+                <h4>🌿 Outdoor Learning — Rumah Alam (Semester)</h4>
+                <p class="jadwal-meta"><i class="far fa-clock"></i> 08:00–17:00 WITA &nbsp;|&nbsp; <i class="fas fa-map-marker-alt"></i> Rumah Alam, Gorontalo</p>
+                <p class="jadwal-meta"><i class="fas fa-users"></i> Semua Siswa + 8 Volunteer</p>
+              </div>
+              <span class="jadwal-status-badge special">🌿 Spesial</span>
+            </div>
+          </div>
+
+        </div>
+      </section><!-- /view-jadwal -->
+
+      <!-- ===================================================== -->
+      <!-- VIEW 3: RAPOR SISWA                                   -->
+      <!-- ===================================================== -->
+      <section id="view-rapor" class="dashboard-view">
+        <div class="view-header">
+          <h2 class="view-title"><i class="fas fa-file-invoice text-orange"></i> Rapor Siswa</h2>
+          <p class="view-subtitle">Laporan lengkap perkembangan karakter, English, dan Matematika secara berkala.</p>
+        </div>
+
+        <!-- Class Badge (only visible in teacher mode) -->
+        <div class="rapor-class-badge-container" id="rapor-class-badge-container" style="display:none; margin-bottom: 1.5rem;">
+          <span class="badge-class-manage" id="rapor-class-badge">Mengelola: Kelas A</span>
+        </div>
+
+        <!-- Student selector (only visible in teacher mode) -->
+        <div class="rapor-selector-row" id="rapor-student-selector-row" style="display:none">
+          <label for="rapor-student-selector" class="rapor-select-label">Pilih Siswa:</label>
+          <select id="rapor-student-selector" class="custom-select">
+            <option value="budi">Budi Santoso</option>
+            <option value="aisyah">Aisyah Putri</option>
+            <option value="fajar">Fajar Ramadhan</option>
+            <option value="siti">Siti Nurhaliza</option>
+          </select>
+        </div>
+
+        <!-- Student Star Reward Card -->
+        <div class="dashboard-card star-reward-card" id="student-star-card" style="margin-bottom: 2rem;">
+          <div class="star-reward-content">
+            <div class="star-icon-large">⭐</div>
+            <div class="star-info-text">
+              <h3>Bintang Keaktifan</h3>
+              <div class="star-count-display"><span id="student-star-count">15</span> Bintang</div>
+              <p class="star-subtext">Kumpulkan bintang untuk reward spesial setiap 3 bulan!</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Teacher Star Reward Control Panel -->
+        <div class="dashboard-card star-control-card" id="teacher-star-card" style="margin-bottom: 2rem; display: none;">
+          <div class="card-header">
+            <h3><i class="fas fa-star text-orange"></i> Kelola Bintang Keaktifan</h3>
+            <span class="badge badge-orange" id="star-student-name">Budi Santoso</span>
+          </div>
+          <p class="card-desc">Berikan reward bintang atas keaktifan, sopan santun, atau pencapaian belajar siswa.</p>
+          <div class="star-control-panel">
+            <div class="star-display-large">
+              <span class="star-icon">⭐</span>
+              <span class="star-number" id="teacher-star-count">15</span>
+              <span class="star-unit">Bintang</span>
+            </div>
+            <div class="star-control-actions">
+              <button class="btn btn-star-add" id="btn-star-add"><i class="fas fa-plus"></i> +1 Bintang</button>
+              <button class="btn btn-star-sub" id="btn-star-sub"><i class="fas fa-minus"></i> -1 Bintang</button>
+              <button class="btn btn-star-reset" id="btn-star-reset"><i class="fas fa-sync-alt"></i> Reset Periode</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary Gauges (3 subjects) -->
+        <div class="rapor-gauge-row">
+          <div class="gauge-card">
+            <div class="gauge-circle" id="gauge-char-circle" style="--gauge-pct: 89.5; --gauge-color: var(--accent-orange);">
+              <span class="gauge-value" id="gauge-char-val">89.5</span>
+              <span class="gauge-label-inner">/ 100</span>
+            </div>
+            <p class="gauge-label">Karakter Mulia</p>
+            <span class="badge badge-orange">Sangat Baik</span>
+          </div>
+          <div class="gauge-card">
+            <div class="gauge-circle" id="gauge-eng-circle" style="--gauge-pct: 80; --gauge-color: var(--color-secondary);">
+              <span class="gauge-value" id="gauge-eng-val">80</span>
+              <span class="gauge-label-inner">/ 100</span>
+            </div>
+            <p class="gauge-label">English Speaking</p>
+            <span class="badge badge-teal">Baik</span>
+          </div>
+          <div class="gauge-card">
+            <div class="gauge-circle" id="gauge-math-circle" style="--gauge-pct: 89; --gauge-color: var(--accent-green);">
+              <span class="gauge-value" id="gauge-math-val">89</span>
+              <span class="gauge-label-inner">/ 100</span>
+            </div>
+            <p class="gauge-label">Mathematics</p>
+            <span class="badge badge-green">Sangat Baik</span>
+          </div>
+        </div>
+
+        <!-- Report Card Table -->
+        <div class="dashboard-card" style="margin-top:2rem">
+          <div class="card-header">
+            <h3><i class="fas fa-table text-teal"></i> Tabel Raport Nilai Bulanan</h3>
+            <span class="badge badge-orange">Semester 1 — 2026</span>
+          </div>
+          <p class="card-desc">Perbandingan skor per aspek penilaian selama 3 bulan terakhir.</p>
+          <div class="rapor-table-wrapper">
+            <table class="rapor-table">
+              <thead>
+                <tr>
+                  <th>Aspek Penilaian</th>
+                  <th>Maret</th>
+                  <th>April</th>
+                  <th>Mei</th>
+                  <th>Trend</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="row-category"><td colspan="5"><i class="fas fa-heart"></i> Karakter Mulia</td></tr>
+                <tr>
+                  <td class="aspect-name">Empati &amp; Berbagi</td>
+                  <td><span class="score-chip score-b">82</span></td>
+                  <td><span class="score-chip score-b">85</span></td>
+                  <td><span class="score-chip score-a" id="cell-may-empathy">88</span></td>
+                  <td><span class="trend-up"><i class="fas fa-arrow-up"></i> +6</span></td>
+                </tr>
+                <tr>
+                  <td class="aspect-name">Kejujuran</td>
+                  <td><span class="score-chip score-a">90</span></td>
+                  <td><span class="score-chip score-a">92</span></td>
+                  <td><span class="score-chip score-a" id="cell-may-honesty">95</span></td>
+                  <td><span class="trend-up"><i class="fas fa-arrow-up"></i> +5</span></td>
+                </tr>
+                <tr>
+                  <td class="aspect-name">Tanggung Jawab</td>
+                  <td><span class="score-chip score-b">80</span></td>
+                  <td><span class="score-chip score-b">82</span></td>
+                  <td><span class="score-chip score-b" id="cell-may-responsibility">85</span></td>
+                  <td><span class="trend-up"><i class="fas fa-arrow-up"></i> +5</span></td>
+                </tr>
+                <tr>
+                  <td class="aspect-name">Sopan Santun</td>
+                  <td><span class="score-chip score-a">88</span></td>
+                  <td><span class="score-chip score-a">89</span></td>
+                  <td><span class="score-chip score-a" id="cell-may-respect">90</span></td>
+                  <td><span class="trend-up"><i class="fas fa-arrow-up"></i> +2</span></td>
+                </tr>
+
+                <tr class="row-category"><td colspan="5"><i class="fas fa-language"></i> English Speaking</td></tr>
+                <tr>
+                  <td class="aspect-name">Fluency</td>
+                  <td><span class="score-chip score-b">75</span></td>
+                  <td><span class="score-chip score-b">79</span></td>
+                  <td><span class="score-chip score-b" id="cell-may-fluency">82</span></td>
+                  <td><span class="trend-up"><i class="fas fa-arrow-up"></i> +7</span></td>
+                </tr>
+                <tr>
+                  <td class="aspect-name">Reading Comprehension</td>
+                  <td><span class="score-chip score-b">73</span></td>
+                  <td><span class="score-chip score-b">75</span></td>
+                  <td><span class="score-chip score-b" id="cell-may-reading">78</span></td>
+                  <td><span class="trend-up"><i class="fas fa-arrow-up"></i> +5</span></td>
+                </tr>
+
+                <tr class="row-category"><td colspan="5"><i class="fas fa-calculator"></i> Mathematics</td></tr>
+                <tr>
+                  <td class="aspect-name">Logika &amp; Problem Solving</td>
+                  <td><span class="score-chip score-a">87</span></td>
+                  <td><span class="score-chip score-a">89</span></td>
+                  <td><span class="score-chip score-a" id="cell-may-logic">91</span></td>
+                  <td><span class="trend-up"><i class="fas fa-arrow-up"></i> +4</span></td>
+                </tr>
+                <tr>
+                  <td class="aspect-name">Aritmatika</td>
+                  <td><span class="score-chip score-b">82</span></td>
+                  <td><span class="score-chip score-b">84</span></td>
+                  <td><span class="score-chip score-b" id="cell-may-arith">87</span></td>
+                  <td><span class="trend-up"><i class="fas fa-arrow-up"></i> +5</span></td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr class="row-average">
+                  <td class="aspect-name"><strong>Rata-Rata Total</strong></td>
+                  <td><strong>82.1</strong></td>
+                  <td><strong>84.4</strong></td>
+                  <td><strong><span id="cell-may-average">87.0</span></strong></td>
+                  <td><span class="trend-up"><i class="fas fa-arrow-up"></i> +4.9</span></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <!-- Line Chart Placeholder -->
+        <div class="dashboard-card" style="margin-top:2rem">
+          <div class="card-header">
+            <h3><i class="fas fa-chart-line text-green"></i> Grafik Tren Perkembangan</h3>
+            <span class="badge badge-green">Mar — Mei 2026</span>
+          </div>
+          <p class="card-desc">Tren nilai keseluruhan selama 3 bulan terakhir.</p>
+
+          <!-- CSS-drawn line chart placeholder -->
+          <div class="chart-placeholder">
+            <div class="chart-y-axis">
+              <span>100</span><span>85</span><span>70</span><span>55</span>
+            </div>
+            <div class="chart-area">
+              <svg viewBox="0 0 400 140" xmlns="http://www.w3.org/2000/svg" class="chart-svg">
+                <!-- Grid lines -->
+                <line x1="0" y1="0" x2="400" y2="0" stroke="#E8EDF0" stroke-width="1"/>
+                <line x1="0" y1="46" x2="400" y2="46" stroke="#E8EDF0" stroke-width="1"/>
+                <line x1="0" y1="93" x2="400" y2="93" stroke="#E8EDF0" stroke-width="1"/>
+                <line x1="0" y1="140" x2="400" y2="140" stroke="#E8EDF0" stroke-width="1"/>
+                <!-- Karakter line (orange) -->
+                <polyline points="66,45 200,34 334,20" fill="none" stroke="var(--accent-orange)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="66" cy="45" r="5" fill="var(--accent-orange)"/>
+                <circle cx="200" cy="34" r="5" fill="var(--accent-orange)"/>
+                <circle cx="334" cy="20" r="5" fill="var(--accent-orange)"/>
+                <!-- English line (teal) -->
+                <polyline points="66,88 200,80 334,72" fill="none" stroke="var(--color-secondary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="66" cy="88" r="5" fill="var(--color-secondary)"/>
+                <circle cx="200" cy="80" r="5" fill="var(--color-secondary)"/>
+                <circle cx="334" cy="72" r="5" fill="var(--color-secondary)"/>
+                <!-- Math line (green) -->
+                <polyline points="66,52 200,44 334,36" fill="none" stroke="var(--accent-green)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="66" cy="52" r="5" fill="var(--accent-green)"/>
+                <circle cx="200" cy="44" r="5" fill="var(--accent-green)"/>
+                <circle cx="334" cy="36" r="5" fill="var(--accent-green)"/>
+              </svg>
+              <div class="chart-x-labels">
+                <span>Maret</span><span>April</span><span>Mei</span>
+              </div>
+            </div>
+          </div>
+          <div class="chart-legend">
+            <span class="legend-item"><span class="legend-dot" style="background:var(--accent-orange)"></span> Karakter</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--color-secondary)"></span> English</span>
+            <span class="legend-item"><span class="legend-dot" style="background:var(--accent-green)"></span> Matematika</span>
+          </div>
+        </div>
+
+      </section><!-- /view-rapor -->
+
+      <!-- ===================================================== -->
+      <!-- VIEW 4a: KEHADIRAN (Student)                          -->
+      <!-- ===================================================== -->
+      <section id="view-kehadiran-siswa" class="dashboard-view">
+        <div class="view-header">
+          <h2 class="view-title"><i class="fas fa-calendar-check text-green"></i> Kehadiran Saya</h2>
+          <p class="view-subtitle">Rekap kehadiran bulanan kelas School of Character Pojok Hope.</p>
+        </div>
+
+        <!-- Attendance summary bar -->
+        <div class="attendance-summary-row">
+          <div class="att-sum-card hadir-card">
+            <span class="att-sum-val" id="att-sum-hadir-val">19</span>
+            <span class="att-sum-label"><i class="fas fa-check-circle"></i> Hadir</span>
+          </div>
+          <div class="att-sum-card sakit-card">
+            <span class="att-sum-val" id="att-sum-sakit-val">1</span>
+            <span class="att-sum-label"><i class="fas fa-thermometer-half"></i> Sakit</span>
+          </div>
+          <div class="att-sum-card izin-card">
+            <span class="att-sum-val" id="att-sum-izin-val">0</span>
+            <span class="att-sum-label"><i class="fas fa-envelope"></i> Izin</span>
+          </div>
+          <div class="att-sum-card alpa-card">
+            <span class="att-sum-val" id="att-sum-alpa-val">0</span>
+            <span class="att-sum-label"><i class="fas fa-times-circle"></i> Alpa</span>
+          </div>
+          <div class="att-sum-card pct-card">
+            <span class="att-sum-val" id="att-sum-pct-val">95%</span>
+            <span class="att-sum-label"><i class="fas fa-chart-pie"></i> Kehadiran</span>
+          </div>
+        </div>
+
+        <!-- Calendar month: Mei 2026 -->
+        <div class="dashboard-card" style="margin-top:1.5rem">
+          <div class="card-header">
+            <h3><i class="fas fa-calendar text-teal"></i> Kalender Kehadiran — Mei 2026</h3>
+            <span class="badge badge-green">95% Hadir</span>
+          </div>
+
+          <div class="attendance-calendar">
+            <!-- Day names header -->
+            <div class="cal-day-name">Min</div>
+            <div class="cal-day-name">Sen</div>
+            <div class="cal-day-name">Sel</div>
+            <div class="cal-day-name">Rab</div>
+            <div class="cal-day-name">Kam</div>
+            <div class="cal-day-name">Jum</div>
+            <div class="cal-day-name">Sab</div>
+
+            <!-- Week 1 (Mei starts Kamis = col 5) -->
+            <div class="cal-day empty"></div>
+            <div class="cal-day empty"></div>
+            <div class="cal-day empty"></div>
+            <div class="cal-day empty"></div>
+            <div class="cal-day day-no-class">1</div>
+            <div class="cal-day day-weekend">2</div>
+            <div class="cal-day day-weekend">3</div>
+
+            <!-- Week 2 -->
+            <div class="cal-day day-weekend">4</div>
+            <div class="cal-day day-hadir" title="Hadir — Karakter">5</div>
+            <div class="cal-day day-hadir" title="Hadir — English">6</div>
+            <div class="cal-day day-no-class">7</div>
+            <div class="cal-day day-hadir" title="Hadir — Math">8</div>
+            <div class="cal-day day-weekend">9</div>
+            <div class="cal-day day-weekend">10</div>
+
+            <!-- Week 3 -->
+            <div class="cal-day day-weekend">11</div>
+            <div class="cal-day day-hadir">12</div>
+            <div class="cal-day day-sakit" title="Sakit">13</div>
+            <div class="cal-day day-no-class">14</div>
+            <div class="cal-day day-hadir">15</div>
+            <div class="cal-day day-weekend">16</div>
+            <div class="cal-day day-weekend">17</div>
+
+            <!-- Week 4 -->
+            <div class="cal-day day-weekend">18</div>
+            <div class="cal-day day-hadir">19</div>
+            <div class="cal-day day-hadir">20</div>
+            <div class="cal-day day-no-class">21</div>
+            <div class="cal-day day-hadir">22</div>
+            <div class="cal-day day-weekend">23</div>
+            <div class="cal-day day-weekend">24</div>
+
+            <!-- Week 5 -->
+            <div class="cal-day day-weekend">25</div>
+            <div class="cal-day day-hadir">26</div>
+            <div class="cal-day day-hadir">27</div>
+            <div class="cal-day day-no-class">28</div>
+            <div class="cal-day day-hadir">29</div>
+            <div class="cal-day day-weekend">30</div>
+            <div class="cal-day day-hadir">31</div>
+          </div>
+
+          <!-- Legend -->
+          <div class="cal-legend">
+            <span class="cal-legend-item"><span class="cal-legend-dot hadir"></span> Hadir</span>
+            <span class="cal-legend-item"><span class="cal-legend-dot sakit"></span> Sakit</span>
+            <span class="cal-legend-item"><span class="cal-legend-dot izin"></span> Izin</span>
+            <span class="cal-legend-item"><span class="cal-legend-dot alpa"></span> Alpa</span>
+            <span class="cal-legend-item"><span class="cal-legend-dot no-class"></span> Tidak Ada Kelas</span>
+            <span class="cal-legend-item"><span class="cal-legend-dot weekend"></span> Akhir Pekan</span>
+          </div>
+        </div>
+
+      </section><!-- /view-kehadiran-siswa -->
+
+      <!-- ===================================================== -->
+      <!-- VIEW 4b: KELOLA ABSENSI (Teacher)                     -->
+      <!-- ===================================================== -->
+      <section id="view-kehadiran-guru" class="dashboard-view">
+        <div class="view-header">
+          <h2 class="view-title"><i class="fas fa-clipboard-list text-orange"></i> Kelola Absensi</h2>
+          <p class="view-subtitle">Input dan pantau kehadiran siswa untuk setiap sesi kelas.</p>
+        </div>
+
+        <div class="dashboard-grid">
+          <!-- Left: Absensi Input -->
+          <div class="dashboard-card card-large">
+            <div class="card-header">
+              <h3><i class="fas fa-user-check text-orange"></i> Absensi Harian</h3>
+            </div>
+            <p class="card-desc">Tandai kehadiran siswa untuk kelas yang sedang Anda kelola hari ini.</p>
+
+            <!-- Header for restricted view -->
+            <div class="absensi-class-header" id="absensi-class-header" style="margin-bottom: 1.5rem;">
+              <h4 id="absensi-class-title" style="font-family: var(--font-heading); color: var(--color-secondary-dark); font-weight: 700; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-users text-teal"></i> Daftar Siswa: Kelas A
+              </h4>
+            </div>
+
+            <!-- Dynamic Roster Container -->
+            <div class="absensi-roster" id="absensi-dynamic-roster">
+              <!-- Dynamic roster loaded by JS -->
+            </div>
+
+            <button class="btn btn-secondary btn-sm btn-full" style="margin-top:1.5rem" id="btn-save-absensi">
+              <i class="fas fa-check-circle"></i> Simpan Absensi Hari Ini
+            </button>
+          </div>
+
+          <!-- Right: Attendance History -->
+          <div class="dashboard-side-column">
+            <div class="dashboard-card">
+              <div class="card-header">
+                <h3><i class="fas fa-history text-teal"></i> Riwayat Absensi</h3>
+                <span class="badge badge-teal">Mei 2026</span>
+              </div>
+              <p class="card-desc">Ringkasan kehadiran per sesi kelas bulan ini.</p>
+
+              <div class="absensi-history-table">
+                <div class="absensi-hist-header">
+                  <span>Tanggal</span><span>Kelas</span><span>Hadir</span><span>Alpha</span>
+                </div>
+                <div class="absensi-hist-row">
+                  <span>15 Mei</span><span>Karakter</span>
+                  <span class="hist-hadir">12</span>
+                  <span class="hist-alpha">0</span>
+                </div>
+                <div class="absensi-hist-row">
+                  <span>22 Mei</span><span>English</span>
+                  <span class="hist-hadir">10</span>
+                  <span class="hist-alpha">2</span>
+                </div>
+                <div class="absensi-hist-row">
+                  <span>29 Mei</span><span>Math</span>
+                  <span class="hist-hadir">11</span>
+                  <span class="hist-alpha">1</span>
+                </div>
+                <div class="absensi-hist-row absensi-hist-today">
+                  <span>05 Jun</span><span>English</span>
+                  <span class="hist-hadir">—</span>
+                  <span class="hist-alpha">—</span>
+                </div>
+              </div>
+
+              <!-- Class attendance rate summary -->
+              <div style="margin-top:1.5rem">
+                <p style="font-size:0.85rem;font-weight:700;color:var(--color-secondary-dark);margin-bottom:0.75rem">Tingkat Kehadiran per Siswa</p>
+                <div class="mini-progress-list">
+                  <div class="mini-prog-item"><span>Budi</span><div class="mini-bar"><div class="mini-bar-fill" style="width:95%;background:var(--accent-green)"></div></div><span>95%</span></div>
+                  <div class="mini-prog-item"><span>Aisyah</span><div class="mini-bar"><div class="mini-bar-fill" style="width:100%;background:var(--accent-green)"></div></div><span>100%</span></div>
+                  <div class="mini-prog-item"><span>Rendi</span><div class="mini-bar"><div class="mini-bar-fill" style="width:75%;background:var(--accent-orange)"></div></div><span>75%</span></div>
+                  <div class="mini-prog-item"><span>Fajar</span><div class="mini-bar"><div class="mini-bar-fill" style="width:88%;background:var(--accent-green)"></div></div><span>88%</span></div>
+                  <div class="mini-prog-item"><span>Siti</span><div class="mini-bar"><div class="mini-bar-fill" style="width:100%;background:var(--accent-green)"></div></div><span>100%</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section><!-- /view-kehadiran-guru -->
+
+    </div><!-- /dashboard-viewport -->
+  </main>
+</div><!-- /dashboard-layout -->
+
+<script src="js/dashboard.js"></script>
+</body>
+</html>

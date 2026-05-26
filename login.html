@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Masuk ke sistem raport karakter dan jadwal kelas School of Character Pojok Hope.">
+  <title>Login | School of Character Pojok Hope</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <!-- FontAwesome CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="assets/logo.png">
+
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --teal-dark: #072D3B;
+      --teal:      #0C4A60;
+      --orange:    #FF6B35;
+      --orange-hover: #E05A25;
+      --cream:     #FDFBF8;
+      --cream-alt: #F4F0EB;
+      --text-dark: #1A2B33;
+      --text-muted:#5E7A85;
+      --border:    #DDE5E9;
+      --font-body: 'Inter', sans-serif;
+      --font-heading: 'Outfit', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-body);
+      background-color: var(--cream-alt);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      /* Subtle dot pattern background */
+      background-image: radial-gradient(circle, #BFC9CE 1px, transparent 1px);
+      background-size: 22px 22px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ====== CARD ====== */
+    .login-card {
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.10);
+      padding: 3rem 2.5rem 2.5rem;
+      width: 100%;
+      max-width: 460px;
+    }
+
+    /* ====== HEADER ====== */
+    .login-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .lock-icon {
+      font-size: 2.6rem;
+      margin-bottom: 0.75rem;
+      display: block;
+    }
+
+    .login-title {
+      font-family: var(--font-heading);
+      font-size: 1.9rem;
+      font-weight: 800;
+      color: var(--text-dark);
+      margin-bottom: 0.3rem;
+    }
+
+    .login-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    /* ====== ROLE PILLS ====== */
+    .role-pills {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.75rem;
+      background: var(--cream-alt);
+      padding: 0.35rem;
+      border-radius: 50px;
+      border: 1px solid var(--border);
+    }
+
+    .role-pill {
+      flex: 1;
+      text-align: center;
+      padding: 0.5rem 1rem;
+      border-radius: 50px;
+      font-family: var(--font-heading);
+      font-size: 0.875rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+
+    .role-pill.active {
+      background: var(--teal);
+      color: white;
+      box-shadow: 0 4px 12px rgba(12, 74, 96, 0.25);
+    }
+
+    /* ====== ERROR ====== */
+    .error-msg {
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      color: #dc2626;
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .error-msg.visible { display: flex; }
+
+    /* ====== FORM ====== */
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .form-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .form-label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      font-family: var(--font-body);
+    }
+
+    .forgot-link {
+      font-size: 0.825rem;
+      color: var(--orange);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .forgot-link:hover { text-decoration: underline; }
+
+    .form-input {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      background: #ffffff;
+      color: var(--text-dark);
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-input::placeholder { color: #A3B5BD; }
+
+    .form-input:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(12, 74, 96, 0.1);
+    }
+
+    /* ====== BUTTON ====== */
+    .btn-login {
+      width: 100%;
+      padding: 0.9rem 1.5rem;
+      border-radius: 10px;
+      border: none;
+      background: var(--orange);
+      color: white;
+      font-family: var(--font-heading);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.25s, transform 0.15s, box-shadow 0.25s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+    }
+
+    .btn-login:hover {
+      background: var(--orange-hover);
+      box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .btn-login:active { transform: scale(0.98); }
+
+    /* ====== SPINNER ====== */
+    .spinner {
+      display: none;
+      width: 20px;
+      height: 20px;
+      border: 2.5px solid rgba(255,255,255,0.4);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ====== REGISTER LINK ====== */
+    .register-link {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .register-link a {
+      color: var(--orange);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .register-link a:hover { text-decoration: underline; }
+
+    /* ====== DEMO HINT ====== */
+    .demo-hint {
+      margin-top: 1.25rem;
+      padding: 0.875rem 1rem;
+      background: var(--cream-alt);
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .demo-hint strong {
+      display: block;
+      font-family: var(--font-heading);
+      color: var(--text-dark);
+      margin-bottom: 0.35rem;
+      font-size: 0.8rem;
+    }
+
+    .demo-hint code {
+      background: rgba(12,74,96,0.07);
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      color: var(--teal);
+    }
+
+    /* ====== BACK LINK ====== */
+    .back-link {
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+
+    .back-link a {
+      font-size: 0.825rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: color 0.2s;
+    }
+
+    .back-link a:hover { color: var(--teal); }
+
+    /* ====== SHAKE ANIMATION ====== */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(5px); }
+    }
+
+    /* ====== RESPONSIVE ====== */
+    @media (max-width: 480px) {
+      .login-card { padding: 2rem 1.5rem; }
+      .login-title { font-size: 1.65rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-card" id="login-card">
+
+    <!-- Header -->
+    <div class="login-header">
+      <span class="lock-icon">🔒</span>
+      <h1 class="login-title">Masuk Akun</h1>
+      <p class="login-subtitle">Masuk ke sistem raport karakter dan jadwal kelas</p>
+    </div>
+
+    <!-- Error Message -->
+    <div class="error-msg" id="error-msg">
+      <i class="fas fa-exclamation-circle"></i>
+      <span>Email atau Password Salah. Coba lagi.</span>
+    </div>
+
+    <!-- Login Form -->
+    <form id="login-form" onsubmit="handleLogin(event)">
+
+      <div class="form-group">
+        <div class="form-label-row">
+          <label class="form-label" for="login-username">Email / Nomor HP</label>
+        </div>
+        <input
+          type="text"
+          id="login-username"
+          class="form-input"
+          placeholder="Masukkan email atau no whatsapp"
+          autocomplete="username"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <div class="form-label-row">
+          <label class="form-label" for="login-password">Kata Sandi</label>
+          <a href="#" class="forgot-link">Lupa Sandi?</a>
+        </div>
+        <input
+          type="password"
+          id="login-password"
+          class="form-input"
+          placeholder="Kata sandi akun Anda"
+          autocomplete="current-password"
+          required
+        >
+      </div>
+
+      <button type="submit" class="btn-login" id="btn-login-submit">
+        <span id="btn-text">Masuk Sekarang</span>
+        <div class="spinner" id="login-spinner"></div>
+      </button>
+    </form>
+
+    <!-- Register Link -->
+    <div class="register-link">
+      Belum punya akun? <a href="index.html#/pendaftaran" id="daftar-link">Daftar disini</a>
+    </div>
+
+    <!-- Demo Credentials Hint -->
+    <div class="demo-hint">
+      <strong>🔑 Akun Demo:</strong>
+      Siswa: <code>user</code> / <code>user</code> &nbsp;|&nbsp; Guru A: <code>gurua</code> / <code>gurua</code> &nbsp;|&nbsp; Guru B: <code>gurub</code> / <code>gurub</code>
+    </div>
+
+    <!-- Back to Home -->
+    <div class="back-link">
+      <a href="index.html"><i class="fas fa-arrow-left"></i> Kembali ke Beranda</a>
+    </div>
+
+  </div>
+
+  <script>
+    // Main authentication handler
+    function handleLogin(e) {
+      e.preventDefault();
+
+      const username = document.getElementById('login-username').value.trim().toLowerCase();
+      const password = document.getElementById('login-password').value.trim();
+      const errorMsg = document.getElementById('error-msg');
+      const spinner  = document.getElementById('login-spinner');
+      const btnText  = document.getElementById('btn-text');
+      const card     = document.getElementById('login-card');
+
+      // Reset error
+      errorMsg.classList.remove('visible');
+
+      // Show loading
+      spinner.style.display = 'block';
+      btnText.style.display = 'none';
+
+      setTimeout(() => {
+        if (username === 'user' && password === 'user') {
+          window.location.href = 'dashboard.html?role=siswa';
+        } else if (username === 'gurua' && password === 'gurua') {
+          window.location.href = 'dashboard.html?role=guru&kelas=A';
+        } else if (username === 'gurub' && password === 'gurub') {
+          window.location.href = 'dashboard.html?role=guru&kelas=B';
+        } else if (username === 'guru' && password === 'guru') {
+          window.location.href = 'dashboard.html?role=guru&kelas=A';
+        } else {
+          // Restore button
+          spinner.style.display = 'none';
+          btnText.style.display = 'flex';
+
+          // Show error + shake
+          errorMsg.classList.add('visible');
+          card.style.animation = 'none';
+          card.offsetHeight; // reflow
+          card.style.animation = 'shake 0.4s ease';
+        }
+      }, 750);
+    }
+  </script>
+
+</body>
+</html>

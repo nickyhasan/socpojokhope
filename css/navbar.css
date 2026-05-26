@@ -1,0 +1,172 @@
+/* 
+  School of Character (SoC) - Pojok Hope
+  NAVBAR STYLES
+*/
+
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: var(--navbar-height);
+  background-color: var(--color-secondary);
+  box-shadow: var(--shadow-md);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  transition: var(--transition-smooth);
+}
+
+.navbar-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+/* Brand / Logo */
+.brand {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  gap: 0.75rem;
+}
+
+.nav-logo {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--text-light);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.brand-text {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--text-light);
+  line-height: 1.1;
+}
+
+.brand-text span {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--accent-orange);
+}
+
+/* Nav Links - Desktop */
+.nav-menu {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  gap: 1.5rem;
+}
+
+.nav-link {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 1rem;
+  color: rgba(253, 251, 248, 0.85); /* Slightly transparent cream white */
+  text-decoration: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--border-radius-sm);
+  transition: var(--transition-smooth);
+}
+
+.nav-link:hover, 
+.nav-link.active {
+  color: var(--text-light);
+  background-color: var(--color-secondary-light);
+}
+
+.nav-btn {
+  background-color: var(--accent-orange);
+  color: var(--text-light);
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--border-radius-md);
+  font-weight: 700;
+  box-shadow: 0 4px 10px rgba(255, 107, 53, 0.2);
+}
+
+.nav-btn:hover {
+  background-color: var(--accent-orange-hover);
+  color: var(--text-light);
+}
+
+/* Hamburger Menu Icon */
+.hamburger {
+  display: none;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  z-index: 1010;
+}
+
+.hamburger-line {
+  display: block;
+  width: 26px;
+  height: 3px;
+  margin: 5px auto;
+  background-color: var(--text-light);
+  border-radius: 2px;
+  transition: var(--transition-smooth);
+}
+
+/* Mobile responsive menu */
+@media (max-width: 992px) {
+  .hamburger {
+    display: block;
+  }
+
+  /* Hamburger transform when menu is active */
+  .hamburger.active .hamburger-line:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+  }
+  
+  .hamburger.active .hamburger-line:nth-child(2) {
+    opacity: 0;
+  }
+  
+  .hamburger.active .hamburger-line:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+  }
+
+  .nav-menu {
+    position: fixed;
+    top: var(--navbar-height);
+    right: -100%;
+    width: 280px;
+    height: calc(100vh - var(--navbar-height));
+    background-color: var(--color-secondary-dark);
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 2rem;
+    gap: 1.5rem;
+    box-shadow: -5px 10px 20px rgba(0, 0, 0, 0.15);
+    transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 999;
+  }
+
+  .nav-menu.active {
+    right: 0;
+  }
+
+  .nav-item {
+    width: 100%;
+  }
+
+  .nav-link {
+    display: block;
+    width: 100%;
+    padding: 0.8rem 1rem;
+    font-size: 1.1rem;
+  }
+  
+  .nav-btn {
+    text-align: center;
+    margin-top: 1rem;
+  }
+}

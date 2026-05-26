@@ -1,0 +1,1143 @@
+/* 
+  School of Character (SoC) - Pojok Hope
+  GLOBAL STYLES & LAYOUT
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-dominant);
+  color: var(--text-dark);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Page View Wrapper (For SPA client routing) */
+.page-view {
+  display: none;
+  opacity: 0;
+  min-height: calc(100vh - var(--navbar-height));
+  padding-top: var(--navbar-height);
+  transition: opacity 0.4s ease;
+}
+
+.page-view.active {
+  display: block;
+  opacity: 1;
+  animation: pageFadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  color: var(--color-secondary-dark);
+  font-weight: 700;
+  line-height: 1.25;
+  margin-bottom: 1rem;
+}
+
+/* Container */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 0.8rem 1.8rem;
+  border-radius: var(--border-radius-md);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  text-decoration: none;
+  gap: 0.5rem;
+  box-shadow: var(--shadow-sm);
+  outline: none;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background-color: var(--accent-orange);
+  color: var(--text-light);
+}
+
+.btn-primary:hover {
+  background-color: var(--accent-orange-hover);
+  box-shadow: 0 8px 20px rgba(255, 107, 53, 0.25);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background-color: var(--accent-green);
+  color: var(--text-light);
+}
+
+.btn-secondary:hover {
+  background-color: var(--accent-green-hover);
+  box-shadow: 0 8px 20px rgba(76, 175, 80, 0.25);
+  transform: translateY(-2px);
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: var(--color-secondary);
+  border-color: var(--color-secondary);
+}
+
+.btn-outline:hover {
+  background-color: var(--color-secondary);
+  color: var(--text-light);
+  transform: translateY(-2px);
+}
+
+/* Badge / Pill styling */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 1rem;
+  border-radius: 50px;
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-orange {
+  background-color: var(--accent-orange-tint);
+  color: var(--accent-orange);
+}
+
+.badge-green {
+  background-color: var(--accent-green-tint);
+  color: var(--accent-green);
+}
+
+.badge-teal {
+  background-color: var(--color-secondary-tint);
+  color: var(--color-secondary);
+}
+
+/* Section Common Layout */
+.section {
+  padding: 5rem 0;
+}
+
+.section-alt {
+  background-color: var(--bg-contrast);
+}
+
+.text-center {
+  text-align: center;
+}
+
+.section-title {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  position: relative;
+  display: inline-block;
+}
+
+.section-title::after {
+  content: '';
+  display: block;
+  width: 60px;
+  height: 4px;
+  background: var(--accent-orange);
+  margin: 0.5rem auto 0;
+  border-radius: 2px;
+}
+
+.section-desc {
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  max-width: 700px;
+  margin: 0 auto 3.5rem;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-dominant);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-secondary);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-secondary-light);
+}
+
+/* Fade in animation keyframes */
+@keyframes pageFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Floating Animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* SVG backgrounds and playful patterns */
+.pattern-bg {
+  background-image: radial-gradient(var(--border-color) 1.5px, transparent 1.5px);
+  background-size: 24px 24px;
+}
+
+/* ==================== PAGE VIEW STYLES: PROGRAM ==================== */
+
+.programs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.program-card {
+  background-color: var(--bg-card);
+  border-radius: var(--border-radius-md);
+  padding: 2.5rem 2rem;
+  box-shadow: var(--shadow-md);
+  transition: var(--transition-smooth);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.program-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-lg);
+}
+
+.program-card .program-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.program-card h3 {
+  color: var(--color-secondary-dark);
+  margin-bottom: 0.75rem;
+  font-size: 1.35rem;
+}
+
+.program-card p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+  flex-grow: 1;
+}
+
+.program-card.card-orange {
+  border-top: 6px solid var(--accent-orange);
+}
+
+.program-card.card-green {
+  border-top: 6px solid var(--accent-green);
+}
+
+.program-card.card-teal {
+  border-top: 6px solid var(--color-secondary);
+}
+
+/* Outdoor Learning Block */
+.outdoor-learning-section {
+  background-color: var(--color-secondary-tint);
+  border: 2px dashed var(--accent-green);
+  border-radius: var(--border-radius-lg);
+  padding: 3.5rem 2rem;
+  margin-top: 4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  box-shadow: var(--shadow-sm);
+}
+
+.outdoor-badge {
+  position: absolute;
+  top: -15px;
+  background: var(--accent-green);
+  color: white;
+  padding: 0.35rem 1.25rem;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 10px rgba(76, 175, 80, 0.2);
+}
+
+.outdoor-icon {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+}
+
+.outdoor-learning-section h3 {
+  font-size: 1.8rem;
+  color: var(--color-secondary-dark);
+  margin-bottom: 1.25rem;
+}
+
+.outdoor-learning-section p {
+  max-width: 800px;
+  color: var(--text-dark);
+  margin-bottom: 2rem;
+  line-height: 1.7;
+  font-size: 1.05rem;
+}
+
+
+/* ==================== PAGE VIEW STYLES: TENTANG ==================== */
+
+/* Intro */
+.about-intro-section {
+  background: linear-gradient(135deg, var(--bg-contrast) 0%, var(--bg-dominant) 100%);
+  border-radius: var(--border-radius-lg);
+  padding: 3rem 2rem;
+  margin-bottom: 4rem;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.about-intro-text {
+  font-size: 1.25rem;
+  color: var(--color-secondary-dark);
+  line-height: 1.8;
+  max-width: 900px;
+  margin: 1rem auto 0;
+  font-weight: 500;
+  font-family: var(--font-heading);
+}
+
+/* Vision Mission Grid */
+.vision-mission-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.5rem;
+  margin-top: 2rem;
+  margin-bottom: 4rem;
+}
+
+.vision-card, .mission-card {
+  background: var(--bg-card);
+  padding: 2.5rem;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  transition: var(--transition-smooth);
+}
+
+.vision-card:hover, .mission-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-lg);
+}
+
+.vision-card {
+  border-left: 6px solid var(--accent-orange);
+}
+
+.mission-card {
+  border-left: 6px solid var(--accent-green);
+}
+
+.vision-card h3, .mission-card h3 {
+  color: var(--color-secondary-dark);
+  font-size: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.vision-card p, .mission-card ul {
+  color: var(--text-dark);
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+.mission-card ul {
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+/* Location Section */
+.location-section {
+  background-color: var(--bg-contrast);
+  border-radius: var(--border-radius-lg);
+  padding: 3rem;
+  margin-top: 4rem;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 3rem;
+  align-items: center;
+  border: 1px solid var(--border-color);
+}
+
+.location-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.location-address {
+  display: flex;
+  gap: 0.85rem;
+  margin: 1rem 0;
+  align-items: center;
+}
+
+.location-marker-icon {
+  font-size: 1.2rem;
+  color: var(--accent-orange);
+  background-color: var(--accent-orange-tint);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.location-map {
+  background: var(--bg-card);
+  border-radius: var(--border-radius-md);
+  padding: 0.75rem;
+  box-shadow: var(--shadow-md);
+  border: 2px solid var(--border-color);
+  width: 100%;
+}
+
+/* Galeri Kegiatan Grid */
+.gallery-section {
+  margin-top: 5rem;
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.gallery-item {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-md);
+  aspect-ratio: 4 / 3;
+  background-color: var(--color-secondary-tint);
+  border: 4px solid var(--bg-card);
+  transition: var(--transition-smooth);
+}
+
+.gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+  display: block;
+}
+
+.gallery-caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(to top, rgba(7, 45, 59, 0.95) 0%, rgba(7, 45, 59, 0.5) 75%, transparent 100%);
+  color: var(--text-light);
+  padding: 1.5rem 1.25rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: var(--font-heading);
+  transform: translateY(100%);
+  transition: var(--transition-smooth);
+  z-index: 10;
+}
+
+.gallery-item:hover {
+  transform: scale(1.03);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-secondary-tint);
+}
+
+.gallery-item:hover img {
+  transform: scale(1.1);
+}
+
+.gallery-item:hover .gallery-caption {
+  transform: translateY(0);
+}
+
+/* Mitra/Sponsors Refactoring */
+.mitra-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+  align-items: center;
+  text-align: center;
+}
+
+.mitra-item {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  padding: 1.5rem;
+  font-weight: bold;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition-smooth);
+}
+
+.mitra-item:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-secondary-light);
+  color: var(--color-secondary-dark);
+}
+
+
+/* ==================== PAGE VIEW STYLES: PENDAFTARAN ==================== */
+
+.portal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2.5rem;
+  margin-top: 3rem;
+}
+
+.portal-card {
+  background-color: var(--bg-card);
+  border-radius: var(--border-radius-lg);
+  padding: 3rem 2rem;
+  box-shadow: var(--shadow-md);
+  transition: var(--transition-smooth);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid transparent;
+}
+
+.portal-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-secondary-tint);
+}
+
+.portal-icon {
+  font-size: 3.5rem;
+  margin-bottom: 1.5rem;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  color: var(--color-secondary-dark);
+}
+
+.portal-card h3 {
+  font-size: 1.5rem;
+  color: var(--color-secondary-dark);
+  margin-bottom: 1rem;
+}
+
+.portal-card p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.7;
+  margin-bottom: 2.5rem;
+  flex-grow: 1;
+}
+
+.portal-cta-btn {
+  width: 100%;
+  margin-top: auto;
+}
+
+.portal-card.card-orange {
+  border-top: 6px solid var(--accent-orange);
+}
+.portal-card.card-orange .portal-icon {
+  background-color: var(--accent-orange-tint);
+}
+
+.portal-card.card-green {
+  border-top: 6px solid var(--accent-green);
+}
+.portal-card.card-green .portal-icon {
+  background-color: var(--accent-green-tint);
+}
+
+.portal-card.card-teal {
+  border-top: 6px solid var(--color-secondary);
+}
+.portal-card.card-teal .portal-icon {
+  background-color: var(--color-secondary-tint);
+}
+
+
+/* ==================== GLOBAL RESPONSIVE ADJUSTMENTS ==================== */
+
+@media (max-width: 992px) {
+  .vision-mission-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .location-section {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding: 2rem;
+  }
+}
+
+/* ==================== ADDITIONAL UI/UX REVISIONS ==================== */
+
+/* Back to Top Button */
+.back-to-top-btn {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: var(--accent-orange);
+  color: var(--text-light);
+  border: 2px solid var(--text-light);
+  font-size: 1.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg);
+  transition: all 0.3s ease;
+  opacity: 0;
+  visibility: hidden;
+  z-index: 999;
+  transform: translateY(10px);
+}
+
+.back-to-top-btn.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.back-to-top-btn:hover {
+  background-color: var(--color-secondary);
+  border-color: var(--color-secondary);
+  transform: translateY(-5px);
+}
+
+/* Profile / Company Profile Layouts (Tentang) */
+.profile-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 3.5rem;
+  align-items: center;
+  margin-bottom: 4rem;
+}
+
+.profile-row.reversed {
+  grid-template-columns: 1fr 1.2fr;
+}
+
+.profile-row.reversed .profile-content {
+  grid-column: 2;
+}
+
+.profile-row.reversed .profile-media {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.profile-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.profile-media {
+  width: 100%;
+  position: relative;
+}
+
+.profile-image {
+  width: 100%;
+  height: auto;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 6px solid var(--bg-card);
+  transition: var(--transition-smooth);
+  object-fit: cover;
+  aspect-ratio: 4 / 3;
+}
+
+.profile-image:hover {
+  transform: scale(1.02);
+}
+
+/* Pendaftaran Portal CTA Buttons */
+.portal-cta-btn.btn-portal-orange {
+  background-color: transparent;
+  color: var(--accent-orange);
+  border: 2px solid var(--accent-orange);
+}
+
+.portal-cta-btn.btn-portal-orange:hover {
+  background-color: var(--accent-orange);
+  color: var(--text-light);
+  box-shadow: 0 6px 15px rgba(255, 107, 53, 0.25);
+}
+
+.portal-cta-btn.btn-portal-green {
+  background-color: transparent;
+  color: var(--accent-green);
+  border: 2px solid var(--accent-green);
+}
+
+.portal-cta-btn.btn-portal-green:hover {
+  background-color: var(--accent-green);
+  color: var(--text-light);
+  box-shadow: 0 6px 15px rgba(76, 175, 80, 0.25);
+}
+
+.portal-cta-btn.btn-portal-teal {
+  background-color: transparent;
+  color: var(--color-secondary);
+  border: 2px solid var(--color-secondary);
+}
+
+.portal-cta-btn.btn-portal-teal:hover {
+  background-color: var(--color-secondary);
+  color: var(--text-light);
+  box-shadow: 0 6px 15px rgba(12, 74, 96, 0.25);
+}
+
+/* Responsive grid for company profile rows and other adjustments */
+@media (max-width: 768px) {
+  .profile-row, .profile-row.reversed {
+    grid-template-columns: 1fr !important;
+    gap: 2rem;
+  }
+  
+  .profile-row.reversed .profile-content {
+    grid-column: auto;
+  }
+
+  .profile-row.reversed .profile-media {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+
+/* ==================== HERO CTA OUTLINE-TO-FILL BUTTONS ==================== */
+/* These match the Pendaftaran-style "outline to fill" hover logic */
+
+.btn-hero-orange {
+  background-color: transparent;
+  color: var(--accent-orange);
+  border: 2px solid var(--accent-orange);
+  font-weight: 700;
+}
+.btn-hero-orange:hover {
+  background-color: var(--accent-orange);
+  color: var(--text-light);
+  box-shadow: 0 8px 20px rgba(255, 107, 53, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-hero-outline {
+  background-color: transparent;
+  color: var(--color-secondary);
+  border: 2px solid var(--color-secondary);
+  font-weight: 700;
+}
+.btn-hero-outline:hover {
+  background-color: var(--color-secondary);
+  color: var(--text-light);
+  box-shadow: 0 8px 20px rgba(12, 74, 96, 0.25);
+  transform: translateY(-2px);
+}
+
+.btn-hero-whatsapp {
+  background-color: transparent;
+  color: #25D366;
+  border: 2px solid #25D366;
+  font-weight: 700;
+}
+.btn-hero-whatsapp:hover {
+  background-color: #25D366;
+  color: white;
+  box-shadow: 0 8px 20px rgba(37, 211, 102, 0.3);
+  transform: translateY(-2px);
+}
+
+/* ==================== TENTANG HERO BOX — TWO COLUMN ==================== */
+.tentang-hero-box {
+  background: linear-gradient(135deg, var(--color-secondary-dark) 0%, var(--color-secondary) 100%);
+  padding: 0;
+  overflow: hidden;
+  /* No margin-top — page-view offset handles spacing */
+}
+
+.tentang-hero-grid {
+  display: grid;
+  grid-template-columns: 55% 45%;
+  align-items: center;
+  min-height: 480px;
+  gap: 3rem;
+}
+
+/* Left column: text */
+.tentang-hero-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.25rem;
+  padding: 4rem 0;
+}
+
+/* Right column: image */
+.tentang-hero-image {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tentang-img {
+  width: 100%;
+  height: 380px;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  filter: brightness(0.92);
+  border-radius: var(--border-radius-lg);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.badge-teal-light {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 1rem;
+  border-radius: 50px;
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 700;
+  background-color: rgba(255, 255, 255, 0.15);
+  color: var(--text-light);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(4px);
+  letter-spacing: 0.5px;
+}
+
+.tentang-hero-title {
+  font-size: 3rem;
+  line-height: 1.2;
+  color: var(--text-light);
+  margin-bottom: 0;
+}
+
+.tentang-hero-title span {
+  color: var(--accent-orange);
+}
+
+.tentang-hero-desc {
+  font-size: 1.1rem;
+  color: rgba(253, 251, 248, 0.88);
+  max-width: 620px;
+  line-height: 1.7;
+  margin-bottom: 0.5rem;
+}
+
+.btn-outline-light {
+  background-color: transparent;
+  color: var(--text-light);
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  font-weight: 700;
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  padding: 0.8rem 1.8rem;
+  border-radius: var(--border-radius-md);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.btn-outline-light:hover {
+  background-color: var(--text-light);
+  color: var(--color-secondary-dark);
+  border-color: var(--text-light);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+/* Adjust container section inside Tentang - no top padding since hero has it */
+#page-tentang .container.section {
+  padding-top: 4rem;
+}
+
+/* ==================== MITRA & SPONSOR SECTION ==================== */
+.mitra-sponsor-section {
+  background-color: var(--bg-contrast);
+  padding: 5rem 0;
+  border-top: 1px solid var(--border-color);
+}
+
+.mitra-title {
+  font-size: 2rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  color: var(--color-secondary-dark);
+}
+
+.mitra-desc {
+  font-size: 1rem;
+  color: var(--text-muted);
+  max-width: 600px;
+  margin: 0 auto 3rem;
+}
+
+.mitra-logo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  align-items: stretch;
+}
+
+.mitra-logo-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2.5rem 1.5rem;
+  background-color: var(--bg-card);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  text-decoration: none;
+  color: var(--text-muted);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: var(--transition-smooth);
+  box-shadow: var(--shadow-sm);
+  text-align: center;
+}
+
+.mitra-logo-btn i {
+  font-size: 2.5rem;
+  color: var(--color-secondary-light);
+  transition: var(--transition-smooth);
+}
+
+.mitra-logo-btn:hover {
+  border-color: var(--color-secondary);
+  color: var(--color-secondary-dark);
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md);
+}
+
+.mitra-logo-btn:hover i {
+  color: var(--accent-orange);
+}
+
+/* ==================== FOOTER LOGO IMAGE FIX ==================== */
+.footer-logo-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--accent-orange);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  background-color: white;
+}
+
+/* ==================== RESPONSIVE: TENTANG HERO TWO-COLUMN ==================== */
+@media (max-width: 900px) {
+  .tentang-hero-grid {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    gap: 2rem;
+  }
+  .tentang-hero-text {
+    padding: 4rem 1.5rem 1rem 1.5rem;
+  }
+  .tentang-hero-image {
+    height: auto;
+    padding: 0 1.5rem 4rem 1.5rem;
+  }
+  .tentang-img {
+    height: 300px;
+    min-height: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .tentang-hero-title {
+    font-size: 2.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .tentang-hero-title {
+    font-size: 1.85rem;
+  }
+}
+
+/* Dedicated Founder Profile Section */
+.founder-card-large {
+  display: grid;
+  grid-template-columns: 0.95fr 1.05fr;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+.founder-card-left {
+  background: linear-gradient(135deg, var(--color-secondary-tint) 0%, rgba(255, 255, 255, 0.4) 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  border-right: 1px solid var(--border-color);
+}
+
+.founder-avatar-large {
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid white;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 1.5rem;
+  background-color: var(--bg-contrast);
+}
+
+.founder-img-large {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.founder-name-large {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-secondary-dark);
+  margin-bottom: 0.35rem;
+  letter-spacing: 0.5px;
+}
+
+.founder-title-large {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent-orange);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.founder-card-right {
+  padding: 4rem 3rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.founder-quote {
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--color-secondary);
+  border-left: 4px solid var(--accent-orange);
+  padding-left: 1.25rem;
+  margin: 0 0 1.5rem 0;
+  font-style: italic;
+}
+
+.founder-bio-text p {
+  font-size: 1.025rem;
+  line-height: 1.7;
+  color: var(--text-dark);
+  margin-bottom: 1rem;
+}
+
+.founder-bio-text p:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 900px) {
+  .founder-card-large {
+    grid-template-columns: 1fr;
+  }
+  .founder-card-left {
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    padding: 3rem 1.5rem;
+  }
+  .founder-card-right {
+    padding: 2.5rem 1.5rem;
+  }
+}
+

@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="School of Character (SoC) - Pojok Hope adalah lembaga bimbingan belajar non-formal di Kabila yang berfokus pada pendidikan karakter, matematika, dan bahasa Inggris dengan metode Fun Learning.">
+  <meta name="keywords" content="School of Character, Pojok Hope, Bimbingan Belajar Kabila, Pendidikan Karakter Gorontalo, Fun Learning Matematika, Kursus Bahasa Inggris">
+  <meta name="author" content="School of Character Pojok Hope">
+  
+  <title>School of Character (SoC) - Pojok Hope | Building Character, Growing Hope</title>
+  
+  <!-- CSS Design Tokens and Component Stylesheets -->
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/navbar.css">
+  <link rel="stylesheet" href="css/footer.css">
+  <link rel="stylesheet" href="css/home.css">
+  <link rel="stylesheet" href="css/ai-widget.css">
+  
+  <!-- FontAwesome CDN for vector icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
+  <!-- Favicon using logo image -->
+  <link rel="icon" type="image/png" href="assets/logo.png">
+</head>
+<body class="pattern-bg">
+
+  <!-- ==================== LAYOUT: NAVBAR ==================== -->
+  <header class="navbar">
+    <div class="container navbar-container">
+      <a href="#/home" class="brand" id="nav-brand-logo">
+        <img src="assets/logo.png" alt="SoC Logo" class="nav-logo">
+        <div class="brand-text">
+          School Of Character
+          <span>Pojok Hope</span>
+        </div>
+      </a>
+      
+      <button class="hamburger" aria-label="Toggle Menu" id="navbar-hamburger-btn">
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+      </button>
+      
+      <ul class="nav-menu" id="navbar-links-menu">
+        <li class="nav-item"><a href="#/home" class="nav-link active" id="nav-link-home">Home</a></li>
+        <li class="nav-item"><a href="#/program" class="nav-link" id="nav-link-program">Program</a></li>
+        <li class="nav-item"><a href="#/tentang" class="nav-link" id="nav-link-tentang">Tentang</a></li>
+        <li class="nav-item"><a href="#/pendaftaran" class="nav-link" id="nav-link-pendaftaran">Pendaftaran</a></li>
+        <li class="nav-item"><a href="login.html" class="nav-link nav-btn" id="nav-link-login">Masuk</a></li>
+      </ul>
+    </div>
+  </header>
+
+  <!-- ==================== MAIN VIEWPORT ==================== -->
+  <main id="main-viewport">
+
+    <!-- 1. PAGE: HOME -->
+    <section id="page-home" class="page-view active">
+      
+      <!-- HERO SECTION -->
+      <header class="hero">
+        <div class="container hero-grid">
+          <div class="hero-content">
+            <div class="hero-tag">
+              <span class="badge badge-orange">✨ Fun Learning Center</span>
+            </div>
+            <h1 class="hero-title">
+              School of Character<br><span>Pojok Hope</span>
+            </h1>
+            <p class="hero-desc">
+              Building Character, Growing Hope.
+            </p>
+            <p class="hero-desc-detail">
+              Pusat bimbingan belajar non-formal interaktif yang memadukan penguasaan Matematika, Bahasa Inggris aktif, dan pembentukan karakter mulia sejak dini.
+            </p>
+            <div class="hero-cta">
+              <a href="#/pendaftaran" class="btn btn-hero-orange" id="hero-cta-register">Daftar Sekarang</a>
+              <a href="#/program" class="btn btn-hero-outline" id="hero-cta-program">Pelajari Program</a>
+              <a href="https://wa.me/6282190029889" target="_blank" class="btn btn-hero-whatsapp" id="hero-cta-whatsapp">
+                <i class="fab fa-whatsapp"></i> Hubungi Kami
+              </a>
+            </div>
+          </div>
+          
+          <div class="hero-visual">
+            <div class="visual-backdrop"></div>
+            <!-- Floating Decorative Badges -->
+            <div class="hero-badge-floating badge-float-1">
+              <span>🧠</span> <strong>Karakter Mulia</strong>
+            </div>
+            <div class="hero-badge-floating badge-float-2">
+              <span>🇬🇧</span> <strong>English Fun</strong>
+            </div>
+            
+            <!-- visual mockup representing dynamic child-friendly learning -->
+            <div class="visual-image-wrapper">
+              <img src="assets/hero-photo.jpg" class="hero-photo" alt="School of Character Pojok Hope">
+            </div>
+          </div>
+        </div>
+        
+        <!-- Wave Transition SVG -->
+        <div class="hero-wave">
+          <svg viewBox="0 0 1200 120" preserveAspectRatio="none">
+            <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V0C26.9,8.75,57.05,18.3,87.43,26.49,152.6,44,220.4,59.21,288.73,59.88A311.59,311.59,0,0,0,321.39,56.44Z" class="shape-fill"></path>
+          </svg>
+        </div>
+      </header>
+
+      <!-- VALUES SECTION (Three pillars) -->
+      <section class="section section-alt">
+        <div class="container">
+          <div class="text-center">
+            <span class="badge badge-teal">Metode Pembelajaran</span>
+            <h2 class="section-title">Program Unggulan Kami</h2>
+            <p class="section-desc">Pojok Hope menghadirkan suasana belajar yang merangsang rasa ingin tahu anak-anak melalui metode interaktif yang dirancang khusus.</p>
+          </div>
+          
+          <div class="values-grid">
+            <!-- Pillar 1 -->
+            <article class="value-card" id="card-pillar-character">
+              <div class="value-icon-box orange">
+                <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                </svg>
+              </div>
+              <h3>Pendidikan Karakter</h3>
+              <p>Membiasakan empati, kerja keras, integritas, dan kejujuran sebagai fondasi anak menyongsong masa depan cemerlang.</p>
+            </article>
+            
+            <!-- Pillar 2 -->
+            <article class="value-card" id="card-pillar-math">
+              <div class="value-icon-box green">
+                <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                </svg>
+              </div>
+              <h3>Matematika Menyenangkan</h3>
+              <p>Mengupas logika matematika secara visual dan interaktif. Tidak ada lagi ketakutan terhadap rumus abstrak!</p>
+            </article>
+            
+            <!-- Pillar 3 -->
+            <article class="value-card" id="card-pillar-english">
+              <div class="value-icon-box teal">
+                <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                </svg>
+              </div>
+              <h3>Bahasa Inggris Aktif</h3>
+              <p>Meningkatkan kepercayaan diri anak berbicara bahasa Inggris melalui metode storytelling, drama, dan role-play.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- GALLERY SECTION (Moved here, Filterable) -->
+      <section class="section">
+        <div class="container">
+          <div class="text-center">
+            <span class="badge badge-green">Dokumentasi</span>
+            <h2 class="section-title">Galeri Kegiatan</h2>
+            <p class="section-desc">Momen-momen keseruan belajar, bermain, dan pembentukan karakter anak-anak di School of Character - Pojok Hope.</p>
+          </div>
+
+          <!-- Gallery Filter Buttons -->
+          <div class="gallery-filters" style="display: flex; justify-content: center; gap: 1rem; margin-bottom: 3rem; flex-wrap: wrap;">
+            <button class="filter-btn active" data-filter="all">Semua</button>
+            <button class="filter-btn" data-filter="karakter">Karakter</button>
+            <button class="filter-btn" data-filter="inggris">Inggris</button>
+            <button class="filter-btn" data-filter="matematika">Matematika</button>
+            <button class="filter-btn" data-filter="outdoor">Outdoor Learning</button>
+          </div>
+
+          <!-- Filterable Gallery Grid -->
+          <div class="gallery-grid" id="home-gallery-grid">
+            <div class="gallery-item" data-category="matematika">
+              <img src="assets/gallery1.jpg" alt="Kelas Matematika Menyenangkan">
+              <div class="gallery-caption">Kelas Matematika Menyenangkan</div>
+            </div>
+            <div class="gallery-item" data-category="karakter">
+              <img src="assets/gallery2.jpg" alt="Praktik Kelas Karakter">
+              <div class="gallery-caption">Praktik Kelas Karakter</div>
+            </div>
+            <div class="gallery-item" data-category="outdoor">
+              <img src="assets/gallery3.jpg" alt="Aktivitas Outdoor Learning">
+              <div class="gallery-caption">Aktivitas Outdoor Learning</div>
+            </div>
+            <div class="gallery-item" data-category="inggris">
+              <img src="assets/gallery4.jpg" alt="Pentas Dongeng Bahasa Inggris">
+              <div class="gallery-caption">Pentas Dongeng Bahasa Inggris</div>
+            </div>
+            <div class="gallery-item" data-category="matematika">
+              <img src="assets/gallery5.jpg" alt="Penyelesaian Logika Puzzle Matematika">
+              <div class="gallery-caption">Logika & Puzzle Matematika</div>
+            </div>
+            <div class="gallery-item" data-category="karakter">
+              <img src="assets/gallery6.jpg" alt="Diskusi Karakter & Berbagi Cerita">
+              <div class="gallery-caption">Diskusi Karakter & Berbagi</div>
+            </div>
+            <div class="gallery-item" data-category="outdoor">
+              <img src="assets/gallery7.jpg" alt="Aktivitas Menanam Pohon di Alam">
+              <div class="gallery-caption">Aktivitas Peduli Lingkungan</div>
+            </div>
+            <div class="gallery-item" data-category="inggris">
+              <img src="assets/gallery8.jpg" alt="Membaca Buku Cerita Bahasa Inggris">
+              <div class="gallery-caption">Membaca & Pemahaman Inggris</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI ASSISTANT SECTION -->
+      <section class="section">
+        <div class="container ai-grid">
+          <div class="ai-intro">
+            <span class="badge badge-orange">Teknologi Pendidikan</span>
+            <h2>Konsultasi Tumbuh Kembang dengan AI</h2>
+            <p>
+              Kami mengerti bahwa mendidik karakter anak membutuhkan kerja sama yang sinergis antara guru dan orang tua. Gunakan **Asisten Karakter SoC** untuk menemukan kiat mendidik yang disesuaikan dengan pendekatan kurikulum kami secara instan.
+            </p>
+            <ul class="ai-benefits">
+              <li class="ai-benefit-item">
+                <span class="ai-benefit-check">✓</span> Praktis & Instan 24/7
+              </li>
+              <li class="ai-benefit-item">
+                <span class="ai-benefit-check">✓</span> Kurikulum Berbasis Fun Learning
+              </li>
+              <li class="ai-benefit-item">
+                <span class="ai-benefit-check">✓</span> Tips yang Mudah Dipraktikkan di Rumah
+              </li>
+            </ul>
+          </div>
+          
+          <!-- AI Widget Component -->
+          <div class="ai-widget-wrapper">
+            <div class="ai-widget" id="ai-character-assistant">
+              <!-- Header -->
+              <div class="ai-widget-header">
+                <div class="ai-header-info">
+                  <div class="ai-avatar">🤖</div>
+                  <div class="ai-header-title">
+                    Asisten SoC
+                    <span>Karakter & Kurikulum</span>
+                  </div>
+                </div>
+                <div class="ai-status-dot"></div>
+              </div>
+              
+              <!-- Logs viewport -->
+              <div class="ai-widget-body" id="ai-widget-body">
+                <!-- Generated by JS -->
+              </div>
+              
+              <!-- Selection Chips -->
+              <div class="ai-widget-choices">
+                <h4 class="choices-heading">Pilih Topik Konsultasi:</h4>
+                <div class="choices-container" id="ai-choices-container">
+                  <!-- Chips loaded by JS -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </section>
+
+    <!-- 2. PAGE: PROGRAM -->
+    <section id="page-program" class="page-view">
+      <div class="container section">
+        <div class="text-center">
+          <span class="badge badge-green">Pilihan Program</span>
+          <h2 class="section-title">Program Pembelajaran</h2>
+          <p class="section-desc">Pilihan program komprehensif kami dirancang untuk membekali masa depan anak dengan keterampilan kognitif dan perilaku berkarakter mulia.</p>
+        </div>
+        
+        <!-- Programs Grid -->
+        <div class="programs-grid">
+          
+          <!-- Program 1 -->
+          <div class="program-card card-orange">
+            <div class="program-icon">🛡️</div>
+            <h3>Pendidikan Karakter</h3>
+            <p>Pembiasaan sopan santun, kejujuran, kepedulian sosial, dan tanggung jawab. Kelas ini diadakan secara rutin pada tanggal 15 setiap bulan untuk seluruh siswa.</p>
+            <span class="badge badge-orange">Tanggal 15 (Setiap Bulan)</span>
+          </div>
+
+          <!-- Program 2 -->
+          <div class="program-card card-green">
+            <div class="program-icon">📐</div>
+            <h3>Mathematics Fun</h3>
+            <p>Mempelajari konsep logika aritmatika, perkalian, pembagian, dan pemecahan masalah. Kelas diadakan bergantian dengan kelas Bahasa Inggris pada tanggal 5 setiap bulan.</p>
+            <span class="badge badge-green">Tanggal 5 (Bergantian)</span>
+          </div>
+
+          <!-- Program 3 -->
+          <div class="program-card card-teal">
+            <div class="program-icon">🗣️</div>
+            <h3>English Speaking & Reading</h3>
+            <p>Mengembangkan keberanian berkomunikasi aktif dalam bahasa Inggris lewat dongeng. Kelas diadakan bergantian dengan kelas Matematika pada tanggal 5 setiap bulan.</p>
+            <span class="badge badge-teal">Tanggal 5 (Bergantian)</span>
+          </div>
+
+        </div>
+
+        <!-- Highlighted: Outdoor Learning -->
+        <div class="outdoor-learning-section">
+          <div class="outdoor-badge">Aktivitas Khusus</div>
+          <div class="outdoor-icon">🍃</div>
+            <h3>Outdoor Learning (Belajar di Alam)</h3>
+          <p>
+            Diadakan pada pertengahan dan akhir tahun (saat liburan semester) di alam terbuka yang asri (seperti Rumah Alam). Program ini mengajak anak belajar langsung dari alam untuk melatih kemandirian, kebersamaan, dan kepedulian lingkungan. Karena skalanya yang besar, kegiatan ini membutuhkan dukungan khusus dari para volunteer.
+          </p>
+          <a href="#/pendaftaran" class="btn btn-outline" id="program-outdoor-cta">Ikuti Kelas Outdoor</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. PAGE: TENTANG -->
+    <section id="page-tentang" class="page-view">
+      <!-- Tentang Hero Box — Two-Column: Left Text, Right Image -->
+      <div class="tentang-hero-box">
+        <div class="container tentang-hero-grid">
+          <!-- Left column: text content -->
+          <div class="tentang-hero-text">
+            <h1 class="tentang-hero-title">Membentuk Karakter<br><span>Mandiri &amp; Kreatif</span></h1>
+            <p class="tentang-hero-desc">
+              SoC menawarkan program bimbingan komprehensif untuk mengembangkan potensi anak. Kami percaya bahwa setiap anak memiliki bakat unik yang dapat tumbuh maksimal melalui bimbingan yang tepat, lingkungan yang mendukung, dan pembelajaran yang menyenangkan.
+            </p>
+            <a href="#/pendaftaran" class="btn btn-outline-light" id="tentang-cta-bergabung">Bergabung Bersama Kami! <i class="fas fa-arrow-right"></i></a>
+          </div>
+          <!-- Right column: real image -->
+          <div class="tentang-hero-image">
+            <img src="assets/team1.jpg" alt="Tim School of Character Pojok Hope" class="tentang-img">
+          </div>
+        </div>
+      </div>
+
+      <!-- Dedicated Founder Profile Section -->
+      <section class="section founder-profile-section pattern-bg" style="border-bottom: 1px solid var(--border-color);">
+        <div class="container">
+          <div class="text-center" style="margin-bottom: 3.5rem;">
+            <span class="badge badge-teal">Profil Pendiri</span>
+            <h2 class="section-title">PROFIL PENDIRI: KA MINARTI MONOARFA</h2>
+          </div>
+          <div class="founder-card-large">
+            <!-- Left Column: Avatar & Headings -->
+            <div class="founder-card-left">
+              <div class="founder-avatar-large">
+                <img src="assets/founder.jpg" alt="Ka Minarti Monoarfa" class="founder-img-large">
+              </div>
+              <h2 class="founder-name-large">MINARTI MONOARFA</h2>
+              <span class="founder-title-large">Founder &amp; Direktur SoC Pojok Hope</span>
+            </div>
+            
+            <!-- Right Column: Quote & Biography -->
+            <div class="founder-card-right">
+              <blockquote class="founder-quote">
+                "Membangun Generasi Emas yang Berkarakter &amp; Berhati Mulia dari Gorontalo."
+              </blockquote>
+              <div class="founder-bio-text">
+                <p>
+                  Selamat datang di School of Character - Pojok Hope. Sebagai pendiri, dedikasi saya adalah menciptakan lingkungan belajar alternatif yang tidak hanya mengasah ketajaman kognitif anak melalui Matematika dan Bahasa Inggris, melainkan juga menanamkan fondasi karakter yang kokoh sejak dini.
+                </p>
+                <p>
+                  SoC hadir bukan hanya untuk membentuk kemampuan, tetapi juga menanamkan karakter, kepedulian, dan semangat bertumbuh bersama. Melalui visi dan misi SoC, kami ingin menghadirkan lingkungan belajar yang bukan hanya mendidik Intelektual, tetapi juga menyentuh hati dan membentuk karakter anak dengan penuh kasih
+                </p>
+                <p>
+                  Kami percaya bahwa kecerdasan intelektual tanpa disertai akhlak mulia akan kehilangan arah. Oleh karena itu, melalui metode *Fun Learning*, kami merancang setiap interaksi kelas agar merangsang empati, kejujuran, sopan santun, dan tanggung jawab sosial pada diri anak secara alami tanpa tekanan.
+                </p>
+                <p>
+                  Kami berharap kehadiran Pojok Hope dapat menjadi oase pendidikan yang menumbuhkan harapan baru bagi generasi masa depan Gorontalo.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="container section">
+
+        <!-- Profile Section 2: Tentang Bimbel Kami -->
+        <div class="profile-row middle-style reversed" style="margin-bottom: 5rem;">
+          <div class="profile-content">
+            <span class="badge badge-orange">Tentang Bimbel Kami</span>
+            <h2 style="font-size: 2.2rem; line-height: 1.2; margin-top: 0.5rem;">Ruang Belajar yang Aman & Bermakna</h2>
+            <p class="profile-text" style="font-size: 1.1rem; color: var(--text-dark); margin-top: 1rem; line-height: 1.7;">
+              School of Character - Pojok Hope adalah sebuah lembaga bimbingan belajar non-formal yang berfokus pada pembentukan karakter anak secara holistik. Sekolah ini hadir sebagai ruang belajar yang aman, menyenangkan, dan bermakna bagi anak-anak untuk mempelajari Matematika, Bahasa Inggris aktif, dan nilai-nilai moral.
+            </p>
+            <p class="profile-text" style="font-size: 1.1rem; color: var(--text-dark); margin-top: 1rem; line-height: 1.7;">
+              Didirikan dengan tujuan menjembatani kebutuhan akademis dengan perkembangan emosional anak, kami berkomitmen untuk menciptakan suasana kelas bebas tekanan di mana anak-anak dapat tumbuh menjadi pribadi berkarakter mulia.
+            </p>
+          </div>
+          <div class="profile-media">
+            <img src="assets/team2.jpg" alt="SoC Classroom" class="profile-image">
+          </div>
+        </div>
+
+        <div class="text-center" style="margin-top: 5rem;">
+          <span class="badge badge-orange">Mengenal Kami</span>
+          <h2 class="section-title">Visi & Misi SoC Pojok Hope</h2>
+          <p class="section-desc">Membentuk generasi emas Indonesia yang cerdas kognitif dan berakhlak mulia melalui pengajaran terapan.</p>
+        </div>
+
+        <!-- Vision Mission Grid -->
+        <div class="vision-mission-grid">
+          <div class="vision-card">
+            <h3>Visi Kami</h3>
+            <p>
+              Menjadi pusat bimbingan belajar alternatif terdepan yang tidak hanya mengutamakan kecerdasan akademis, melainkan juga menanamkan karakter berbudi pekerti luhur demi mewujudkan masa depan anak yang penuh harapan.
+            </p>
+          </div>
+
+          <div class="mission-card">
+            <h3>Misi Kami</h3>
+            <ul>
+              <li>Menerapkan metode pengajaran yang ramah anak, interaktif, dan bebas tekanan (Fun Learning).</li>
+              <li>Membudayakan perilaku sopan santun, kepemimpinan, gotong royong, dan integritas tinggi.</li>
+              <li>Mengembangkan kemampuan dasar Matematika dan Bahasa Inggris aktif yang adaptif terhadap masa kini.</li>
+              <li>Mempererat kolaborasi pendidikan antara lembaga bimbingan, guru, dan para orang tua.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Address and Location details -->
+        <div class="location-section">
+          <div class="location-info">
+            <h3 style="color: var(--color-secondary-dark); font-size: 1.6rem; margin-bottom: 1rem;">Lokasi Pusat Pembelajaran</h3>
+            <p style="color: var(--text-dark); font-size: 1.1rem; margin-bottom: 1.5rem; line-height: 1.7;">
+              Kami mengundang Bapak/Ibu untuk berkunjung langsung dan melihat aktivitas pembelajaran menyenangkan kami di alamat:
+            </p>
+            <div class="location-address">
+              <span class="location-marker-icon"><i class="fas fa-map-marker-alt"></i></span>
+              <p style="font-size: 1.05rem; font-weight: bold; color: var(--color-secondary-dark); margin-bottom: 0;">
+                Jln Pasar Minggu, Kec Kabila, Desa Dutohe, Gorontalo.
+              </p>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 1rem;">
+              Jam Operasional: Senin - Sabtu (14:00 - 17:30 WITA)
+            </p>
+          </div>
+          <!-- Google Maps iframe Embed -->
+          <div class="location-map">
+            <iframe src="https://maps.google.com/maps?q=School%20of%20Character,%20Desa%20Dutohe,%20Kabila,%20Gorontalo&t=&z=17&ie=UTF8&iwloc=&output=embed" width="100%" height="250" style="border:0; border-radius: 12px; display: block;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+          </div>
+        </div><!-- /.location-section -->
+
+      </div><!-- /.container.section -->
+
+      <!-- Mitra & Sponsor Section -->
+      <div class="mitra-sponsor-section">
+        <div class="container">
+          <div class="text-center">
+            <span class="badge badge-teal">Mitra Pendukung</span>
+            <h3 class="mitra-title">Didukung Oleh Lembaga & Sponsor Terpercaya</h3>
+            <p class="mitra-desc">Kami berterima kasih atas dukungan dari berbagai lembaga dan komunitas yang percaya pada misi School of Character.</p>
+          </div>
+          <!-- Mitra Logo Grid -->
+          <div class="mitra-logo-grid" style="max-width: 600px; margin: 0 auto;">
+            <a href="https://alliesyouth.org/" target="_blank" class="mitra-logo-btn" id="mitra-btn-1">
+              <i class="fas fa-hand-holding-heart"></i>
+              <span>Allies Youth Development</span>
+            </a>
+            <a href="https://www.instagram.com/pismovement/" target="_blank" class="mitra-logo-btn" id="mitra-btn-2">
+              <i class="fab fa-instagram"></i>
+              <span>Peacemakers Indonesia</span>
+            </a>
+          </div>
+        </div>
+      </div><!-- /.container.section -->
+    </section><!-- /#page-tentang -->
+
+    <!-- 4. PAGE: PENDAFTARAN -->
+    <section id="page-pendaftaran" class="page-view">
+      <div class="container section">
+        <div class="text-center">
+          <span class="badge badge-orange">Formulir Pendaftaran</span>
+          <h2 class="section-title">Bergabung Bersama Kami</h2>
+          <p class="section-desc">Pilih kategori bergabung di bawah ini. Setiap tautan akan membuka formulir pendaftaran resmi (Google Form) di tab baru.</p>
+        </div>
+
+        <!-- Registration Portal Cards Grid -->
+        <div class="portal-grid">
+          
+          <!-- Portal 1: Siswa Baru -->
+          <div class="portal-card card-orange">
+            <div class="portal-icon">🎓</div>
+            <h3>Pendaftaran Siswa Baru</h3>
+            <p>Buka jalan emas perkembangan kognitif dan pembentukan karakter putra-putri Anda. Kelas bimbingan belajar Matematika, Bahasa Inggris, dan Karakter dengan pendekatan Fun Learning.</p>
+            <a href="https://docs.google.com/forms/d/e/1FAIpQLScb42Ck9syRCpdjbPYyQdnheEpfDlES66TnP3cVtMfkzevC3g/viewform?usp=header" target="_blank" class="btn btn-portal-orange portal-cta-btn">Daftar Siswa Baru <i class="fas fa-external-link-alt"></i></a>
+          </div>
+
+          <!-- Portal 2: Guru/Pengajar -->
+          <div class="portal-card card-green">
+            <div class="portal-icon">🏫</div>
+            <h3>Rekrutmen Guru / Pengajar</h3>
+            <p>Salurkan minat mengajar Anda untuk memajukan pendidikan karakter di Gorontalo. Bergabunglah sebagai pengajar Matematika, Bahasa Inggris, atau Pembina Karakter.</p>
+            <a href="#" target="_blank" class="btn btn-portal-green portal-cta-btn">Lamar Sebagai Guru <i class="fas fa-external-link-alt"></i></a>
+          </div>
+
+          <!-- Portal 3: Volunteer -->
+          <div class="portal-card card-teal">
+            <div class="portal-icon">🤝</div>
+            <h3>Pendaftaran Volunteer</h3>
+            <p>Jadilah relawan pendukung kegiatan Outdoor Learning, pengajar tamu, atau penyedia donasi alat edukatif untuk menumbuhkan harapan anak-anak di pedesaan Kabila.</p>
+            <a href="#" target="_blank" class="btn btn-portal-teal portal-cta-btn">Daftar Relawan / Volunteer <i class="fas fa-external-link-alt"></i></a>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. PAGE: LOGIN/AKUN -->
+    <section id="page-login" class="page-view">
+      <div class="container section" style="display: flex; justify-content: center; align-items: center; min-height: 70vh;">
+        <!-- Card Container -->
+        <div style="background: var(--bg-card); width: 100%; max-width: 440px; border-radius: var(--border-radius-lg); padding: 3rem 2.5rem; box-shadow: var(--shadow-lg); border: 1px solid var(--border-color);">
+          <div class="text-center" style="margin-bottom: 2rem;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔒</div>
+            <h2 style="font-size: 1.8rem; color: var(--color-secondary-dark); margin-bottom: 0.5rem;">Masuk Akun</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Masuk ke sistem raport karakter dan jadwal kelas</p>
+          </div>
+
+          <form onsubmit="event.preventDefault(); alert('Login disimulasikan berhasil!');" style="display: flex; flex-direction: column; gap: 1.25rem;">
+            <div>
+              <label style="display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem;">Email / Nomor HP</label>
+              <input type="text" required placeholder="Masukkan email atau no whatsapp" style="width: 100%; padding: 0.8rem 1.2rem; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); font-family: var(--font-body); outline: none;">
+            </div>
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                <label style="font-weight: 600; font-size: 0.9rem; margin: 0;">Kata Sandi</label>
+                <a href="#/login" style="font-size: 0.8rem; color: var(--accent-orange); text-decoration: none; font-weight: 600;">Lupa Sandi?</a>
+              </div>
+              <input type="password" required placeholder="Kata sandi akun Anda" style="width: 100%; padding: 0.8rem 1.2rem; border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); font-family: var(--font-body); outline: none;">
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="margin-top: 1rem; width: 100%;">Masuk Sekarang</button>
+            
+            <p style="text-align: center; font-size: 0.85rem; color: var(--text-muted); margin-top: 1rem;">
+              Belum punya akun? <a href="#/pendaftaran" style="color: var(--color-secondary); text-decoration: none; font-weight: bold;">Daftar disini</a>
+            </p>
+          </form>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== LAYOUT: FOOTER ==================== -->
+  <footer class="footer">
+    <div class="container footer-grid">
+      <!-- Brand & Desc -->
+      <div class="footer-brand">
+        <a href="#/home" class="footer-logo">
+          <img src="assets/logo.png" alt="SoC Logo" class="footer-logo-img">
+          <div class="footer-logo-text">
+            School Of Character
+            <span>Pojok Hope</span>
+          </div>
+        </a>
+        <p class="footer-desc">
+          Membimbing anak dengan cinta, berakar pada kekuatan karakter, penguasaan logika dasar, dan keberanian berkomunikasi aktif.
+        </p>
+        <div class="footer-socials">
+          <a href="https://www.facebook.com/share/1B4EaX6SXy/" target="_blank" class="social-icon" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+          <a href="https://www.instagram.com/soc_pojokhope.gorontalo" target="_blank" class="social-icon" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+          <a href="https://youtube.com/@schoolofcharacter-pojokhope?si=OntRCpep6tyAyEg0" target="_blank" class="social-icon" aria-label="YouTube"><i class="fab fa-youtube"></i></a>
+          <a href="https://www.tiktok.com/@soc_pojokhope.gorontalo" target="_blank" class="social-icon" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
+          <a href="https://wa.me/6282190029889" target="_blank" class="social-icon" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+        </div>
+      </div>
+
+      <!-- Links -->
+      <div>
+        <h4 class="footer-heading">Navigasi Cepat</h4>
+        <ul class="footer-links">
+          <li><a href="#/home" class="footer-link">Beranda</a></li>
+          <li><a href="#/program" class="footer-link">Program Belajar</a></li>
+          <li><a href="#/tentang" class="footer-link">Tentang Kami</a></li>
+          <li><a href="#/pendaftaran" class="footer-link">Pendaftaran</a></li>
+        </ul>
+      </div>
+
+      <!-- Address / Location Info -->
+      <div class="footer-contact">
+        <h4 class="footer-heading">Pusat Informasi</h4>
+        
+        <div class="contact-item">
+          <div class="contact-icon"><i class="fas fa-map-marker-alt"></i></div>
+          <div class="contact-text">
+            <strong>Alamat Kami:</strong>
+            Jln Pasar Minggu, Kec Kabila, Desa Dutohe, Gorontalo.
+          </div>
+        </div>
+
+        <div class="contact-item">
+          <div class="contact-icon"><i class="fab fa-whatsapp"></i></div>
+          <div class="contact-text">
+            <strong>Telepon / WhatsApp:</strong>
+            +62 821-9002-9889
+          </div>
+        </div>
+
+        <div class="contact-item">
+          <div class="contact-icon"><i class="far fa-envelope"></i></div>
+          <div class="contact-text">
+            <strong>Email:</strong>
+            SchoolofCharacter.Gorontalo@gmail.com
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Copyright -->
+    <div class="container footer-bottom">
+      <p>&copy; 2026 School of Character - Pojok Hope. Hak Cipta Dilindungi.</p>
+      <p>Dibuat dengan ❤️ untuk Pendidikan Karakter Indonesia.</p>
+    </div>
+  </footer>
+
+  <!-- Back to Top Button -->
+  <button id="back-to-top" class="back-to-top-btn" aria-label="Kembali ke Atas">
+    <i class="fas fa-chevron-up"></i>
+  </button>
+
+  <!-- Application Modules -->
+  <script src="js/router.js"></script>
+  <script src="js/ai-widget.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
