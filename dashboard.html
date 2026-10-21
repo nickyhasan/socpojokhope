@@ -9,16 +9,18 @@
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/dashboard.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-  <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="icon" type="image/png" href="static/src/assets/ui/logo.png">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 
 <div class="dashboard-layout">
 
   <!-- ==================== SIDEBAR ==================== -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="dashboard-sidebar">
     <div class="sidebar-brand">
-      <img src="assets/logo.png" alt="SoC Logo" class="sidebar-logo">
+      <img src="static/src/assets/ui/logo.png" alt="SoC Logo" class="sidebar-logo">
       <div class="sidebar-brand-text">
         School Of Character
         <span>Pojok Hope</span>
@@ -26,32 +28,57 @@
     </div>
 
     <nav class="sidebar-menu">
-      <a href="#" class="menu-item active" id="menu-dashboard" data-view="ringkasan">
-        <i class="fas fa-chart-pie"></i> Ringkasan
+      <a href="#" class="menu-item active" id="menu-dashboard" data-view="ringkasan" title="Ringkasan">
+        <i class="fas fa-chart-pie"></i> <span class="menu-label">Ringkasan</span>
       </a>
-      <a href="#" class="menu-item" id="menu-schedule" data-view="jadwal">
-        <i class="fas fa-calendar-alt"></i> Jadwal Kelas
+      <a href="#" class="menu-item" id="menu-manajemen-jadwal" data-view="manajemen-jadwal" style="display:none" title="Manajemen Jadwal">
+        <i class="fas fa-calendar-plus"></i> <span class="menu-label">Manajemen Jadwal</span>
       </a>
-      <a href="#" class="menu-item" id="menu-report" data-view="rapor">
-        <i class="fas fa-file-invoice"></i> Rapor Siswa
+      <a href="#" class="menu-item" id="menu-schedule" data-view="jadwal" title="Jadwal Kelas">
+        <i class="fas fa-calendar-alt"></i> <span class="menu-label">Jadwal Kelas</span>
       </a>
-      <a href="#" class="menu-item" id="menu-kehadiran" data-view="kehadiran">
+      <a href="#" class="menu-item" id="menu-kehadiran" data-view="kehadiran" title="Kelola Absensi">
         <i class="fas fa-calendar-check"></i>
-        <span id="kehadiran-label">Kehadiran</span>
+        <span class="menu-label" id="kehadiran-label">Kelola Absensi</span>
       </a>
-      <a href="index.html" class="menu-item return-home">
-        <i class="fas fa-arrow-left"></i> Beranda Utama
+      <a href="#" class="menu-item" id="menu-manajemen-kelas" data-view="manajemen-kelas" style="display:none" title="Manajemen Kelas">
+        <i class="fas fa-chalkboard"></i> <span class="menu-label">Manajemen Kelas</span>
+      </a>
+      <a href="#" class="menu-item" id="menu-akun-siswa" data-view="akun-siswa" style="display:none" title="Buat Akun Siswa">
+        <i class="fas fa-user-graduate"></i> <span class="menu-label">Buat Akun Siswa</span>
+      </a>
+      <a href="#" class="menu-item" id="menu-report" data-view="data-siswa" title="Data Siswa">
+        <i class="fas fa-users"></i> <span class="menu-label" id="menu-report-label">Data Siswa</span>
+      </a>
+      <a href="#" class="menu-item" id="menu-akun-guru" data-view="akun-guru" style="display:none" title="Buat Akun Guru">
+        <i class="fas fa-chalkboard-teacher"></i> <span class="menu-label">Buat Akun Guru</span>
+      </a>
+      <a href="#" class="menu-item" id="menu-data-guru" data-view="data-guru" style="display:none" title="Data Guru">
+        <i class="fas fa-users-cog"></i> <span class="menu-label">Data Guru</span>
+      </a>
+      <a href="#" class="menu-item" id="menu-data-diri" data-view="data-diri" title="Data Diri">
+        <i class="fas fa-user-circle"></i> <span class="menu-label">Data Diri</span>
+      </a>
+      <a href="#" class="menu-item" id="menu-my-idcard" data-view="my-idcard" style="display:none" title="ID Card">
+        <i class="fas fa-id-card"></i> <span class="menu-label">ID Card</span>
       </a>
     </nav>
 
-    <div class="sidebar-user">
-      <img src="assets/team2.jpg" alt="User Avatar" class="user-avatar" id="sidebar-avatar-img">
+    <a href="index.html" class="menu-item return-home" title="Beranda Utama">
+      <i class="fas fa-arrow-left"></i> <span class="menu-label">Beranda Utama</span>
+    </a>
+
+    <div class="sidebar-user" title="Profil Pengguna">
+      <img src="static/src/assets/ui/team2.jpg" alt="User Avatar" class="user-avatar" id="sidebar-avatar-img">
       <div class="user-info">
         <span class="user-name" id="user-display-name">Budi Santoso</span>
         <span class="user-role" id="user-display-role">Siswa</span>
       </div>
     </div>
   </aside>
+
+  <!-- Mobile Backdrop Overlay -->
+  <div id="sidebar-backdrop" class="sidebar-backdrop" style="display:none;"></div>
 
   <!-- ==================== MAIN CONTENT ==================== -->
   <main class="main-content">
@@ -66,17 +93,14 @@
       </div>
 
       <div class="header-actions">
-        <div class="role-selector" id="role-selector-container">
-          <span class="role-label">Mode:</span>
-          <button class="role-toggle-btn" id="role-toggle-btn">
-            <i class="fas fa-chalkboard-teacher"></i> Switch ke Guru
-          </button>
-        </div>
+        <button type="button" class="header-settings-btn" id="btn-header-admin-settings" title="Pengaturan &amp; Mode Tampilan" style="display:inline-flex; background:none; border:none; cursor:pointer; font-size:1.15rem; color:var(--color-secondary-dark); padding:0.4rem; align-items:center; justify-content:center; border-radius:50%; transition:background-color 0.2s ease;">
+          <i class="fas fa-cog"></i>
+        </button>
         <div class="notification-bell">
           <i class="fas fa-bell"></i>
           <span class="notification-badge">2</span>
         </div>
-        <a href="login.html" class="logout-btn" title="Keluar">
+        <a href="login.html" class="logout-btn" title="Keluar" onclick="localStorage.removeItem('user')">
           <i class="fas fa-sign-out-alt"></i>
         </a>
       </div>
@@ -91,27 +115,27 @@
       <section id="view-ringkasan" class="dashboard-view active">
 
         <!-- STUDENT RINGKASAN -->
-        <div id="ringkasan-siswa">
+        <div id="ringkasan-siswa" style="display:none;">
           <div class="welcome-banner">
             <div class="welcome-text">
               <h2>Selamat datang kembali, Budi! 👋</h2>
               <p>Mari terus asah potensi terbaikmu dan tumbuhkan kebiasaan karakter mulia hari ini.</p>
+              <div class="student-level-badges" style="margin-top:0.6rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+                <span class="badge badge-teal" id="siswa-level-english-badge"><i class="fas fa-language"></i> English: Belum ditentukan</span>
+                <span class="badge badge-green" id="siswa-level-math-badge"><i class="fas fa-calculator"></i> Math: Belum ditentukan</span>
+              </div>
             </div>
             <div class="welcome-stats">
               <div class="stat-card-mini">
                 <span class="stat-value" id="stat-attendance">95%</span>
-                <span class="stat-label">Kehadiran</span>
+                <span class="stat-label">KEHADIRAN</span>
               </div>
               <div class="stat-card-mini">
-                <span class="stat-value">A</span>
-                <span class="stat-label">Rapor Karakter</span>
-              </div>
-              <div class="stat-card-mini">
-                <span class="stat-value" id="stat-english-grade">B+</span>
+                <span class="stat-value" id="stat-english-grade">-</span>
                 <span class="stat-label">English</span>
               </div>
               <div class="stat-card-mini">
-                <span class="stat-value" id="stat-math-grade">A-</span>
+                <span class="stat-value" id="stat-math-grade">-</span>
                 <span class="stat-label">Matematika</span>
               </div>
             </div>
@@ -120,7 +144,7 @@
           <!-- Attendance notice bar -->
           <div class="attendance-notice-bar">
             <i class="fas fa-calendar-check"></i>
-            <span>Persentase kehadiran bulan Mei: <strong id="attendance-percent">95%</strong> — Luar biasa! Pertahankan semangat hadir.</span>
+            <span>Persentase kehadiran bulan ini: <strong id="attendance-percent">95%</strong> — Luar biasa! Pertahankan semangat hadir.</span>
           </div>
 
           <div class="dashboard-grid">
@@ -128,20 +152,20 @@
             <div class="dashboard-card card-large">
               <div class="card-header">
                 <h3><i class="fas fa-star text-orange"></i> Ringkasan Perkembangan Siswa</h3>
-                <span class="badge badge-orange">Mei 2026</span>
+                <span class="badge badge-orange">September 2026</span>
               </div>
               <p class="card-desc">Evaluasi komprehensif karakter, English, dan Matematika bulan ini.</p>
               <div class="character-reports">
-                <div class="report-section-header"><i class="fas fa-heart text-orange"></i> Karakter Mulia</div>
+                <div class="report-section-header"><i class="fas fa-heart text-orange"></i> Karakter</div>
                 <div class="trait-progress-box">
                   <div class="trait-header"><span class="trait-name">Empati &amp; Berbagi</span><span class="trait-score" id="score-empathy">88 / 100</span></div>
                   <div class="progress-bar-container"><div class="progress-bar fill-orange" style="width:88%"></div></div>
-                  <span class="trait-desc">Budi menunjukkan sikap peduli tinggi dengan membantu merapikan ruang kelas.</span>
+                  <span class="trait-desc">Menunjukkan sikap peduli tinggi dengan membantu merapikan ruang kelas.</span>
                 </div>
                 <div class="trait-progress-box">
                   <div class="trait-header"><span class="trait-name">Kejujuran</span><span class="trait-score" id="score-honesty">95 / 100</span></div>
                   <div class="progress-bar-container"><div class="progress-bar fill-green" style="width:95%"></div></div>
-                  <span class="trait-desc">Sangat jujur mengakui kesalahan saat memecahkan pensil milik teman.</span>
+                  <span class="trait-desc">Sangat jujur dan bertanggung jawab saat berinteraksi dengan teman.</span>
                 </div>
                 <div class="trait-progress-box">
                   <div class="trait-header"><span class="trait-name">Tanggung Jawab</span><span class="trait-score" id="score-responsibility">85 / 100</span></div>
@@ -163,19 +187,19 @@
                 <div class="trait-progress-box">
                   <div class="trait-header"><span class="trait-name">Reading Comprehension</span><span class="trait-score" id="score-eng-reading">78 / 100</span></div>
                   <div class="progress-bar-container"><div class="progress-bar fill-green" style="width:78%"></div></div>
-                  <span class="trait-desc">Menjawab 8 dari 10 pertanyaan dongeng dengan benar.</span>
+                  <span class="trait-desc">Menjawab pertanyaan dongeng dengan pemahaman baik.</span>
                 </div>
 
                 <div class="report-section-header" style="margin-top:1.5rem"><i class="fas fa-calculator text-green"></i> Mathematics</div>
                 <div class="trait-progress-box">
                   <div class="trait-header"><span class="trait-name">Logika &amp; Problem Solving</span><span class="trait-score" id="score-math-logic">91 / 100</span></div>
                   <div class="progress-bar-container"><div class="progress-bar fill-orange" style="width:91%"></div></div>
-                  <span class="trait-desc">Memecahkan soal puzzle angka 4 digit dalam &lt; 2 menit.</span>
+                  <span class="trait-desc">Memecahkan soal puzzle logika angka dengan cepat.</span>
                 </div>
                 <div class="trait-progress-box">
                   <div class="trait-header"><span class="trait-name">Aritmatika</span><span class="trait-score" id="score-math-arith">87 / 100</span></div>
                   <div class="progress-bar-container"><div class="progress-bar fill-teal" style="width:87%"></div></div>
-                  <span class="trait-desc">Nilai latihan perkalian meningkat dari bulan sebelumnya.</span>
+                  <span class="trait-desc">Nilai latihan perkalian dan pembagian konsisten baik.</span>
                 </div>
               </div>
             </div>
@@ -183,18 +207,18 @@
             <!-- Sidebar: schedule + AI quick link -->
             <div class="dashboard-side-column">
               <div class="dashboard-card">
-                <div class="card-header"><h3><i class="fas fa-calendar-day text-teal"></i> Jadwal Pekan Ini</h3></div>
-                <div class="schedule-list">
+                <div class="card-header"><h3><i class="fas fa-calendar-day text-teal"></i> Jadwal Bulan Ini</h3></div>
+                <div class="schedule-list" id="siswa-ringkasan-jadwal-list">
                   <div class="schedule-item">
-                    <div class="schedule-date orange"><span class="date-day">05</span><span class="date-month">Jun</span></div>
-                    <div class="schedule-details"><h4>English Speaking</h4><p><i class="far fa-clock"></i> 14:00 WITA</p><span class="class-type font-green">Outdoor</span></div>
+                    <div class="schedule-date orange"><span class="date-day">25</span><span class="date-month">Sep</span></div>
+                    <div class="schedule-details"><h4>English Speaking</h4><p><i class="far fa-clock"></i> 14:00 WITA</p><span class="class-type font-green">Outdoor Area</span></div>
                   </div>
                   <div class="schedule-item">
-                    <div class="schedule-date green"><span class="date-day">12</span><span class="date-month">Jun</span></div>
+                    <div class="schedule-date green"><span class="date-day">28</span><span class="date-month">Sep</span></div>
                     <div class="schedule-details"><h4>Mathematics Fun</h4><p><i class="far fa-clock"></i> 14:00 WITA</p><span class="class-type font-teal">Kelas Pojok Hope</span></div>
                   </div>
                   <div class="schedule-item highlighted">
-                    <div class="schedule-date teal"><span class="date-day">15</span><span class="date-month">Jun</span></div>
+                    <div class="schedule-date teal"><span class="date-day">30</span><span class="date-month">Sep</span></div>
                     <div class="schedule-details"><h4>Pendidikan Karakter</h4><p><i class="far fa-clock"></i> 14:00 WITA</p><span class="badge badge-orange font-mini">Seluruh Siswa</span></div>
                   </div>
                 </div>
@@ -203,104 +227,295 @@
           </div>
         </div><!-- /ringkasan-siswa -->
 
-        <!-- TEACHER RINGKASAN -->
-        <div id="ringkasan-guru" style="display:none">
+        <!-- GURU RINGKASAN -->
+        <div id="ringkasan-guru" style="display:none;">
           <div class="welcome-banner teacher-banner">
             <div class="welcome-text">
-              <h2>Selamat datang kembali, Mentor Rahma! 👩‍🏫</h2>
-              <p>Gunakan panel ini untuk input nilai, kelola jadwal, dan koordinasi Outdoor Learning.</p>
+              <h2>Selamat datang, Pengajar! 👋</h2>
+              <p>Mari ciptakan suasana belajar yang menyenangkan hari ini.</p>
             </div>
             <div class="welcome-stats">
-              <div class="stat-card-mini"><span class="stat-value">12</span><span class="stat-label">Siswa Aktif</span></div>
-              <div class="stat-card-mini"><span class="stat-value">2</span><span class="stat-label">Kelas Hari Ini</span></div>
+              <div class="stat-card-mini"><span class="stat-value" id="guru-active-students-count">0</span><span class="stat-label">Siswa Aktif</span></div>
+              <div class="stat-card-mini"><span class="stat-value" id="guru-classes-month-count">0</span><span class="stat-label">Kelas Bulan Ini</span></div>
             </div>
           </div>
-
           <div class="dashboard-grid">
-            <!-- Teacher scoring -->
-            <div class="dashboard-card card-large">
-              <div class="card-header">
-                <h3><i class="fas fa-edit text-green"></i> Input Nilai Komprehensif</h3>
-                <span class="badge badge-green">Perlu Penilaian</span>
-              </div>
-              <p class="card-desc">Input nilai Karakter, English, dan Matematika untuk setiap siswa menggunakan slider interaktif.</p>
-              <div class="scoring-container">
-                <div class="student-select-header">
-                  <label for="student-selector">Pilih Siswa:</label>
-                  <select id="student-selector" class="custom-select">
-                    <option value="budi">Budi Santoso</option>
-                    <option value="aisyah">Aisyah Putri</option>
-                    <option value="fajar">Fajar Ramadhan</option>
-                    <option value="siti">Siti Nurhaliza</option>
-                  </select>
-                </div>
+            <div class="dashboard-card"><div class="card-header"><h3><i class="fas fa-calendar-alt text-teal"></i> Jadwal Anda</h3></div><div id="guru-ringkasan-jadwal-list" class="schedule-list"></div></div>
+            <div class="dashboard-card"><div class="card-header"><h3><i class="fas fa-medal text-orange"></i> Top Siswa Anda</h3></div><div id="guru-ringkasan-top-siswa" class="top-students-list"></div></div>
+          </div>
+        </div>
 
-                <div class="scoring-category-label"><i class="fas fa-heart text-orange"></i> Karakter</div>
-                <div class="scoring-sliders-list">
-                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Empati &amp; Berbagi</span><span class="slider-val-badge" id="slider-empathy-val">88</span></div><input type="range" min="50" max="100" value="88" class="range-slider slider-orange" id="slider-empathy"></div>
-                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Kejujuran</span><span class="slider-val-badge" id="slider-honesty-val">95</span></div><input type="range" min="50" max="100" value="95" class="range-slider slider-green" id="slider-honesty"></div>
-                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Tanggung Jawab</span><span class="slider-val-badge" id="slider-responsibility-val">85</span></div><input type="range" min="50" max="100" value="85" class="range-slider slider-teal" id="slider-responsibility"></div>
-                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Sopan Santun</span><span class="slider-val-badge" id="slider-respect-val">90</span></div><input type="range" min="50" max="100" value="90" class="range-slider slider-orange" id="slider-respect"></div>
-                </div>
-
-                <div class="scoring-category-label" style="margin-top:1.5rem"><i class="fas fa-language text-teal"></i> English</div>
-                <div class="scoring-sliders-list">
-                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Fluency</span><span class="slider-val-badge" id="slider-eng-fluency-val">82</span></div><input type="range" min="50" max="100" value="82" class="range-slider slider-teal" id="slider-eng-fluency"></div>
-                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Reading Comprehension</span><span class="slider-val-badge" id="slider-eng-reading-val">78</span></div><input type="range" min="50" max="100" value="78" class="range-slider slider-green" id="slider-eng-reading"></div>
-                </div>
-
-                <div class="scoring-category-label" style="margin-top:1.5rem"><i class="fas fa-calculator text-green"></i> Matematika</div>
-                <div class="scoring-sliders-list">
-                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Logika &amp; Problem Solving</span><span class="slider-val-badge" id="slider-math-logic-val">91</span></div><input type="range" min="50" max="100" value="91" class="range-slider slider-orange" id="slider-math-logic"></div>
-                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Aritmatika</span><span class="slider-val-badge" id="slider-math-arith-val">87</span></div><input type="range" min="50" max="100" value="87" class="range-slider slider-teal" id="slider-math-arith"></div>
-                </div>
-
-                <div class="scoring-actions">
-                  <button class="btn btn-secondary btn-sm" id="btn-save-score"><i class="fas fa-save"></i> Simpan Semua Nilai</button>
-                  <span id="save-status-msg" class="status-msg text-green hidden">✓ Tersimpan!</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Teacher right column -->
-            <div class="dashboard-side-column">
-              <div class="dashboard-card">
-                <div class="card-header"><h3><i class="fas fa-chalkboard-teacher text-teal"></i> Jadwal Mengajar</h3></div>
-                <div class="teacher-schedule-list">
-                  <div class="t-schedule-item active">
-                    <div class="t-schedule-time"><span>Hari Ini</span><strong>14:00</strong></div>
-                    <div class="t-schedule-info"><h4>Matematika Fun</h4><p>Kelompok B</p><span class="status-indicator live">Sedang Berlangsung</span></div>
-                  </div>
-                  <div class="t-schedule-item">
-                    <div class="t-schedule-time"><span>Kamis</span><strong>14:00</strong></div>
-                    <div class="t-schedule-info"><h4>Bahasa Inggris Dongeng</h4><p>Kelompok A</p><span class="status-indicator">Mendatang</span></div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="dashboard-card planner-card">
-                <div class="card-header"><h3><i class="fas fa-campground text-green"></i> Planner Outdoor</h3><span class="badge badge-green">Juli 2026</span></div>
-                <p class="planner-subtitle">Monitor volunteer terdaftar untuk Outdoor Learning Rumah Alam.</p>
-                <div class="planner-metrics">
-                  <div class="metric-row"><span>Target Volunteer:</span><strong>8 Relawan</strong></div>
-                  <div class="metric-row"><span>Terdaftar:</span><strong class="text-orange">5 Relawan</strong></div>
-                  <div class="metric-bar-container"><div class="metric-bar fill-green" style="width:62.5%"></div></div>
-                </div>
-                <div class="volunteer-list-preview"><div class="vol-pic-group">
-                  <span class="vol-initial bg-orange" title="Ahmad">A</span>
-                  <span class="vol-initial bg-green" title="Rini">R</span>
-                  <span class="vol-initial bg-teal" title="Sarah">S</span>
-                  <span class="vol-initial bg-secondary" title="Dandi">D</span>
-                  <span class="vol-initial bg-accent" title="Elisa">E</span>
-                  <span class="vol-plus">+3 lagi</span>
-                </div></div>
-                <button class="btn btn-outline btn-sm btn-full" id="btn-broadcast-planner"><i class="fas fa-bullhorn"></i> Broadcast Kebutuhan Volunteer</button>
-              </div>
+        <!-- MANAGER & ADMIN RINGKASAN -->
+        <div id="ringkasan-manager" style="display:none;">
+          <div class="welcome-banner manager-banner">
+            <div class="welcome-text">
+              <h2 id="manager-welcome-name">Selamat datang! 👋</h2>
+              <p id="manager-welcome-desc">Kelola operasional dan pantau aktivitas School of Character.</p>
             </div>
           </div>
-        </div><!-- /ringkasan-guru -->
+          <div class="dashboard-grid">
+            <div class="dashboard-card"><div class="card-header"><h3><i class="fas fa-calendar-alt text-teal"></i> Jadwal Terdekat</h3></div><div id="manager-upcoming-schedules" class="schedule-list"></div></div>
+            <div class="dashboard-card"><div class="card-header"><h3><i class="fas fa-award text-orange"></i> Top 10 Siswa (Global)</h3></div><div id="top10-students-list" class="top-students-list"></div></div>
+          </div>
+        </div>
 
       </section><!-- /view-ringkasan -->
+
+      <!-- ===================================================== -->
+      <!-- VIEW: MANAJEMEN JADWAL (Manager / Owner Only)          -->
+      <!-- ===================================================== -->
+      <section id="view-manajemen-jadwal" class="dashboard-view">
+        <div class="view-header">
+          <h2 class="view-title"><i class="fas fa-calendar-plus text-orange"></i> Manajemen Jadwal</h2>
+          <p class="view-subtitle">Kelola jadwal sesi belajar, topik materi, dan tautan modul pembelajaran.</p>
+        </div>
+
+        <!-- Bulk Excel Import Card for Schedules -->
+        <div class="dashboard-card" style="margin-bottom: 1.5rem; padding: 1.5rem; background: linear-gradient(135deg, rgba(7, 45, 59, 0.03) 0%, rgba(255, 107, 53, 0.05) 100%); border: 1.5px dashed var(--border-color); border-radius: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <h3 style="font-size: 1.15rem; color: var(--color-secondary-dark); margin-bottom: 0.25rem;">
+                <i class="fas fa-file-excel text-green"></i> Impor Jadwal Belajar Massal (Excel)
+              </h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">
+                Download template excel jadwal pembelajaran, isi tanggal dan sesi materi, lalu unggah untuk membuat jadwal massal.
+              </p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="btn btn-sm btn-outline" id="btn-download-template-jadwal" onclick="downloadScheduleTemplateExcel()" style="display:inline-flex; align-items:center; gap:0.4rem;">
+                <i class="fas fa-file-download text-teal"></i> Download Template Excel
+              </button>
+              <input type="file" id="input-excel-jadwal" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleBulkScheduleExcelUpload(event)">
+              <button type="button" class="btn btn-sm btn-primary" id="btn-upload-excel-jadwal" onclick="document.getElementById('input-excel-jadwal').click()" style="display:inline-flex; align-items:center; gap:0.4rem;">
+                <i class="fas fa-file-upload"></i> Upload Excel Jadwal
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid">
+          <!-- Left Column: Form Buat Jadwal -->
+          <div class="dashboard-card card-large">
+            <div class="card-header">
+              <h3><i class="fas fa-calendar-plus text-orange"></i> Form Buat Jadwal</h3>
+              <span class="badge badge-orange">Manajemen Kelas</span>
+            </div>
+            <p class="card-desc">Tambahkan jadwal sesi belajar baru untuk kelas atau seluruh siswa SoC.</p>
+
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+              <label for="new-sched-date" style="display:block; font-weight:600; margin-bottom:0.5rem; font-size:0.9rem; color:var(--color-secondary-dark);">
+                <i class="far fa-calendar-alt text-teal"></i> Tanggal Pembelajaran:
+              </label>
+              <input type="date" id="new-sched-date" class="custom-select" style="width: 100%;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+              <label for="new-sched-subject" style="display:block; font-weight:600; margin-bottom:0.5rem; font-size:0.9rem; color:var(--color-secondary-dark);">
+                <i class="fas fa-book-open text-orange"></i> Mata Pelajaran:
+              </label>
+              <select id="new-sched-subject" class="custom-select" style="width: 100%;">
+                <option value="Karakter">Karakter</option>
+                <option value="English">English</option>
+                <option value="Matematika">Matematika</option>
+                <option value="Outdoor Learning">Outdoor Learning</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+              <label for="new-sched-kelas" style="display:block; font-weight:600; margin-bottom:0.5rem; font-size:0.9rem; color:var(--color-secondary-dark);">
+                <i class="fas fa-users text-green"></i> Pilihan Kelas:
+              </label>
+              <select id="new-sched-kelas" class="custom-select" style="width: 100%;">
+                <option value="English A">English A (Foundation)</option>
+                <option value="English B">English B (Beginner)</option>
+                <option value="English C">English C (Intermediate)</option>
+                <option value="English D">English D (Advanced)</option>
+                <option value="Math A">Math A (Dasar Angka)</option>
+                <option value="Math B">Math B (Operasi Lanjut)</option>
+                <option value="Math C">Math C (Pecahan &amp; Logika)</option>
+                <option value="Math D">Math D (Pra-Aljabar &amp; Kritis)</option>
+                <option value="Semua">Semua Kelas (Karakter / Gabungan)</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="margin-top:1rem;">
+              <label style="font-weight:700; font-size:0.9rem;">Topik Materi:</label>
+              <input type="text" id="new-sched-topic" class="form-input" placeholder="Contoh: Classroom Objects (Opsional)">
+            </div>
+
+            <div class="form-group" style="margin-top:1rem;">
+              <label style="font-weight:700; font-size:0.9rem;"><i class="fab fa-google-drive text-teal"></i> Link Materi Guru (G-Drive / Modul):</label>
+              <input type="url" id="new-sched-link" class="form-input" value="https://drive.google.com/drive/folders/1U_VJDr6YXV-3bVslE6TSRA6hd7D16SFh?usp=drive_link">
+            </div>
+
+            <div class="form-group" style="margin-top:1rem;">
+              <label style="font-weight:700; font-size:0.9rem;"><i class="fab fa-youtube text-orange"></i> Link Materi Siswa (YouTube / Video / Materi Belajar):</label>
+              <input type="url" id="new-sched-student-link" class="form-input" placeholder="Contoh: https://youtu.be/... atau link materi untuk siswa (Opsional)">
+            </div>
+
+            <div style="display:flex; gap:1rem; margin-top:1rem;">
+              <div class="form-group" style="flex:1;">
+                <label for="new-sched-start-time" style="font-weight:700; font-size:0.9rem; display:block; margin-bottom:0.35rem;">
+                  <i class="far fa-clock text-teal"></i> Waktu Mulai:
+                </label>
+                <input type="time" id="new-sched-start-time" class="form-input" value="14:00">
+              </div>
+              <div class="form-group" style="flex:1;">
+                <label for="new-sched-end-time" style="font-weight:700; font-size:0.9rem; display:block; margin-bottom:0.35rem;">
+                  <i class="far fa-clock text-teal"></i> Waktu Selesai:
+                </label>
+                <input type="time" id="new-sched-end-time" class="form-input" value="15:30">
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top:1rem;">
+              <label for="new-sched-lokasi" style="font-weight:700; font-size:0.9rem; display:block; margin-bottom:0.35rem;">
+                <i class="fas fa-map-marker-alt text-orange"></i> Lokasi Belajar:
+              </label>
+              <input type="text" id="new-sched-lokasi" class="form-input" placeholder="Contoh: Kelas Pojok Hope atau Outdoor Area">
+            </div>
+
+            <div class="form-group" style="margin-top:1rem; margin-bottom:1.5rem;">
+              <label for="new-sched-catatan" style="font-weight:700; font-size:0.9rem; display:block; margin-bottom:0.35rem;">
+                <i class="fas fa-sticky-note text-green"></i> Catatan Tambahan:
+              </label>
+              <textarea id="new-sched-catatan" class="form-input" rows="2" placeholder="Informasi tambahan (contoh: bawa pensil, dsb.)" style="resize:vertical;"></textarea>
+            </div>
+
+            <input type="hidden" id="edit-schedule-id" value="">
+            <div style="display:flex; gap:0.75rem;">
+              <button class="btn btn-primary" id="btn-create-sched" style="flex:1;">
+                <i class="fas fa-plus-circle"></i> Buat Jadwal Baru
+              </button>
+              <button class="btn btn-outline" id="btn-cancel-edit" style="display:none;">Batal Edit</button>
+            </div>
+          </div>
+
+          <!-- Right Column: Jadwal Terdaftar -->
+          <div class="dashboard-card">
+            <div class="card-header">
+              <h3><i class="fas fa-calendar-check text-teal"></i> Jadwal Terdaftar</h3>
+              <span class="badge badge-teal">Semua Sesi</span>
+            </div>
+            <p class="card-desc" style="margin-bottom: 1rem;">Daftar seluruh sesi pembelajaran yang terdaftar di database.</p>
+
+            <!-- Month navigator for Manajemen Jadwal inside card -->
+            <div class="month-nav card-month-nav" style="margin: 1rem 0; width: 100%; justify-content: space-between;">
+              <button type="button" class="month-nav-btn month-nav-prev"><i class="fas fa-chevron-left"></i></button>
+              <span class="month-nav-label">September 2026</span>
+              <button type="button" class="month-nav-btn month-nav-next"><i class="fas fa-chevron-right"></i></button>
+            </div>
+
+            <div id="manager-schedules-list" class="schedule-list"></div>
+          </div>
+        </div>
+      </section><!-- /view-manajemen-jadwal -->
+
+      <!-- ===================================================== -->
+      <!-- VIEW: MANAJEMEN KELAS                                  -->
+      <!-- ===================================================== -->
+      <section id="view-manajemen-kelas" class="dashboard-view">
+        <div class="view-header">
+          <h2 class="view-title"><i class="fas fa-chalkboard text-teal"></i> Manajemen Kelas &amp; Penempatan</h2>
+          <p class="view-subtitle">Atur penugasan guru dan tentukan level kemampuan (English &amp; Math) untuk setiap siswa.</p>
+        </div>
+
+        <div class="dashboard-grid" style="grid-template-columns: 1fr;">
+
+          <!-- Daftar Pengajar Kelas -->
+          <div class="dashboard-card" style="grid-column: 1 / -1;">
+            <div class="card-header">
+              <h3><i class="fas fa-chalkboard-teacher text-teal"></i> Daftar Pengajar Kelas</h3>
+              <span class="badge badge-teal">8 Kelas</span>
+            </div>
+            <p class="card-desc" style="margin-bottom:1.25rem;">Tentukan guru penanggung jawab untuk setiap kelas level di semester ini.</p>
+
+            <div style="overflow-x:auto;">
+              <table class="rapor-table teacher-assign-table" style="width:100%; border-collapse:collapse;">
+                <thead>
+                  <tr>
+                    <th style="text-align:left; padding:0.6rem 0.75rem; background:var(--color-primary-dark) !important; color:#fff !important; font-size:0.85rem; white-space:nowrap;">Kelas / Level</th>
+                    <th style="text-align:left; padding:0.6rem 0.75rem; background:var(--color-primary-dark) !important; color:#fff !important; font-size:0.85rem;">Pengajar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="padding:0.55rem 0.75rem; font-weight:600; white-space:nowrap;"><span class="badge badge-teal" style="font-size:0.8rem;">EN</span> English A (Foundation)</td>
+                    <td style="padding:0.55rem 0.75rem;">
+                      <select class="custom-select teacher-assign-select" data-kelas="English A" style="width:100%; font-size:0.85rem;">
+                        <option value="">— Pilih Guru —</option>
+                      </select>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:0.55rem 0.75rem; font-weight:600; white-space:nowrap;"><span class="badge badge-teal" style="font-size:0.8rem;">EN</span> English B (Beginner)</td>
+                    <td style="padding:0.55rem 0.75rem;">
+                      <select class="custom-select teacher-assign-select" data-kelas="English B" style="width:100%; font-size:0.85rem;">
+                        <option value="">— Pilih Guru —</option>
+                      </select>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:0.55rem 0.75rem; font-weight:600; white-space:nowrap;"><span class="badge badge-teal" style="font-size:0.8rem;">EN</span> English C (Intermediate)</td>
+                    <td style="padding:0.55rem 0.75rem;">
+                      <select class="custom-select teacher-assign-select" data-kelas="English C" style="width:100%; font-size:0.85rem;">
+                        <option value="">— Pilih Guru —</option>
+                      </select>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:0.55rem 0.75rem; font-weight:600; white-space:nowrap;"><span class="badge badge-teal" style="font-size:0.8rem;">EN</span> English D (Advanced)</td>
+                    <td style="padding:0.55rem 0.75rem;">
+                      <select class="custom-select teacher-assign-select" data-kelas="English D" style="width:100%; font-size:0.85rem;">
+                        <option value="">— Pilih Guru —</option>
+                      </select>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:0.55rem 0.75rem; font-weight:600; white-space:nowrap;"><span class="badge badge-green" style="font-size:0.8rem;">MA</span> Math A (Dasar Angka)</td>
+                    <td style="padding:0.55rem 0.75rem;">
+                      <select class="custom-select teacher-assign-select" data-kelas="Math A" style="width:100%; font-size:0.85rem;">
+                        <option value="">— Pilih Guru —</option>
+                      </select>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:0.55rem 0.75rem; font-weight:600; white-space:nowrap;"><span class="badge badge-green" style="font-size:0.8rem;">MA</span> Math B (Operasi Lanjut)</td>
+                    <td style="padding:0.55rem 0.75rem;">
+                      <select class="custom-select teacher-assign-select" data-kelas="Math B" style="width:100%; font-size:0.85rem;">
+                        <option value="">— Pilih Guru —</option>
+                      </select>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:0.55rem 0.75rem; font-weight:600; white-space:nowrap;"><span class="badge badge-green" style="font-size:0.8rem;">MA</span> Math C (Pecahan &amp; Logika)</td>
+                    <td style="padding:0.55rem 0.75rem;">
+                      <select class="custom-select teacher-assign-select" data-kelas="Math C" style="width:100%; font-size:0.85rem;">
+                        <option value="">— Pilih Guru —</option>
+                      </select>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:0.55rem 0.75rem; font-weight:600; white-space:nowrap;"><span class="badge badge-green" style="font-size:0.8rem;">MA</span> Math D (Pra-Aljabar &amp; Kritis)</td>
+                    <td style="padding:0.55rem 0.75rem;">
+                      <select class="custom-select teacher-assign-select" data-kelas="Math D" style="width:100%; font-size:0.85rem;">
+                        <option value="">— Pilih Guru —</option>
+                      </select>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div style="margin-top:1.5rem;">
+              <button class="btn btn-primary" id="btn-simpan-penugasan" style="width:100%;">
+                <i class="fas fa-save"></i> Simpan Penugasan
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </section><!-- /view-manajemen-kelas -->
 
       <!-- ===================================================== -->
       <!-- VIEW 2: JADWAL KELAS                                  -->
@@ -313,152 +528,1213 @@
 
         <!-- Month navigator -->
         <div class="month-nav">
-          <button class="month-nav-btn"><i class="fas fa-chevron-left"></i></button>
-          <span class="month-nav-label">Juni 2026</span>
-          <button class="month-nav-btn"><i class="fas fa-chevron-right"></i></button>
+          <button type="button" class="month-nav-btn month-nav-prev"><i class="fas fa-chevron-left"></i></button>
+          <span class="month-nav-label">September 2026</span>
+          <button type="button" class="month-nav-btn month-nav-next"><i class="fas fa-chevron-right"></i></button>
         </div>
 
         <!-- Upcoming classes list -->
         <div class="jadwal-container">
-
-          <!-- Past / Done classes -->
-          <div class="jadwal-group-label">
-            <span class="jadwal-group-badge done">✓ Selesai</span>
-            <span>Kelas yang Sudah Berlangsung</span>
+          <div id="jadwal-container-mendatang">
+            <div class="jadwal-group-label" style="margin-top:1rem">
+              <span class="jadwal-group-badge upcoming">📅 Mendatang</span>
+              <span>Kelas yang Akan Datang</span>
+            </div>
+            <div class="jadwal-list" id="jadwal-list-mendatang"></div>
           </div>
-
-          <div class="jadwal-list">
-            <div class="jadwal-card jadwal-done">
-              <div class="jadwal-date-chip orange">
-                <span class="jd-day">15</span><span class="jd-month">Mei</span>
-              </div>
-              <div class="jadwal-info">
-                <h4>Pendidikan Karakter — Sesi Gotong Royong</h4>
-                <p class="jadwal-meta"><i class="far fa-clock"></i> 14:00–16:30 WITA &nbsp;|&nbsp; <i class="fas fa-map-marker-alt"></i> Kelas Pojok Hope</p>
-                <p class="jadwal-meta"><i class="fas fa-users"></i> 12 Siswa hadir</p>
-              </div>
-              <span class="jadwal-status-badge done">✓ Selesai</span>
+          <div id="jadwal-container-selesai">
+            <div class="jadwal-group-label" style="margin-top:2rem">
+              <span class="jadwal-group-badge done">✓ Selesai</span>
+              <span>Kelas yang Sudah Berlangsung</span>
             </div>
-
-            <div class="jadwal-card jadwal-done">
-              <div class="jadwal-date-chip teal">
-                <span class="jd-day">22</span><span class="jd-month">Mei</span>
-              </div>
-              <div class="jadwal-info">
-                <h4>English Speaking — Story Telling Fun</h4>
-                <p class="jadwal-meta"><i class="far fa-clock"></i> 14:00–15:30 WITA &nbsp;|&nbsp; <i class="fas fa-map-marker-alt"></i> Outdoor Area</p>
-                <p class="jadwal-meta"><i class="fas fa-users"></i> 10 Siswa hadir</p>
-              </div>
-              <span class="jadwal-status-badge done">✓ Selesai</span>
-            </div>
-
-            <div class="jadwal-card jadwal-done">
-              <div class="jadwal-date-chip green">
-                <span class="jd-day">29</span><span class="jd-month">Mei</span>
-              </div>
-              <div class="jadwal-info">
-                <h4>Mathematics Fun — Puzzle Logika</h4>
-                <p class="jadwal-meta"><i class="far fa-clock"></i> 14:00–15:30 WITA &nbsp;|&nbsp; <i class="fas fa-map-marker-alt"></i> Kelas Pojok Hope</p>
-                <p class="jadwal-meta"><i class="fas fa-users"></i> 11 Siswa hadir</p>
-              </div>
-              <span class="jadwal-status-badge done">✓ Selesai</span>
-            </div>
+            <div class="jadwal-list" id="jadwal-list-selesai"></div>
           </div>
-
-          <!-- Upcoming classes -->
-          <div class="jadwal-group-label" style="margin-top:2rem">
-            <span class="jadwal-group-badge upcoming">📅 Mendatang</span>
-            <span>Kelas yang Akan Datang</span>
-          </div>
-
-          <div class="jadwal-list">
-            <div class="jadwal-card jadwal-today">
-              <div class="jadwal-date-chip orange">
-                <span class="jd-day">05</span><span class="jd-month">Jun</span>
-              </div>
-              <div class="jadwal-info">
-                <h4>English Speaking &amp; Reading — Sesi Aktif</h4>
-                <p class="jadwal-meta"><i class="far fa-clock"></i> 14:00–15:30 WITA &nbsp;|&nbsp; <i class="fas fa-map-marker-alt"></i> Outdoor Area</p>
-                <p class="jadwal-meta"><i class="fas fa-info-circle"></i> Bawa buku cerita favorit!</p>
-              </div>
-              <span class="jadwal-status-badge today">🔴 Hari Ini</span>
-            </div>
-
-            <div class="jadwal-card">
-              <div class="jadwal-date-chip green">
-                <span class="jd-day">12</span><span class="jd-month">Jun</span>
-              </div>
-              <div class="jadwal-info">
-                <h4>Mathematics Fun Learning — Perkalian &amp; Pembagian</h4>
-                <p class="jadwal-meta"><i class="far fa-clock"></i> 14:00–15:30 WITA &nbsp;|&nbsp; <i class="fas fa-map-marker-alt"></i> Kelas Pojok Hope</p>
-                <p class="jadwal-meta"><i class="fas fa-info-circle"></i> Siapkan alat tulis dan papan hitung.</p>
-              </div>
-              <span class="jadwal-status-badge upcoming">Mendatang</span>
-            </div>
-
-            <div class="jadwal-card">
-              <div class="jadwal-date-chip orange">
-                <span class="jd-day">15</span><span class="jd-month">Jun</span>
-              </div>
-              <div class="jadwal-info">
-                <h4>Pendidikan Karakter Rutin — Kepemimpinan</h4>
-                <p class="jadwal-meta"><i class="far fa-clock"></i> 14:00–16:30 WITA &nbsp;|&nbsp; <i class="fas fa-map-marker-alt"></i> Kelas Pojok Hope</p>
-                <p class="jadwal-meta"><i class="fas fa-users"></i> Seluruh Siswa Wajib Hadir</p>
-              </div>
-              <span class="jadwal-status-badge upcoming">Mendatang</span>
-            </div>
-
-            <div class="jadwal-card">
-              <div class="jadwal-date-chip teal">
-                <span class="jd-day">26</span><span class="jd-month">Jun</span>
-              </div>
-              <div class="jadwal-info">
-                <h4>English &amp; Character — Dongeng Moral</h4>
-                <p class="jadwal-meta"><i class="far fa-clock"></i> 14:00–15:30 WITA &nbsp;|&nbsp; <i class="fas fa-map-marker-alt"></i> Outdoor Area</p>
-                <p class="jadwal-meta"><i class="fas fa-star"></i> Sesi spesial dengan bintang tamu!</p>
-              </div>
-              <span class="jadwal-status-badge upcoming">Mendatang</span>
-            </div>
-
-            <div class="jadwal-card jadwal-special">
-              <div class="jadwal-date-chip green">
-                <span class="jd-day">18</span><span class="jd-month">Jul</span>
-              </div>
-              <div class="jadwal-info">
-                <h4>🌿 Outdoor Learning — Rumah Alam (Semester)</h4>
-                <p class="jadwal-meta"><i class="far fa-clock"></i> 08:00–17:00 WITA &nbsp;|&nbsp; <i class="fas fa-map-marker-alt"></i> Rumah Alam, Gorontalo</p>
-                <p class="jadwal-meta"><i class="fas fa-users"></i> Semua Siswa + 8 Volunteer</p>
-              </div>
-              <span class="jadwal-status-badge special">🌿 Spesial</span>
-            </div>
-          </div>
-
         </div>
       </section><!-- /view-jadwal -->
 
       <!-- ===================================================== -->
-      <!-- VIEW 3: RAPOR SISWA                                   -->
+      <!-- VIEW 3a: KEHADIRAN (Student) - Placed below Jadwal    -->
+      <!-- ===================================================== -->
+      <section id="view-kehadiran-siswa" class="dashboard-view">
+        <div class="view-header">
+          <h2 class="view-title"><i class="fas fa-calendar-check text-green"></i> Kehadiran Saya</h2>
+          <p class="view-subtitle">Rekap kehadiran bulanan kelas School of Character Pojok Hope secara real-time.</p>
+        </div>
+
+        <!-- Attendance summary row -->
+        <div class="attendance-summary-row">
+          <div class="att-sum-card hadir-card">
+            <span class="att-sum-val" id="att-sum-hadir-val">0</span>
+            <span class="att-sum-label"><i class="fas fa-check-circle"></i> Hadir</span>
+          </div>
+          <div class="att-sum-card sakit-card">
+            <span class="att-sum-val" id="att-sum-sakit-val">0</span>
+            <span class="att-sum-label"><i class="fas fa-thermometer-half"></i> Sakit</span>
+          </div>
+          <div class="att-sum-card izin-card">
+            <span class="att-sum-val" id="att-sum-izin-val">0</span>
+            <span class="att-sum-label"><i class="fas fa-envelope"></i> Izin</span>
+          </div>
+          <div class="att-sum-card alpa-card">
+            <span class="att-sum-val" id="att-sum-alpa-val">0</span>
+            <span class="att-sum-label"><i class="fas fa-times-circle"></i> Alpa</span>
+          </div>
+          <div class="att-sum-card pct-card">
+            <span class="att-sum-val" id="att-sum-pct-val">100%</span>
+            <span class="att-sum-label"><i class="fas fa-chart-pie"></i> Kehadiran</span>
+          </div>
+        </div>
+
+        <!-- Dynamic Live Calendar Container -->
+        <div class="dashboard-card" style="margin-top:1.5rem">
+          <div class="card-header">
+            <h3><i class="fas fa-calendar text-teal"></i> Kalender Kehadiran Real-Time — September 2026</h3>
+            <span class="badge badge-green" id="student-att-badge">Terdaftar di Database</span>
+          </div>
+
+          <div class="attendance-calendar" id="student-live-calendar">
+            <!-- Day names header -->
+            <div class="cal-day-name">Min</div>
+            <div class="cal-day-name">Sen</div>
+            <div class="cal-day-name">Sel</div>
+            <div class="cal-day-name">Rab</div>
+            <div class="cal-day-name">Kam</div>
+            <div class="cal-day-name">Jum</div>
+            <div class="cal-day-name">Sab</div>
+
+            <!-- Calendar days rendered dynamically by JS -->
+          </div>
+
+          <!-- Legend -->
+          <div class="cal-legend">
+            <span class="cal-legend-item"><span class="cal-legend-dot hadir"></span> Hadir</span>
+            <span class="cal-legend-item"><span class="cal-legend-dot sakit"></span> Sakit</span>
+            <span class="cal-legend-item"><span class="cal-legend-dot izin"></span> Izin</span>
+            <span class="cal-legend-item"><span class="cal-legend-dot alpa"></span> Alpa</span>
+            <span class="cal-legend-item"><span class="cal-legend-dot no-class"></span> Tidak Ada Kelas</span>
+            <span class="cal-legend-item"><span class="cal-legend-dot weekend"></span> Akhir Pekan</span>
+          </div>
+        </div>
+
+      </section><!-- /view-kehadiran-siswa -->
+
+      <!-- ===================================================== -->
+      <!-- VIEW 3b: KELOLA ABSENSI (Teacher) - Placed below Jadwal -->
+      <!-- ===================================================== -->
+      <section id="view-kehadiran-guru" class="dashboard-view">
+        <div class="view-header">
+          <h2 class="view-title"><i class="fas fa-clipboard-list text-orange"></i> Kelola Absensi</h2>
+          <p class="view-subtitle">Input dan pantau kehadiran siswa untuk setiap sesi kelas secara real-time.</p>
+        </div>
+
+        <div class="dashboard-grid">
+          <!-- Left: Absensi Input -->
+          <div class="dashboard-card card-large">
+            <div class="card-header">
+              <h3><i class="fas fa-user-check text-orange"></i> Absensi Harian</h3>
+            </div>
+            <p class="card-desc">Tandai kehadiran siswa untuk kelas yang sedang Anda kelola hari ini.</p>
+
+            <!-- Header for restricted view with read-only subject display -->
+            <div class="absensi-class-header" id="absensi-class-header" style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+              <h4 id="absensi-class-title" style="font-family: var(--font-heading); color: var(--color-secondary-dark); font-weight: 700; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                <i class="fas fa-users text-teal"></i> Daftar Siswa
+              </h4>
+              <span class="text-orange" style="font-family: var(--font-heading); font-weight: 600; font-size: 0.9rem;">
+                <i class="fas fa-book-open"></i> Mata Pelajaran: <strong id="active-subject-display">Karakter</strong>
+              </span>
+            </div>
+
+            <!-- Schedule-Driven Selector UI -->
+            <div class="absensi-schedule-container" style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.75rem;">
+              <label for="schedule-selector" style="font-family: var(--font-heading); font-weight: 700; font-size: 0.9rem; color: var(--color-secondary-dark); white-space: nowrap;">
+                <i class="fas fa-calendar-alt text-orange"></i> Jadwal Pembelajaran:
+              </label>
+              <select id="schedule-selector" class="custom-select" style="flex: 1; padding: 0.5rem 0.85rem; border-radius: 8px; border: 1.5px solid var(--border-color); font-family: var(--font-body); font-size: 0.9rem; font-weight: 600; color: var(--color-secondary-dark); background-color: var(--bg-card); cursor: pointer; outline: none;">
+                <!-- Populated dynamically by JS -->
+              </select>
+            </div>
+
+            <!-- Dynamic Roster Container -->
+            <div class="absensi-roster" id="absensi-dynamic-roster">
+              <!-- Dynamic roster loaded by JS -->
+            </div>
+
+            <button class="btn btn-secondary btn-sm btn-full" style="margin-top:1.5rem" id="btn-save-absensi">
+              <i class="fas fa-check-circle"></i> Simpan Absensi Hari Ini
+            </button>
+          </div>
+
+          <!-- Right: Attendance History -->
+          <div class="dashboard-side-column">
+            <div class="dashboard-card">
+              <div class="card-header">
+                <h3><i class="fas fa-history text-teal"></i> Riwayat Absensi</h3>
+                <span class="badge badge-teal" id="hist-class-badge">Riwayat Kelas</span>
+              </div>
+              <p class="card-desc">Ringkasan kehadiran per sesi kelas (log hanya-baca).</p>
+
+              <!-- Dynamic Interactive History Table -->
+              <div class="absensi-history-table">
+                <div class="absensi-hist-header">
+                  <span>Tanggal</span><span>Pelajaran</span><span>Hadir</span><span>Alpha</span>
+                </div>
+                <div id="absensi-history-rows">
+                  <!-- Populated dynamically by JS -->
+                </div>
+              </div>
+
+              <!-- Class attendance rate summary -->
+              <div style="margin-top:1.5rem">
+                <p style="font-size:0.85rem;font-weight:700;color:var(--color-secondary-dark);margin-bottom:0.75rem">Tingkat Kehadiran per Siswa</p>
+                <div class="mini-progress-list" id="mini-progress-list">
+                  <!-- Populated dynamically by JS -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section><!-- /view-kehadiran-guru -->
+
+      <!-- ===================================================== -->
+      <!-- VIEW: BUAT AKUN SISWA (Admin View)                    -->
+      <!-- ===================================================== -->
+      <section id="view-akun-siswa" class="dashboard-view" style="display:none;">
+        <div class="view-header">
+          <h2 class="view-title"><i class="fas fa-user-graduate text-teal"></i> Buat Akun Siswa</h2>
+          <p class="view-subtitle">Daftarkan akun dan data profil siswa baru School of Character Pojok Hope.</p>
+        </div>
+
+        <!-- Bulk Excel Import Card for Students -->
+        <div class="dashboard-card" style="max-width: 720px; margin: 0 auto 1.5rem; padding: 1.5rem; background: linear-gradient(135deg, rgba(7, 45, 59, 0.03) 0%, rgba(255, 107, 53, 0.05) 100%); border: 1.5px dashed var(--border-color); border-radius: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <h3 style="font-size: 1.15rem; color: var(--color-secondary-dark); margin-bottom: 0.25rem;">
+                <i class="fas fa-file-excel text-green"></i> Impor Data Siswa Massal (Excel)
+              </h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">
+                Download template excel resmi, isi data siswa, lalu upload untuk pembuatan akun massal instan.
+              </p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="btn btn-sm btn-outline" id="btn-download-template-siswa" onclick="downloadStudentTemplateExcel()" style="display:inline-flex; align-items:center; gap:0.4rem;">
+                <i class="fas fa-file-download text-teal"></i> Download Template Excel
+              </button>
+              <input type="file" id="input-excel-siswa" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleBulkStudentExcelUpload(event)">
+              <button type="button" class="btn btn-sm btn-primary" id="btn-upload-excel-siswa" onclick="document.getElementById('input-excel-siswa').click()" style="display:inline-flex; align-items:center; gap:0.4rem;">
+                <i class="fas fa-file-upload"></i> Upload Excel Siswa
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-card" style="max-width: 720px; margin: 0 auto; padding: 2rem;">
+          <form id="form-buat-akun-siswa">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+              <div class="form-group" style="grid-column: span 2;">
+                <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Nama Lengkap <span style="color:var(--accent-orange);">*</span></label>
+                <input type="text" id="input-siswa-nama" class="form-control" placeholder="Contoh: Muhammad Raffa" required style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+              </div>
+              <div class="form-group">
+                <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Nama Panggilan</label>
+                <input type="text" id="input-siswa-panggilan" class="form-control" placeholder="Contoh: Raffa" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+              </div>
+              <div class="form-group">
+                <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Jenis Kelamin</label>
+                <select id="input-siswa-gender" class="form-control custom-select" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                  <option value="Laki-laki">Laki-laki</option>
+                  <option value="Perempuan">Perempuan</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Tempat Lahir</label>
+                <input type="text" id="input-siswa-tempat-lahir" class="form-control" placeholder="Contoh: Gorontalo" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+              </div>
+              <div class="form-group">
+                <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Tanggal Lahir</label>
+                <input type="date" id="input-siswa-tanggal-lahir" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+              </div>
+              <div class="form-group" style="grid-column: span 2;">
+                <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Nama Orang Tua</label>
+                <input type="text" id="input-siswa-ortu" class="form-control" placeholder="Nama Ayah / Ibu / Wali" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+              </div>
+              <div class="form-group">
+                <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">No HP Siswa (Opsional)</label>
+                <input type="tel" id="input-siswa-hp-siswa" class="form-control" placeholder="08xxxxxxxxxx (Opsional)" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+              </div>
+              <div class="form-group">
+                <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">No HP Orang Tua (Opsional)</label>
+                <input type="tel" id="input-siswa-hp-ortu" class="form-control" placeholder="08xxxxxxxxxx (Opsional)" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+              </div>
+              <div class="form-group" style="grid-column: span 2;">
+                <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">
+                  <i class="fas fa-camera text-teal"></i> Foto Siswa (Opsional)
+                </label>
+                <input type="file" id="input-siswa-foto" accept="image/jpeg,image/png,image/webp" class="form-control" style="width: 100%; padding: 0.5rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                <small style="display:block; margin-top:0.35rem; color:var(--text-muted); font-size:0.78rem;"><i class="fas fa-info-circle"></i> Format: JPG, PNG, atau WEBP | Ukuran maks: 2MB | Rasio disarankan: 1:1 (Persegi, min. 400x400 px).</small>
+              </div>
+            </div>
+            <div style="margin-top: 1.75rem; display: flex; justify-content: flex-end;">
+              <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.75rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-user-plus"></i> Buat Akun Siswa
+              </button>
+            </div>
+          </form>
+        </div>
+      </section><!-- /view-akun-siswa -->
+
+      <!-- ===================================================== -->
+      <!-- VIEW: BUAT AKUN GURU (Admin View)                      -->
+      <!-- ===================================================== -->
+      <section id="view-akun-guru" class="dashboard-view" style="display:none;">
+        <div class="view-header">
+          <h2 class="view-title"><i class="fas fa-chalkboard-teacher text-teal"></i> Buat Akun Guru</h2>
+          <p class="view-subtitle">Daftarkan akun dan hak akses pengajar baru School of Character Pojok Hope.</p>
+        </div>
+
+        <!-- Bulk Excel Import Card for Teachers -->
+        <div class="dashboard-card" style="max-width: 720px; margin: 0 auto 1.5rem; padding: 1.5rem; background: linear-gradient(135deg, rgba(7, 45, 59, 0.03) 0%, rgba(255, 107, 53, 0.05) 100%); border: 1.5px dashed var(--border-color); border-radius: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <h3 style="font-size: 1.15rem; color: var(--color-secondary-dark); margin-bottom: 0.25rem;">
+                <i class="fas fa-file-excel text-green"></i> Impor Data Pengajar Massal (Excel)
+              </h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">
+                Download template excel pengajar, lengkapi data, lalu upload untuk pembuatan akun guru massal secara otomatis.
+              </p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="btn btn-sm btn-outline" id="btn-download-template-guru" onclick="downloadTeacherTemplateExcel()" style="display:inline-flex; align-items:center; gap:0.4rem;">
+                <i class="fas fa-file-download text-teal"></i> Download Template Excel Guru
+              </button>
+              <input type="file" id="input-excel-guru" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleBulkTeacherExcelUpload(event)">
+              <button type="button" class="btn btn-sm btn-primary" id="btn-upload-excel-guru" onclick="document.getElementById('input-excel-guru').click()" style="display:inline-flex; align-items:center; gap:0.4rem;">
+                <i class="fas fa-file-upload"></i> Upload Excel Guru
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-card" style="max-width: 720px; margin: 0 auto; padding: 2rem;">
+          <form id="form-buat-akun-guru">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+              <div class="form-group" style="grid-column: span 2;">
+                <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Nama Lengkap <span style="color:var(--accent-orange);">*</span></label>
+                <input type="text" id="input-guru-nama" class="form-control" placeholder="Contoh: Sity Djabar, S. Pd." required style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+              </div>
+              <div class="form-group">
+                <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Nama Panggilan</label>
+                <input type="text" id="input-guru-panggilan" class="form-control" placeholder="Contoh: Sity" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+              </div>
+              <div class="form-group">
+                <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Jenis Kelamin</label>
+                <select id="input-guru-gender" class="form-control custom-select" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                  <option value="Perempuan">Perempuan</option>
+                  <option value="Laki-laki">Laki-laki</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">No HP / Kontak</label>
+                <input type="tel" id="input-guru-kontak" class="form-control" placeholder="08xxxxxxxxxx" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+              </div>
+              <div class="form-group">
+                <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Email</label>
+                <input type="email" id="input-guru-email" class="form-control" placeholder="nama@soc.org" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+              </div>
+              <div class="form-group" style="grid-column: span 2;">
+                <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Jurusan / Lulusan</label>
+                <input type="text" id="input-guru-jurusan" class="form-control" placeholder="Contoh: S1 Pendidikan Bahasa Inggris" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+              </div>
+              <div class="form-group" style="grid-column: span 2;">
+                <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Upload Foto Guru</label>
+                <input type="file" id="input-guru-foto" accept="image/jpeg,image/png,image/webp" class="form-control" style="width: 100%; padding: 0.5rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                <small style="display:block; margin-top:0.35rem; color:var(--text-muted); font-size:0.78rem;"><i class="fas fa-info-circle"></i> Format: JPG, PNG, atau WEBP | Ukuran maks: 2MB | Rasio disarankan: 1:1 (Persegi, min. 400x400 px).</small>
+              </div>
+            </div>
+            <div style="margin-top: 1.75rem; display: flex; justify-content: flex-end;">
+              <button type="submit" class="btn btn-primary" id="btn-submit-buat-guru" style="padding: 0.75rem 1.75rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-chalkboard-teacher"></i> Buat Akun Guru
+              </button>
+            </div>
+          </form>
+        </div>
+      </section><!-- /view-akun-guru -->
+
+      <!-- ===================================================== -->
+      <!-- VIEW: DATA GURU (Admin, Manager, Founder View)        -->
+      <!-- ===================================================== -->
+      <section id="view-data-guru" class="dashboard-view" style="display:none;">
+        <div class="view-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h2 class="view-title"><i class="fas fa-users-cog text-teal"></i> Data Pengajar</h2>
+            <p class="view-subtitle">Daftar guru dan pengajar aktif di School of Character Pojok Hope.</p>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <button class="btn btn-primary btn-sm" id="btn-tambah-guru-nav" style="display:none;" onclick="switchView('akun-guru')">
+              <i class="fas fa-user-plus"></i> + Tambah Guru
+            </button>
+            <button class="btn btn-outline btn-sm" id="btn-export-guru" onclick="exportDataGuru()">
+              <i class="fas fa-file-export"></i> Export Data
+            </button>
+            <button class="btn btn-outline btn-sm" id="btn-toggle-delete-guru" style="display:none; color:#e53e3e; border-color:#e53e3e;" onclick="toggleDeleteTeacherMode()">
+              <i class="fas fa-trash-alt"></i> Hapus Guru
+            </button>
+          </div>
+        </div>
+
+        <!-- Search Bar Data Guru -->
+        <div class="dashboard-card" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <i class="fas fa-search text-teal" style="font-size: 1.1rem;"></i>
+            <input type="text" id="search-data-guru" class="form-control" placeholder="Cari pengajar berdasarkan ID, nama, jurusan, atau kontak..." style="width: 100%; border: 1.5px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.85rem; font-size: 0.95rem;">
+          </div>
+        </div>
+
+        <div class="dashboard-card" style="padding: 1.25rem; overflow-x: auto;">
+          <table class="rapor-table" style="width: 100%; border-collapse: collapse; min-width: 720px;" id="table-data-guru">
+            <thead>
+              <tr style="background: var(--color-primary-dark); color: #fff;">
+                <th style="padding: 0.75rem 1rem; text-align: center !important; vertical-align: middle; width: 50px;">No</th>
+                <th style="padding: 0.75rem 1rem; text-align: center !important; vertical-align: middle; width: 100px;">ID</th>
+                <th style="padding: 0.75rem 1rem; text-align: center !important; vertical-align: middle;">Nama Lengkap</th>
+                <th style="padding: 0.75rem 1rem; text-align: center !important; vertical-align: middle; width: 110px;">Jenis Kelamin</th>
+                <th style="padding: 0.75rem 1rem; text-align: center !important; vertical-align: middle; width: 180px;">Jurusan</th>
+                <th style="padding: 0.75rem 1rem; text-align: center !important; vertical-align: middle; width: 200px;">Kontak</th>
+                <th style="padding: 0.75rem 1rem; text-align: center !important; vertical-align: middle; width: 150px;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="data-guru-tbody">
+              <!-- Populated dynamically by JS -->
+            </tbody>
+          </table>
+        </div>
+      </section><!-- /view-data-guru -->
+
+      <!-- ===================================================== -->
+      <!-- VIEW: DETAIL & EDIT GURU + KARTU ID                   -->
+      <!-- ===================================================== -->
+      <section id="view-detail-guru" class="dashboard-view" style="display:none;">
+        <div class="view-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
+          <div>
+            <h2 class="view-title"><i class="fas fa-chalkboard-teacher text-teal"></i> Detail Pengajar</h2>
+            <p class="view-subtitle" id="detail-guru-subtitle">Informasi profil, akun login, dan kartu identitas pengajar.</p>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="switchView('data-guru')">
+            <i class="fas fa-arrow-left"></i> Kembali ke Data Guru
+          </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 2rem;">
+          <!-- TOP CARD: Data & Akun Guru -->
+          <div class="dashboard-card" style="padding: 2rem;">
+            <div class="card-header" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+              <h3><i class="fas fa-user-edit text-orange"></i> Data & Akun Guru</h3>
+              <span class="badge badge-teal" id="badge-detail-guru-role">Guru / Pengajar</span>
+            </div>
+
+            <form id="form-edit-detail-guru">
+              <input type="hidden" id="edit-guru-original-id">
+
+              <!-- Circular Profile Photo Preview at Top -->
+              <div id="group-edit-guru-foto" style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 1.5rem; text-align: center;">
+                <div style="position: relative; margin-bottom: 0.75rem;">
+                  <img id="detail-guru-photo-preview" src="static/src/assets/ui/team2.jpg" alt="Foto Profil Guru" style="width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent-orange); box-shadow: 0 4px 15px rgba(0,0,0,0.25); background: #fff;">
+                </div>
+                <label for="edit-guru-foto" class="btn btn-outline btn-sm" id="btn-label-edit-guru-foto" style="cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.85rem; font-size: 0.85rem;">
+                  <i class="fas fa-camera"></i> Upload / Ganti Foto Profil
+                </label>
+                <input type="file" id="edit-guru-foto" accept="image/jpeg,image/png,image/webp" style="display: none;">
+                <small style="display:block; margin-top:0.35rem; color:var(--text-muted); font-size:0.75rem;">Format: JPG, PNG, atau WEBP | Maks: 2MB</small>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">ID Guru</label>
+                  <input type="text" id="edit-guru-id" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px; font-family: monospace; font-weight: 600;">
+                </div>
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Password Akun</label>
+                  <input type="text" id="edit-guru-password" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px; font-family: monospace;">
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Nama Lengkap</label>
+                  <input type="text" id="edit-guru-nama" class="form-control" required style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                </div>
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Nama Panggilan</label>
+                  <input type="text" id="edit-guru-panggilan" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                </div>
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Jenis Kelamin</label>
+                  <select id="edit-guru-gender" class="form-control custom-select" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                    <option value="Perempuan">Perempuan</option>
+                    <option value="Laki-laki">Laki-laki</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">No HP / Kontak</label>
+                  <input type="tel" id="edit-guru-kontak" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                </div>
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Email</label>
+                  <input type="email" id="edit-guru-email" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Jurusan / Lulusan</label>
+                  <input type="text" id="edit-guru-jurusan" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                </div>
+              </div>
+
+              <div style="margin-top: 1.75rem; display: flex; justify-content: flex-end;" id="btn-save-detail-guru-container">
+                <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.75rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+                  <i class="fas fa-save"></i> Simpan Perubahan
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- BOTTOM CARD: Kartu ID Pengajar & QR Absensi -->
+          <div class="dashboard-card" style="padding: 2rem;">
+            <div class="card-header" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+              <h3><i class="fas fa-id-card text-teal"></i> Kartu ID Pengajar & QR Absensi</h3>
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="printTeacherIdCard()">
+                  <i class="fas fa-print"></i> Cetak Kartu ID
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="downloadTeacherIdCard()">
+                  <i class="fas fa-download"></i> Download ID Card (PNG)
+                </button>
+              </div>
+            </div>
+
+            <!-- Official Teacher ID Card Mockup container -->
+            <div id="teacher-id-card-render-area" style="max-width: 440px; margin: 0 auto; background: linear-gradient(135deg, #1b3545 0%, #0d202d 100%); border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.25); color: #fff; border: 2px solid rgba(255,107,53,0.3); font-family: var(--font-body, sans-serif);">
+              <!-- Top branding -->
+              <div style="background: rgba(255,255,255,0.06); padding: 1.25rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <img src="static/src/assets/ui/logo.png" alt="SoC" style="width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--accent-orange); background: #fff;">
+                  <div>
+                    <h4 style="margin: 0; font-size: 0.95rem; font-weight: 800; letter-spacing: 0.5px; color: #fff;">SCHOOL OF CHARACTER</h4>
+                    <span style="font-size: 0.75rem; color: var(--accent-orange); font-weight: 600;">POJOK HOPE • KARTU PENGAJAR</span>
+                  </div>
+                </div>
+                <span class="badge badge-orange" style="font-size: 0.7rem; padding: 0.25rem 0.6rem;">OFFICIAL</span>
+              </div>
+
+              <!-- Body -->
+              <div style="padding: 1.5rem; display: flex; flex-direction: column; align-items: center; text-align: center;">
+                <div style="position: relative; margin-bottom: 1rem;">
+                  <img id="card-teacher-photo" src="static/src/assets/ui/team2.jpg" alt="Foto Pengajar" style="width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent-orange); box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                </div>
+                <h3 id="card-teacher-name" style="margin: 0 0 0.25rem 0; font-size: 1.2rem; font-weight: 700; color: #fff;">Nama Pengajar</h3>
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; justify-content: center;">
+                  <span class="badge badge-teal" id="card-teacher-id-badge" style="font-family: monospace; font-size: 0.85rem; padding: 0.3rem 0.7rem;">ID: 0325003</span>
+                  <span class="badge badge-green" id="card-teacher-jurusan-badge" style="font-size: 0.85rem; padding: 0.3rem 0.7rem;">Jurusan</span>
+                </div>
+
+                <!-- QR Container -->
+                <div style="background: #fff; padding: 0.75rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); margin-bottom: 0.75rem;">
+                  <img id="card-teacher-qr" src="" alt="QR Absensi" style="width: 140px; height: 140px; display: block;">
+                </div>
+                <small style="color: rgba(255,255,255,0.7); font-size: 0.75rem;"><i class="fas fa-qrcode"></i> Scan untuk verifikasi identitas & absensi pengajar</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section><!-- /view-detail-guru -->
+
+      <!-- Modal: Akun Guru Berhasil Dibuat -->
+      <div id="modal-guru-credential" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center; padding:1rem;">
+        <div class="dashboard-card" style="max-width:440px; width:100%; padding:2rem; text-align:center; position:relative; animation:slideInDown 0.3s ease;">
+          <div style="width:60px; height:60px; border-radius:50%; background:rgba(40,167,69,0.15); color:#28a745; display:flex; align-items:center; justify-content:center; margin:0 auto 1.25rem; font-size:1.75rem;">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <h3 style="font-size:1.3rem; margin-bottom:0.5rem; color:var(--color-secondary-dark);">Akun Guru Berhasil Dibuat!</h3>
+          <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1.5rem;">Bagikan kredensial login resmi ini kepada guru yang bersangkutan.</p>
+
+          <div style="background:#f8f9fa; border:1.5px dashed var(--border-color); border-radius:12px; padding:1.25rem; text-align:left; margin-bottom:1.5rem;">
+            <div style="margin-bottom:0.75rem;">
+              <span style="display:block; font-size:0.75rem; color:var(--text-muted); font-weight:600; text-transform:uppercase;">ID Guru / Akun:</span>
+              <strong id="modal-cred-id" style="font-family:monospace; font-size:1.15rem; color:var(--color-primary-dark);">0326007</strong>
+            </div>
+            <div style="margin-bottom:0.75rem;">
+              <span style="display:block; font-size:0.75rem; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Password Default:</span>
+              <strong id="modal-cred-password" style="font-family:monospace; font-size:1.15rem; color:var(--accent-orange);">SoC26007</strong>
+            </div>
+            <div>
+              <span style="display:block; font-size:0.75rem; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Nama Pengajar:</span>
+              <span id="modal-cred-name" style="font-weight:600; color:var(--color-secondary-dark);">Nama Guru</span>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:0.75rem; justify-content:center;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="copyTeacherCredentials()">
+              <i class="fas fa-copy"></i> Salin Info Login
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="closeTeacherCredentialModal()">
+              Tutup & Lihat Data
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: Akun Siswa Berhasil Dibuat -->
+      <div id="modal-siswa-credential" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center; padding:1rem;">
+        <div class="dashboard-card" style="max-width:440px; width:100%; padding:2rem; text-align:center; position:relative; animation:slideInDown 0.3s ease;">
+          <div style="width:60px; height:60px; border-radius:50%; background:rgba(40,167,69,0.15); color:#28a745; display:flex; align-items:center; justify-content:center; margin:0 auto 1.25rem; font-size:1.75rem;">
+            <i class="fas fa-user-check"></i>
+          </div>
+          <h3 style="font-size:1.3rem; margin-bottom:0.5rem; color:var(--color-secondary-dark);">Akun Siswa Berhasil Dibuat!</h3>
+          <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1.5rem;">Bagikan NIS dan password default ini kepada siswa / orang tua.</p>
+
+          <div style="background:#f8f9fa; border:1.5px dashed var(--border-color); border-radius:12px; padding:1.25rem; text-align:left; margin-bottom:1.5rem;">
+            <div style="margin-bottom:0.75rem;">
+              <span style="display:block; font-size:0.75rem; color:var(--text-muted); font-weight:600; text-transform:uppercase;">NIS Siswa (Username):</span>
+              <strong id="modal-siswa-cred-nis" style="font-family:monospace; font-size:1.15rem; color:var(--color-primary-dark);">260514008</strong>
+            </div>
+            <div style="margin-bottom:0.75rem;">
+              <span style="display:block; font-size:0.75rem; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Password Default:</span>
+              <strong id="modal-siswa-cred-password" style="font-family:monospace; font-size:1.15rem; color:var(--accent-orange);">SoC4008</strong>
+            </div>
+            <div>
+              <span style="display:block; font-size:0.75rem; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Nama Siswa:</span>
+              <span id="modal-siswa-cred-name" style="font-weight:600; color:var(--color-secondary-dark);">Nama Siswa</span>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:0.75rem; justify-content:center;">
+            <button type="button" class="btn btn-outline btn-sm" onclick="copyStudentCredentials()">
+              <i class="fas fa-copy"></i> Salin Info Login
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" onclick="closeStudentCredentialModal()">
+              Tutup & Lihat Data
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal: Pusat Pengaturan SoC (Admin Only) -->
+      <div id="modal-admin-settings" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:9999; align-items:center; justify-content:center; padding:1rem; backdrop-filter:blur(3px);">
+        <div class="dashboard-card" style="max-width:760px; width:100%; max-height:90vh; display:flex; flex-direction:column; padding:0; position:relative; animation:slideInDown 0.3s ease; border-left: 5px solid var(--accent-orange); overflow:hidden; border-radius:16px;">
+          <!-- Modal Header -->
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:1.25rem 1.75rem; border-bottom:1px solid var(--border-color); background:var(--bg-card);">
+            <div style="display:flex; align-items:center; gap:0.6rem;">
+              <div style="width:36px; height:36px; border-radius:8px; background:var(--accent-orange-tint); color:var(--accent-orange); display:flex; align-items:center; justify-content:center; font-size:1.1rem;">
+                <i class="fas fa-sliders-h"></i>
+              </div>
+              <div>
+                <h3 style="margin:0; font-size:1.25rem; font-weight:700;">Pusat Pengaturan SoC</h3>
+                <p style="margin:0; font-size:0.8rem; color:var(--text-muted);">Kelola konfigurasi sistem, landing page, dan preferensi tampilan.</p>
+              </div>
+            </div>
+            <button type="button" id="btn-close-admin-settings" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:var(--text-muted); padding:0.4rem; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+
+          <!-- Navigation Tabs Bar -->
+          <div class="settings-modal-tabs" style="display:flex; border-bottom:1px solid var(--border-color); background:var(--bg-contrast, #f8fafc); overflow-x:auto;">
+            <button type="button" class="settings-tab-btn active" data-tab="tab-settings-lokasi">
+              <i class="fas fa-map-marker-alt"></i> Lokasi &amp; Jam
+            </button>
+            <button type="button" class="settings-tab-btn" data-tab="tab-settings-mitra">
+              <i class="fas fa-handshake"></i> Mitra &amp; Sponsor
+            </button>
+            <button type="button" class="settings-tab-btn" data-tab="tab-settings-pendaftaran">
+              <i class="fas fa-user-plus"></i> Kontrol Pendaftaran
+            </button>
+            <button type="button" class="settings-tab-btn" data-tab="tab-settings-tampilan">
+              <i class="fas fa-moon"></i> Mode Tampilan
+            </button>
+          </div>
+
+          <!-- Modal Body (Scrollable) -->
+          <div style="flex:1; overflow-y:auto; padding:1.5rem 1.75rem;">
+            
+            <!-- TAB 1: Lokasi & Jam Operasional -->
+            <div id="tab-settings-lokasi" class="settings-tab-content active">
+              <p class="card-desc" style="margin-bottom: 1.25rem; font-size:0.88rem; color:var(--text-muted);">
+                Perbarui alamat fisik dan jam operasional School of Character. Perubahan ini otomatis tersinkronisasi ke landing page publik (Halaman "Tentang", peta Google Maps interaktif, dan Footer kontak).
+              </p>
+              <form id="form-admin-settings" style="display: flex; flex-direction: column; gap: 1rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="input-setting-alamat" style="font-weight: 700; color: var(--color-secondary-dark); margin-bottom: 0.35rem; display: block; font-size:0.9rem;">
+                    <i class="fas fa-map-marker-alt text-orange"></i> Alamat Lengkap SoC
+                  </label>
+                  <textarea id="input-setting-alamat" class="form-control" rows="2" style="width: 100%; border-radius: 8px; padding: 0.65rem 0.85rem; border: 1px solid var(--border-color); font-family: inherit; font-size: 0.95rem;" placeholder="Masukkan alamat lengkap School of Character..."></textarea>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="input-setting-jam" style="font-weight: 700; color: var(--color-secondary-dark); margin-bottom: 0.35rem; display: block; font-size:0.9rem;">
+                    <i class="fas fa-clock text-teal"></i> Jam Operasional
+                  </label>
+                  <input type="text" id="input-setting-jam" class="form-control" style="width: 100%; border-radius: 8px; padding: 0.65rem 0.85rem; border: 1px solid var(--border-color); font-size: 0.95rem;" placeholder="Contoh: Senin - Sabtu (14:00 - 17:30 WITA)">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap:0.5rem; margin-top: 0.75rem;">
+                  <button type="submit" id="btn-save-settings" class="btn btn-primary" style="padding: 0.65rem 1.5rem; font-weight: 700;">
+                    <i class="fas fa-save"></i> Simpan Lokasi &amp; Jam
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- TAB 2: Mitra & Sponsor -->
+            <div id="tab-settings-mitra" class="settings-tab-content" style="display:none;">
+              <p class="card-desc" style="margin-bottom: 1.25rem; font-size:0.88rem; color:var(--text-muted);">
+                Kelola mitra dan sponsor pendukung yang tampil pada landing page (Halaman Tentang). Anda dapat menambah logo/ikon baru atau menghapus mitra yang ada.
+              </p>
+              
+              <!-- Existing Sponsors List -->
+              <div style="margin-bottom:1.5rem;">
+                <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:0.75rem; color:var(--color-secondary-dark);"><i class="fas fa-list text-teal"></i> Daftar Mitra / Sponsor Saat Ini:</h4>
+                <div id="admin-sponsor-list" style="display:flex; flex-direction:column; gap:0.6rem;">
+                  <!-- Dynamically rendered sponsor cards -->
+                </div>
+              </div>
+
+              <!-- Add New Sponsor Card -->
+              <div style="background:var(--bg-contrast, #f8fafc); padding:1.25rem; border-radius:10px; border:1px solid var(--border-color);">
+                <h4 style="font-size:0.95rem; font-weight:700; margin-bottom:0.75rem; color:var(--color-secondary-dark);"><i class="fas fa-plus-circle text-orange"></i> Tambah Mitra / Sponsor Baru:</h4>
+                <form id="form-add-sponsor" style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+                  <div style="grid-column: span 1;">
+                    <label style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:0.25rem;">Nama Lembaga / Mitra</label>
+                    <input type="text" id="input-sponsor-name" class="form-control" placeholder="Contoh: Yayasan Peduli Bangsa" required>
+                  </div>
+                  <div style="grid-column: span 1;">
+                    <label style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:0.25rem;">Link Website / Sosmed</label>
+                    <input type="url" id="input-sponsor-url" class="form-control" placeholder="https://..." required>
+                  </div>
+                  <div style="grid-column: span 2;">
+                    <label style="font-size:0.85rem; font-weight:600; display:block; margin-bottom:0.35rem;">Pilih Icon Sponsor (Preset atau FontAwesome Class):</label>
+                    <div class="sponsor-icon-picker-grid" id="sponsor-icon-picker">
+                      <button type="button" class="btn-icon-preset active" data-icon="fas fa-hand-holding-heart">
+                        <i class="fas fa-hand-holding-heart"></i> Peduli/Yayasan
+                      </button>
+                      <button type="button" class="btn-icon-preset" data-icon="fas fa-handshake">
+                        <i class="fas fa-handshake"></i> Mitra/Partner
+                      </button>
+                      <button type="button" class="btn-icon-preset" data-icon="fab fa-instagram">
+                        <i class="fab fa-instagram"></i> Instagram
+                      </button>
+                      <button type="button" class="btn-icon-preset" data-icon="fas fa-globe">
+                        <i class="fas fa-globe"></i> Website
+                      </button>
+                      <button type="button" class="btn-icon-preset" data-icon="fas fa-university">
+                        <i class="fas fa-university"></i> Lembaga/Instansi
+                      </button>
+                      <button type="button" class="btn-icon-preset" data-icon="fas fa-graduation-cap">
+                        <i class="fas fa-graduation-cap"></i> Pendidikan
+                      </button>
+                      <button type="button" class="btn-icon-preset" data-icon="fas fa-seedling">
+                        <i class="fas fa-seedling"></i> Lingkungan/Alam
+                      </button>
+                      <button type="button" class="btn-icon-preset" data-icon="fas fa-star">
+                        <i class="fas fa-star"></i> Sponsor Utama
+                      </button>
+                    </div>
+                    <input type="text" id="input-sponsor-icon" class="form-control" placeholder="fas fa-hand-holding-heart" value="fas fa-hand-holding-heart" style="margin-top:0.4rem;">
+                  </div>
+                  <div style="grid-column: span 2; display:flex; justify-content:flex-end;">
+                    <button type="submit" id="btn-add-sponsor" class="btn btn-primary" style="padding:0.6rem 1.25rem; font-weight:700;">
+                      <i class="fas fa-plus"></i> Tambah Mitra
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <!-- TAB 3: Kontrol Pendaftaran -->
+            <div id="tab-settings-pendaftaran" class="settings-tab-content" style="display:none;">
+              <p class="card-desc" style="margin-bottom: 1.25rem; font-size:0.88rem; color:var(--text-muted);">
+                Atur status Buka/Tutup pendaftaran pada Landing Page publik (Halaman Pendaftaran). Jika ditutup, tombol pendaftaran dinonaktifkan otomatis dengan label "Pendaftaran Ditutup Sementara".
+              </p>
+              <form id="form-reg-settings" style="display: flex; flex-direction: column; gap: 1.25rem;">
+                
+                <!-- 1. Siswa Baru -->
+                <div style="background:var(--bg-contrast, #f8fafc); padding:1rem 1.25rem; border-radius:10px; border:1px solid var(--border-color);">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                      <span style="font-size:1.25rem;">🎓</span>
+                      <div>
+                        <strong style="font-size:0.95rem; color:var(--color-secondary-dark);">Pendaftaran Siswa Baru</strong>
+                        <div id="label-reg-siswa-status" style="font-size:0.8rem; color:var(--accent-green); font-weight:600;">Status: Dibuka</div>
+                      </div>
+                    </div>
+                    <label class="soc-switch">
+                      <input type="checkbox" id="switch-reg-siswa" checked>
+                      <span class="soc-slider"></span>
+                    </label>
+                  </div>
+                  <div style="margin-top:0.5rem;">
+                    <label style="font-size:0.8rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:0.25rem;">Tautan Google Form Siswa Baru:</label>
+                    <input type="url" id="input-reg-siswa-url" class="form-control" placeholder="https://docs.google.com/forms/...">
+                  </div>
+                </div>
+
+                <!-- 2. Guru / Pengajar -->
+                <div style="background:var(--bg-contrast, #f8fafc); padding:1rem 1.25rem; border-radius:10px; border:1px solid var(--border-color);">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                      <span style="font-size:1.25rem;">🏫</span>
+                      <div>
+                        <strong style="font-size:0.95rem; color:var(--color-secondary-dark);">Rekrutmen Guru / Pengajar</strong>
+                        <div id="label-reg-guru-status" style="font-size:0.8rem; color:var(--accent-green); font-weight:600;">Status: Dibuka</div>
+                      </div>
+                    </div>
+                    <label class="soc-switch">
+                      <input type="checkbox" id="switch-reg-guru" checked>
+                      <span class="soc-slider"></span>
+                    </label>
+                  </div>
+                  <div style="margin-top:0.5rem;">
+                    <label style="font-size:0.8rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:0.25rem;">Tautan Google Form Rekrutmen Guru:</label>
+                    <input type="url" id="input-reg-guru-url" class="form-control" placeholder="https://docs.google.com/forms/...">
+                  </div>
+                </div>
+
+                <!-- 3. Volunteer -->
+                <div style="background:var(--bg-contrast, #f8fafc); padding:1rem 1.25rem; border-radius:10px; border:1px solid var(--border-color);">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                      <span style="font-size:1.25rem;">🤝</span>
+                      <div>
+                        <strong style="font-size:0.95rem; color:var(--color-secondary-dark);">Pendaftaran Volunteer</strong>
+                        <div id="label-reg-volunteer-status" style="font-size:0.8rem; color:var(--accent-green); font-weight:600;">Status: Dibuka</div>
+                      </div>
+                    </div>
+                    <label class="soc-switch">
+                      <input type="checkbox" id="switch-reg-volunteer" checked>
+                      <span class="soc-slider"></span>
+                    </label>
+                  </div>
+                  <div style="margin-top:0.5rem;">
+                    <label style="font-size:0.8rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:0.25rem;">Tautan Google Form Volunteer:</label>
+                    <input type="url" id="input-reg-volunteer-url" class="form-control" placeholder="https://docs.google.com/forms/...">
+                  </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap:0.5rem; margin-top: 0.5rem;">
+                  <button type="submit" id="btn-save-reg-settings" class="btn btn-primary" style="padding: 0.65rem 1.5rem; font-weight: 700;">
+                    <i class="fas fa-save"></i> Simpan Kontrol Pendaftaran
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- TAB 4: Mode Tampilan -->
+            <div id="tab-settings-tampilan" class="settings-tab-content" style="display:none;">
+              <p class="card-desc" style="margin-bottom: 1.25rem; font-size:0.88rem; color:var(--text-muted);">
+                Sesuaikan preferensi tampilan visual dashboard.
+              </p>
+              
+              <div style="background:var(--bg-contrast, #f8fafc); padding:1.25rem; border-radius:10px; border:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:0.85rem;">
+                  <div style="width:42px; height:42px; border-radius:50%; background:#1e293b; color:#f8fafc; display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
+                    <i class="fas fa-moon"></i>
+                  </div>
+                  <div>
+                    <strong style="font-size:1rem; color:var(--color-secondary-dark); display:block;">Mode Gelap (Dark Mode)</strong>
+                    <span style="font-size:0.82rem; color:var(--text-muted);">Aktifkan tema dark-slate modern (#0f172a / #1e293b) untuk kenyamanan mata.</span>
+                  </div>
+                </div>
+                <label class="soc-switch">
+                  <input type="checkbox" id="switch-dark-mode">
+                  <span class="soc-slider"></span>
+                </label>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- SoC Global Custom Dialog Modal -->
+      <div id="soc-custom-dialog-overlay" class="soc-dialog-overlay">
+        <div class="soc-dialog-card">
+          <div id="soc-dialog-icon-container" class="soc-dialog-icon-circle type-info">
+            <i id="soc-dialog-icon" class="fas fa-info-circle"></i>
+          </div>
+          <h3 id="soc-dialog-title" class="soc-dialog-title">Informasi</h3>
+          <div id="soc-dialog-message" class="soc-dialog-message">Pesan dialog</div>
+          <div class="soc-dialog-actions">
+            <button type="button" id="soc-dialog-btn-cancel" class="btn-soc-dialog btn-soc-dialog-cancel" style="display:none;">Batal</button>
+            <button type="button" id="soc-dialog-btn-confirm" class="btn-soc-dialog btn-soc-dialog-confirm">OK</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================================================== -->
+      <!-- VIEW: DATA SISWA (Manager & Admin View)                -->
+      <!-- ===================================================== -->
+      <section id="view-data-siswa" class="dashboard-view">
+        <div class="view-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h2 class="view-title"><i class="fas fa-users text-teal"></i> Data Siswa</h2>
+            <p class="view-subtitle">Kelola dan pantau seluruh data siswa School of Character Pojok Hope.</p>
+          </div>
+          <!-- Admin Action Bar (only visible for role 'admin') -->
+          <div id="admin-action-bar" style="display: none; gap: 0.5rem; flex-wrap: wrap;">
+            <button class="btn btn-sm btn-primary" id="btn-admin-tambah-siswa" onclick="switchView('akun-siswa')" title="Tambah Siswa" style="display:inline-flex; align-items:center; gap:0.4rem;">
+              <i class="fas fa-user-plus"></i> + Tambah Siswa
+            </button>
+            <button class="btn btn-sm btn-outline" id="btn-admin-export-data" onclick="exportDataSiswa()" title="Export Data" style="display:inline-flex; align-items:center; gap:0.4rem;">
+              <i class="fas fa-file-export"></i> Export Data
+            </button>
+            <button class="btn btn-sm btn-danger" id="btn-admin-hapus-semua" title="Hapus Siswa" style="background:#fee2e2; color:#b91c1c; border:1px solid #f87171; display:inline-flex; align-items:center; gap:0.4rem;">
+              <i class="fas fa-trash-alt"></i> Hapus Siswa
+            </button>
+          </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="dashboard-card" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <i class="fas fa-search text-teal" style="font-size: 1.1rem;"></i>
+            <input type="text" id="search-data-siswa" class="form-control" placeholder="Cari siswa berdasarkan ID, NIS, nama lengkap, atau kelas..." style="width: 100%; border: 1.5px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.85rem; font-size: 0.95rem;">
+          </div>
+        </div>
+
+        <!-- Data Siswa Table -->
+        <div class="dashboard-card" style="padding: 1.25rem; overflow-x: auto;">
+          <table class="rapor-table" style="width: 100%; border-collapse: collapse; min-width: 700px;" id="table-data-siswa">
+            <thead>
+              <tr style="background: var(--color-primary-dark); color: #fff;">
+                <th style="padding: 0.75rem 1rem; text-align: center !important; vertical-align: middle; width: 60px;">No</th>
+                <th style="padding: 0.75rem 1rem; text-align: center !important; vertical-align: middle; width: 120px;">NIS</th>
+                <th style="padding: 0.75rem 1rem; text-align: center !important; vertical-align: middle;">Nama Lengkap</th>
+                <th style="padding: 0.75rem 1rem; text-align: center !important; vertical-align: middle; width: 80px;">L/P</th>
+                <th style="padding: 0.75rem 1rem; text-align: center !important; vertical-align: middle; width: 160px;">Kelas English</th>
+                <th style="padding: 0.75rem 1rem; text-align: center !important; vertical-align: middle; width: 160px;">Kelas Matematika</th>
+                <th style="padding: 0.75rem 1rem; text-align: center !important; vertical-align: middle; width: 180px;">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="data-siswa-tbody">
+              <!-- Populated dynamically by JS -->
+            </tbody>
+          </table>
+        </div>
+      </section><!-- /view-data-siswa -->
+
+      <!-- ===================================================== -->
+      <!-- VIEW: DETAIL & EDIT SISWA + KARTU ID                  -->
+      <!-- ===================================================== -->
+      <section id="view-detail-siswa" class="dashboard-view" style="display:none;">
+        <div class="view-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
+          <div>
+            <h2 class="view-title"><i class="fas fa-id-card text-teal"></i> Detail Siswa</h2>
+            <p class="view-subtitle" id="detail-siswa-subtitle">Informasi profil, akun login, dan kartu identitas siswa.</p>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="switchView('data-siswa')" style="display:inline-flex; align-items:center; gap:0.5rem;">
+            <i class="fas fa-arrow-left"></i> Kembali ke Data Siswa
+          </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 2rem;">
+          <!-- TOP CARD: Data & Akun Siswa -->
+          <div class="dashboard-card" style="padding: 2rem;">
+            <div class="card-header" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+              <h3><i class="fas fa-user-edit text-orange"></i> Data &amp; Akun Siswa</h3>
+              <span class="badge badge-teal" id="badge-detail-siswa-role">Siswa</span>
+            </div>
+
+            <form id="form-edit-detail-siswa">
+              <input type="hidden" id="edit-siswa-id">
+
+              <!-- Circular Profile Photo Preview at Top -->
+              <div id="group-edit-siswa-foto" style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 1.5rem; text-align: center;">
+                <div style="position: relative; margin-bottom: 0.75rem;">
+                  <img id="detail-siswa-photo-preview" src="static/src/assets/ui/logo.png" alt="Foto Profil Siswa" style="width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent-orange); box-shadow: 0 4px 15px rgba(0,0,0,0.25); background: #fff;">
+                </div>
+                <label for="edit-siswa-foto" class="btn btn-outline btn-sm" id="btn-label-edit-siswa-foto" style="cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.85rem; font-size: 0.85rem;">
+                  <i class="fas fa-camera"></i> Upload / Ganti Foto Profil
+                </label>
+                <input type="file" id="edit-siswa-foto" accept="image/jpeg,image/png,image/webp" style="display: none;">
+                <small style="display:block; margin-top:0.35rem; color:var(--text-muted); font-size:0.75rem;">Format: JPG, PNG, atau WEBP | Maks: 2MB</small>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">NIS Siswa (Username)</label>
+                  <input type="text" id="edit-siswa-nis" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px; font-family: monospace; font-weight: 600;">
+                </div>
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Password Akun</label>
+                  <input type="text" id="edit-siswa-password" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px; font-family: monospace;">
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Nama Lengkap <span style="color:var(--accent-orange);">*</span></label>
+                  <input type="text" id="edit-siswa-nama" class="form-control" required style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                </div>
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Nama Panggilan</label>
+                  <input type="text" id="edit-siswa-panggilan" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                </div>
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Jenis Kelamin</label>
+                  <select id="edit-siswa-gender" class="form-control custom-select" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                    <option value="Laki-laki">Laki-laki</option>
+                    <option value="Perempuan">Perempuan</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Tempat Lahir</label>
+                  <input type="text" id="edit-siswa-tempat-lahir" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                </div>
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Tanggal Lahir</label>
+                  <input type="date" id="edit-siswa-tanggal-lahir" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Nama Orang Tua / Wali</label>
+                  <input type="text" id="edit-siswa-ortu" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                </div>
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">No HP Siswa (Opsional)</label>
+                  <input type="tel" id="edit-siswa-hp-siswa" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                </div>
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">No HP Orang Tua (Opsional)</label>
+                  <input type="tel" id="edit-siswa-hp-ortu" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                </div>
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Level English</label>
+                  <select id="edit-siswa-kelas-eng" class="form-control custom-select" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                    <option value="">— Belum Ditentukan —</option>
+                    <option value="English A">English A (Foundation)</option>
+                    <option value="English B">English B (Beginner)</option>
+                    <option value="English C">English C (Intermediate)</option>
+                    <option value="English D">English D (Advanced)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Level Matematika</label>
+                  <select id="edit-siswa-kelas-math" class="form-control custom-select" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                    <option value="">— Belum Ditentukan —</option>
+                    <option value="Math A">Math A (Dasar Angka)</option>
+                    <option value="Math B">Math B (Operasi Lanjut)</option>
+                    <option value="Math C">Math C (Pecahan &amp; Logika)</option>
+                    <option value="Math D">Math D (Pra-Aljabar &amp; Kritis)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="margin-top: 1.75rem; display: flex; justify-content: flex-end;" id="btn-save-detail-siswa-container">
+                <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.75rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+                  <i class="fas fa-save"></i> Simpan Perubahan
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- BOTTOM CARD: Kartu Pelajar & QR Absensi -->
+          <div class="dashboard-card" style="padding: 2rem;">
+            <div class="card-header" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+              <h3><i class="fas fa-id-card text-teal"></i> Kartu Pelajar &amp; QR Absensi</h3>
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button type="button" class="btn btn-outline btn-sm" onclick="printStudentIdCard()">
+                  <i class="fas fa-print"></i> Cetak Kartu ID
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="downloadStudentIdCard()">
+                  <i class="fas fa-download"></i> Download ID Card (PNG)
+                </button>
+              </div>
+            </div>
+
+            <!-- Official Student ID Card Mockup container -->
+            <div id="student-id-card-render-area" style="max-width: 440px; margin: 0 auto; background: linear-gradient(135deg, #072d3b 0%, #0d202d 100%); border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.25); color: #fff; border: 2px solid rgba(32,201,151,0.3); font-family: var(--font-body, sans-serif);">
+              <!-- Top branding -->
+              <div style="background: rgba(255,255,255,0.06); padding: 1.25rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <img src="static/src/assets/ui/logo.png" alt="SoC" style="width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--color-secondary); background: #fff;">
+                  <div>
+                    <h4 style="margin: 0; font-size: 0.95rem; font-weight: 800; letter-spacing: 0.5px; color: #fff;">SCHOOL OF CHARACTER</h4>
+                    <span style="font-size: 0.75rem; color: var(--color-secondary); font-weight: 600;">POJOK HOPE • KARTU PELAJAR</span>
+                  </div>
+                </div>
+                <span class="badge badge-teal" style="font-size: 0.7rem; padding: 0.25rem 0.6rem;">OFFICIAL</span>
+              </div>
+
+              <!-- Body -->
+              <div style="padding: 1.5rem; display: flex; flex-direction: column; align-items: center; text-align: center;">
+                <div style="position: relative; margin-bottom: 1rem;">
+                  <img id="card-student-photo" src="static/src/assets/ui/logo.png" alt="Foto Siswa" style="width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 3px solid var(--color-secondary); box-shadow: 0 4px 15px rgba(0,0,0,0.3); background:#fff;">
+                </div>
+                <h3 id="card-student-name" style="margin: 0 0 0.25rem 0; font-size: 1.2rem; font-weight: 700; color: #fff;">Nama Siswa</h3>
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; justify-content: center;">
+                  <span class="badge badge-teal" id="card-student-nis-badge" style="font-family: monospace; font-size: 0.85rem; padding: 0.3rem 0.7rem;">NIS: -</span>
+                  <span class="badge badge-teal" id="card-student-eng-badge" style="font-size: 0.82rem; padding: 0.3rem 0.65rem;">English: -</span>
+                  <span class="badge badge-green" id="card-student-math-badge" style="font-size: 0.82rem; padding: 0.3rem 0.65rem;">Math: -</span>
+                  <span class="badge badge-orange" id="card-student-gender-badge" style="font-size: 0.82rem; padding: 0.3rem 0.65rem;">L</span>
+                </div>
+
+                <!-- QR Container -->
+                <div style="background: #fff; padding: 0.75rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); margin-bottom: 0.75rem;">
+                  <img id="card-student-qr" src="" alt="QR Absensi" style="width: 140px; height: 140px; display: block;">
+                </div>
+                <small style="color: rgba(255,255,255,0.7); font-size: 0.75rem;"><i class="fas fa-qrcode"></i> Scan untuk verifikasi identitas &amp; absensi siswa</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section><!-- /view-detail-siswa -->
+
+      <!-- ===================================================== -->
+      <!-- VIEW 5: RAPOR SISWA                                   -->
       <!-- ===================================================== -->
       <section id="view-rapor" class="dashboard-view">
         <div class="view-header">
           <h2 class="view-title"><i class="fas fa-file-invoice text-orange"></i> Rapor Siswa</h2>
-          <p class="view-subtitle">Laporan lengkap perkembangan karakter, English, dan Matematika secara berkala.</p>
+          <p class="view-subtitle">Laporan perkembangan dan penempatan level siswa.</p>
         </div>
 
         <!-- Class Badge (only visible in teacher mode) -->
         <div class="rapor-class-badge-container" id="rapor-class-badge-container" style="display:none; margin-bottom: 1.5rem;">
-          <span class="badge-class-manage" id="rapor-class-badge">Mengelola: Kelas A</span>
+          <span class="badge-class-manage" id="rapor-class-badge">Mengelola Kelas</span>
         </div>
 
-        <!-- Student selector (only visible in teacher mode) -->
-        <div class="rapor-selector-row" id="rapor-student-selector-row" style="display:none">
-          <label for="rapor-student-selector" class="rapor-select-label">Pilih Siswa:</label>
-          <select id="rapor-student-selector" class="custom-select">
-            <option value="budi">Budi Santoso</option>
-            <option value="aisyah">Aisyah Putri</option>
-            <option value="fajar">Fajar Ramadhan</option>
-            <option value="siti">Siti Nurhaliza</option>
-          </select>
+        <!-- Guru Subject Toggles -->
+        <div id="guru-subject-toggles" style="display:none; margin-bottom: 1.5rem; gap: 1rem;">
+          <button class="btn btn-primary" id="btn-rapor-english">English</button>
+          <button class="btn btn-outline" id="btn-rapor-math">Matematika</button>
+        </div>
+        <div id="guru-no-class-alert" class="alert alert-warning" style="display:none; margin-bottom: 1.5rem;">Kelas belum ditentukan oleh Manager.</div>
+
+        <!-- Student selector and controls (visible in staff mode) -->
+        <div class="rapor-selector-row" id="rapor-student-selector-row" style="display:none; align-items:center; flex-wrap:wrap; gap:1rem;">
+          <div class="form-group" id="rapor-manager-class-group" style="display:none; margin-right: 1rem;">
+            <label style="font-weight:600; color:var(--color-secondary-dark);">Pilih Kelas:</label>
+            <select id="rapor-manager-class-selector" class="form-control custom-select">
+              <option value="Semua">Semua Kelas</option>
+              <option value="English A">English A (Foundation)</option>
+              <option value="English B">English B (Beginner)</option>
+              <option value="English C">English C (Intermediate)</option>
+              <option value="English D">English D (Advanced)</option>
+              <option value="Math A">Math A (Dasar Angka)</option>
+              <option value="Math B">Math B (Operasi Lanjut)</option>
+              <option value="Math C">Math C (Pecahan &amp; Logika)</option>
+              <option value="Math D">Math D (Pra-Aljabar &amp; Kritis)</option>
+            </select>
+          </div>
+          <div style="display:flex; align-items:center; gap:0.5rem;" id="rapor-student-select-box">
+            <label for="rapor-student-selector" class="rapor-select-label" style="margin:0;">Pilih Siswa:</label>
+            <input list="datalist-students" id="rapor-student-selector" class="form-control custom-select" placeholder="Cari Siswa..." autocomplete="off" style="min-width: 260px;">
+          </div>
+          <!-- Teacher Subject Filter -->
+          <div class="form-group" id="rapor-subject-filter-group" style="display:none; margin-left:0.5rem; align-items:center; gap:0.5rem;">
+            <label for="rapor-subject-filter" style="font-weight:600; color:var(--color-secondary-dark); margin:0;">Mata Pelajaran:</label>
+            <select id="rapor-subject-filter" class="form-control custom-select">
+              <option value="English">English</option>
+              <option value="Matematika">Matematika</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Manager Plotting Container directly below student selector row -->
+        <div id="manager-plotting-container" style="display:none; background:var(--bg-card); padding:1.5rem; border-radius:12px; margin-bottom:2rem; border:1px solid var(--border-color);">
+          <div style="margin-bottom: 1rem;">
+            <h4 style="margin:0 0 0.25rem 0; font-size:1.05rem; color:var(--color-secondary-dark);"><i class="fas fa-user-graduate text-orange"></i> Plotting Level Siswa</h4>
+            <p style="margin:0; font-size:0.85rem; color:var(--text-muted);">Tentukan level English dan Math untuk siswa yang dipilih di atas.</p>
+          </div>
+          <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:flex-end;">
+            <div class="form-group" style="flex:1; min-width:180px; margin:0;">
+              <label style="display:block; font-weight:600; margin-bottom:0.5rem; font-size:0.9rem; color:var(--color-secondary-dark);">
+                <i class="fas fa-language text-teal"></i> Level English:
+              </label>
+              <select id="plotting-english-level" class="custom-select form-control" style="width:100%;">
+                <option value="">— Belum Ditentukan —</option>
+                <option value="English A">English A (Foundation)</option>
+                <option value="English B">English B (Beginner)</option>
+                <option value="English C">English C (Intermediate)</option>
+                <option value="English D">English D (Advanced)</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex:1; min-width:180px; margin:0;">
+              <label style="display:block; font-weight:600; margin-bottom:0.5rem; font-size:0.9rem; color:var(--color-secondary-dark);">
+                <i class="fas fa-calculator text-green"></i> Level Matematika:
+              </label>
+              <select id="plotting-math-level" class="custom-select form-control" style="width:100%;">
+                <option value="">— Belum Ditentukan —</option>
+                <option value="Math A">Math A (Dasar Angka)</option>
+                <option value="Math B">Math B (Operasi Lanjut)</option>
+                <option value="Math C">Math C (Pecahan &amp; Logika)</option>
+                <option value="Math D">Math D (Pra-Aljabar &amp; Kritis)</option>
+              </select>
+            </div>
+            <div style="min-width:180px;">
+              <button class="btn btn-primary" id="btn-simpan-penempatan" style="width:100%; height:42px;">
+                <i class="fas fa-save"></i> Simpan Penempatan
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Global student datalist for searchable inputs -->
+        <datalist id="datalist-students">
+          <!-- Populated dynamically with Nama Lengkap (Nama Panggilan) -->
+        </datalist>
+
+        <!-- GURU RAPOR DYNAMIC SELECTION VIEW -->
+        <div id="guru-rapor-selection-view" style="display: none; margin-bottom: 2rem;">
+          
+          <!-- SINGLE Month Label ABOVE buttons -->
+          <div style="margin-bottom: 1rem;">
+             <span class="badge badge-teal" id="guru-active-month-text" style="font-size: 0.9rem; padding: 0.4rem 0.8rem;"></span>
+          </div>
+
+          <!-- Dynamic Class Buttons -->
+          <div id="guru-dynamic-class-buttons" style="display:flex; gap:0.75rem; margin-bottom:1.25rem; flex-wrap: wrap;">
+             <!-- Populated dynamically by teacher.js -->
+          </div>
+
+          <div class="dashboard-card" style="padding: 1.25rem;">
+            <!-- Search Input -->
+            <div style="margin-bottom: 1rem;">
+              <input type="text" id="search-guru-rapor-siswa" placeholder="Cari siswa..." class="form-control" style="margin-bottom:1rem; max-width:300px; padding: 0.6rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+            </div>
+
+            <!-- Guru Rapor Table -->
+            <div style="overflow-x: auto;">
+              <table class="rapor-table" id="table-guru-rapor-list" style="width: 100%; border-collapse: collapse; min-width: 500px;">
+                <thead>
+                  <tr style="background: var(--color-primary-dark); color: #fff;">
+                    <th style="padding: 0.75rem 1rem; text-align: center; width: 60px;">No</th>
+                    <th style="padding: 0.75rem 1rem; text-align: left; width: 120px;">NIS</th>
+                    <th style="padding: 0.75rem 1rem; text-align: left;">Nama Lengkap</th>
+                    <th style="padding: 0.75rem 1rem; text-align: center; width: 140px;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="table-guru-rapor-tbody">
+                  <!-- Populated dynamically by teacher.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Container for Rapor cards that can be shown/hidden as a unit -->
+        <div id="rapor-cards-container">
+          <!-- Back to Guru Class List Button (visible when teacher opens a student's rapor) -->
+          <div id="btn-back-to-guru-list-container" style="display: none; margin-bottom: 1.25rem;">
+            <button class="btn btn-sm btn-outline" id="btn-back-to-guru-list" onclick="backToGuruRaporSelection()" style="display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 600;">
+              <i class="fas fa-arrow-left"></i> Kembali ke Daftar Siswa
+            </button>
+          </div>
+
+          <h3 id="rapor-individual-student-name" style="display: none; margin: 0.25rem 0 0.85rem 0; font-size: 1.35rem; font-weight: 800; color: var(--color-secondary-dark); font-family: var(--font-heading);"></h3>
+
+        <!-- Dynamic Level Badges above Rapor section -->
+        <div id="rapor-student-levels-badge-container" style="margin-top: 1rem; margin-bottom: 1.5rem; display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+          <span class="badge badge-teal" id="rapor-student-level-eng" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;"><i class="fas fa-language"></i> English: Belum ditentukan</span>
+          <span class="badge badge-green" id="rapor-student-level-math" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;"><i class="fas fa-calculator"></i> Math: Belum ditentukan</span>
+          <div id="rapor-semester-selector-container" style="margin-left: auto; display: none; align-items: center; gap: 0.5rem;">
+            <label for="rapor-semester-selector" style="font-weight: 700; font-size: 0.85rem; color: var(--color-secondary-dark); margin: 0;">
+              <i class="fas fa-history text-teal"></i> Periode Rapor:
+            </label>
+            <select id="rapor-semester-selector" class="form-control custom-select" style="padding: 0.3rem 0.65rem; font-size: 0.85rem; font-weight: 600; width: auto;">
+              <option value="2026-1">Jan – Jun 2026 (Sem. Genap)</option>
+              <option value="2026-2">Jul – Des 2026 (Sem. Ganjil)</option>
+              <option value="2027-1">Jan – Jun 2027 (Sem. Genap)</option>
+            </select>
+          </div>
         </div>
 
         <!-- Student Star Reward Card -->
@@ -487,9 +1763,12 @@
               <span class="star-unit">Bintang</span>
             </div>
             <div class="star-control-actions">
-              <button class="btn btn-star-add" id="btn-star-add"><i class="fas fa-plus"></i> +1 Bintang</button>
-              <button class="btn btn-star-sub" id="btn-star-sub"><i class="fas fa-minus"></i> -1 Bintang</button>
-              <button class="btn btn-star-reset" id="btn-star-reset"><i class="fas fa-sync-alt"></i> Reset Periode</button>
+              <div id="star-action-buttons" style="display:inline-flex; gap:0.5rem;">
+                <button class="btn btn-star-add" id="btn-star-add"><i class="fas fa-plus"></i> +1 Bintang</button>
+                <button class="btn btn-star-sub" id="btn-star-sub"><i class="fas fa-minus"></i> -1 Bintang</button>
+                <button class="btn btn-star-reset" id="btn-star-reset"><i class="fas fa-sync-alt"></i> Reset Periode</button>
+                <button class="btn btn-primary" id="btn-save-stars"><i class="fas fa-save"></i> Simpan Bintang</button>
+              </div>
             </div>
           </div>
         </div>
@@ -522,138 +1801,216 @@
           </div>
         </div>
 
+        <div id="rapor-guru-input-card" style="display:none; width: 100%; margin-top: 2rem; margin-bottom: 2rem;">
+          <div class="dashboard-card card-large">
+            <div class="card-header">
+              <h3><i class="fas fa-edit text-green"></i> Input Nilai Komprehensif</h3>
+              <span class="badge badge-green">Perlu Penilaian</span>
+              <div style="margin-left: auto; display: flex; align-items: center; gap: 0.5rem;">
+                 <label for="rapor-month-selector" style="font-weight: 600; font-size: 0.85rem; margin:0;">Bulan:</label>
+                 <select id="rapor-month-selector" class="form-control custom-select" style="padding: 0.2rem 0.5rem; height: auto; font-size: 0.85rem;">
+                    <option value="Juli">Juli</option><option value="Agustus">Agustus</option>
+                    <option value="September">September</option><option value="Oktober" selected>Oktober</option>
+                    <option value="November">November</option><option value="Desember">Desember</option>
+                 </select>
+              </div>
+            </div>
+            <p class="card-desc">Input nilai Karakter, English, dan Matematika untuk setiap siswa menggunakan slider interaktif.</p>
+            <div class="scoring-container">
+              <div class="student-select-header" style="display:none">
+                <label for="student-selector">Pilih Siswa:</label>
+                <select id="student-selector" class="custom-select">
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+
+              <div id="scoring-group-karakter">
+                <div class="scoring-category-label"><i class="fas fa-heart text-orange"></i> Karakter</div>
+                <div class="scoring-sliders-list">
+                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Empati &amp; Berbagi</span><input type="number" class="score-manual-input form-control" id="slider-empathy-val" min="0" max="100" value="88" style="display: inline-block; width: 60px; float: right; padding: 0.2rem; text-align: center; color: var(--color-accent); border: 2px solid var(--color-accent); font-weight: bold; background: #fff;"></div><input type="range" min="0" max="100" value="88" class="range-slider slider-orange" id="slider-empathy"></div>
+                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Kejujuran</span><input type="number" class="score-manual-input form-control" id="slider-honesty-val" min="0" max="100" value="95" style="display: inline-block; width: 60px; float: right; padding: 0.2rem; text-align: center; color: var(--color-accent); border: 2px solid var(--color-accent); font-weight: bold; background: #fff;"></div><input type="range" min="0" max="100" value="95" class="range-slider slider-orange" id="slider-honesty"></div>
+                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Tanggung Jawab</span><input type="number" class="score-manual-input form-control" id="slider-responsibility-val" min="0" max="100" value="85" style="display: inline-block; width: 60px; float: right; padding: 0.2rem; text-align: center; color: var(--color-accent); border: 2px solid var(--color-accent); font-weight: bold; background: #fff;"></div><input type="range" min="0" max="100" value="85" class="range-slider slider-orange" id="slider-responsibility"></div>
+                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Sopan Santun</span><input type="number" class="score-manual-input form-control" id="slider-respect-val" min="0" max="100" value="90" style="display: inline-block; width: 60px; float: right; padding: 0.2rem; text-align: center; color: var(--color-accent); border: 2px solid var(--color-accent); font-weight: bold; background: #fff;"></div><input type="range" min="0" max="100" value="90" class="range-slider slider-orange" id="slider-respect"></div>
+                </div>
+              </div>
+
+              <div id="scoring-group-english">
+                <div class="scoring-category-label" style="margin-top:1.5rem"><i class="fas fa-language text-teal"></i> English</div>
+                <div class="scoring-sliders-list">
+                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Fluency</span><input type="number" class="score-manual-input form-control" id="slider-eng-fluency-val" min="0" max="100" value="82" style="display: inline-block; width: 60px; float: right; padding: 0.2rem; text-align: center; color: var(--color-primary); border: 2px solid var(--color-primary); font-weight: bold; background: #fff;"></div><input type="range" min="0" max="100" value="82" class="range-slider slider-teal" id="slider-eng-fluency"></div>
+                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Reading Comprehension</span><input type="number" class="score-manual-input form-control" id="slider-eng-reading-val" min="0" max="100" value="78" style="display: inline-block; width: 60px; float: right; padding: 0.2rem; text-align: center; color: var(--color-primary); border: 2px solid var(--color-primary); font-weight: bold; background: #fff;"></div><input type="range" min="0" max="100" value="78" class="range-slider slider-teal" id="slider-eng-reading"></div>
+                </div>
+              </div>
+
+              <div id="scoring-group-math">
+                <div class="scoring-category-label" style="margin-top:1.5rem"><i class="fas fa-calculator text-green"></i> Matematika</div>
+                <div class="scoring-sliders-list">
+                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Logika &amp; Problem Solving</span><input type="number" class="score-manual-input form-control" id="slider-math-logic-val" min="0" max="100" value="91" style="display: inline-block; width: 60px; float: right; padding: 0.2rem; text-align: center; color: var(--color-success); border: 2px solid var(--color-success); font-weight: bold; background: #fff;"></div><input type="range" min="0" max="100" value="91" class="range-slider slider-green" id="slider-math-logic"></div>
+                  <div class="slider-box"><div class="slider-info"><span class="slider-label">Aritmatika</span><input type="number" class="score-manual-input form-control" id="slider-math-arith-val" min="0" max="100" value="87" style="display: inline-block; width: 60px; float: right; padding: 0.2rem; text-align: center; color: var(--color-success); border: 2px solid var(--color-success); font-weight: bold; background: #fff;"></div><input type="range" min="0" max="100" value="87" class="range-slider slider-green" id="slider-math-arith"></div>
+                </div>
+              </div>
+
+              <div class="scoring-actions">
+                <button class="btn btn-secondary btn-sm" id="btn-save-score"><i class="fas fa-save"></i> Simpan Semua Nilai</button>
+                <span id="save-status-msg" class="status-msg text-green hidden">✓ Tersimpan!</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Report Card Table -->
         <div class="dashboard-card" style="margin-top:2rem">
           <div class="card-header">
             <h3><i class="fas fa-table text-teal"></i> Tabel Raport Nilai Bulanan</h3>
-            <span class="badge badge-orange">Semester 1 — 2026</span>
+            <span class="badge badge-orange" id="rapor-semester-badge">Semester 1 (Jul — Des 2026)</span>
           </div>
-          <p class="card-desc">Perbandingan skor per aspek penilaian selama 3 bulan terakhir.</p>
-          <div class="rapor-table-wrapper">
-            <table class="rapor-table">
+          <p class="card-desc" id="rapor-table-period-desc">Perbandingan skor per aspek penilaian selama 1 semester (Juli - Desember).</p>
+          <div class="rapor-table-wrapper" style="max-width: 100%; overflow-x: auto; position: relative;">
+            <table class="rapor-table" style="min-width: 650px;">
               <thead>
                 <tr>
-                  <th>Aspek Penilaian</th>
-                  <th>Maret</th>
-                  <th>April</th>
-                  <th>Mei</th>
-                  <th>Trend</th>
+                  <th style="position: sticky; left: 0; background: var(--color-primary-dark) !important; color: #ffffff !important; z-index: 3;">Aspek Penilaian</th>
+                  <th id="th-month-0">Jul</th>
+                  <th id="th-month-1">Ags</th>
+                  <th id="th-month-2">Sep</th>
+                  <th id="th-month-3">Okt</th>
+                  <th id="th-month-4">Nov</th>
+                  <th id="th-month-5">Des</th>
+                  <th style="position: sticky; right: 0; background: var(--color-primary-dark) !important; color: #ffffff !important; z-index: 3;">Trend</th>
                 </tr>
               </thead>
               <tbody>
-                <tr class="row-category"><td colspan="5"><i class="fas fa-heart"></i> Karakter Mulia</td></tr>
-                <tr>
-                  <td class="aspect-name">Empati &amp; Berbagi</td>
-                  <td><span class="score-chip score-b">82</span></td>
-                  <td><span class="score-chip score-b">85</span></td>
-                  <td><span class="score-chip score-a" id="cell-may-empathy">88</span></td>
-                  <td><span class="trend-up"><i class="fas fa-arrow-up"></i> +6</span></td>
+                <tr class="row-category" data-subject="karakter"><td colspan="8"><i class="fas fa-heart text-orange"></i> Karakter Mulia</td></tr>
+                <tr data-aspect="score_empathy" data-subject="karakter">
+                  <td class="aspect-name" style="position: sticky; left: 0; background: #fff; z-index: 2; box-shadow: 2px 0 5px rgba(0,0,0,0.05);">Empati &amp; Berbagi</td>
+                  <td class="cell-jul">-</td>
+                  <td class="cell-ags">-</td>
+                  <td class="cell-sep">-</td>
+                  <td class="cell-okt">-</td>
+                  <td class="cell-nov">-</td>
+                  <td class="cell-des">-</td>
+                  <td class="cell-trend" style="position: sticky; right: 0; background: #fff; z-index: 2; box-shadow: -2px 0 5px rgba(0,0,0,0.05);">-</td>
                 </tr>
-                <tr>
-                  <td class="aspect-name">Kejujuran</td>
-                  <td><span class="score-chip score-a">90</span></td>
-                  <td><span class="score-chip score-a">92</span></td>
-                  <td><span class="score-chip score-a" id="cell-may-honesty">95</span></td>
-                  <td><span class="trend-up"><i class="fas fa-arrow-up"></i> +5</span></td>
+                <tr data-aspect="score_honesty" data-subject="karakter">
+                  <td class="aspect-name" style="position: sticky; left: 0; background: #fff; z-index: 2; box-shadow: 2px 0 5px rgba(0,0,0,0.05);">Kejujuran</td>
+                  <td class="cell-jul">-</td>
+                  <td class="cell-ags">-</td>
+                  <td class="cell-sep">-</td>
+                  <td class="cell-okt">-</td>
+                  <td class="cell-nov">-</td>
+                  <td class="cell-des">-</td>
+                  <td class="cell-trend" style="position: sticky; right: 0; background: #fff; z-index: 2; box-shadow: -2px 0 5px rgba(0,0,0,0.05);">-</td>
                 </tr>
-                <tr>
-                  <td class="aspect-name">Tanggung Jawab</td>
-                  <td><span class="score-chip score-b">80</span></td>
-                  <td><span class="score-chip score-b">82</span></td>
-                  <td><span class="score-chip score-b" id="cell-may-responsibility">85</span></td>
-                  <td><span class="trend-up"><i class="fas fa-arrow-up"></i> +5</span></td>
+                <tr data-aspect="score_responsibility" data-subject="karakter">
+                  <td class="aspect-name" style="position: sticky; left: 0; background: #fff; z-index: 2; box-shadow: 2px 0 5px rgba(0,0,0,0.05);">Tanggung Jawab</td>
+                  <td class="cell-jul">-</td>
+                  <td class="cell-ags">-</td>
+                  <td class="cell-sep">-</td>
+                  <td class="cell-okt">-</td>
+                  <td class="cell-nov">-</td>
+                  <td class="cell-des">-</td>
+                  <td class="cell-trend" style="position: sticky; right: 0; background: #fff; z-index: 2; box-shadow: -2px 0 5px rgba(0,0,0,0.05);">-</td>
                 </tr>
-                <tr>
-                  <td class="aspect-name">Sopan Santun</td>
-                  <td><span class="score-chip score-a">88</span></td>
-                  <td><span class="score-chip score-a">89</span></td>
-                  <td><span class="score-chip score-a" id="cell-may-respect">90</span></td>
-                  <td><span class="trend-up"><i class="fas fa-arrow-up"></i> +2</span></td>
-                </tr>
-
-                <tr class="row-category"><td colspan="5"><i class="fas fa-language"></i> English Speaking</td></tr>
-                <tr>
-                  <td class="aspect-name">Fluency</td>
-                  <td><span class="score-chip score-b">75</span></td>
-                  <td><span class="score-chip score-b">79</span></td>
-                  <td><span class="score-chip score-b" id="cell-may-fluency">82</span></td>
-                  <td><span class="trend-up"><i class="fas fa-arrow-up"></i> +7</span></td>
-                </tr>
-                <tr>
-                  <td class="aspect-name">Reading Comprehension</td>
-                  <td><span class="score-chip score-b">73</span></td>
-                  <td><span class="score-chip score-b">75</span></td>
-                  <td><span class="score-chip score-b" id="cell-may-reading">78</span></td>
-                  <td><span class="trend-up"><i class="fas fa-arrow-up"></i> +5</span></td>
+                <tr data-aspect="score_respect" data-subject="karakter">
+                  <td class="aspect-name" style="position: sticky; left: 0; background: #fff; z-index: 2; box-shadow: 2px 0 5px rgba(0,0,0,0.05);">Sopan Santun</td>
+                  <td class="cell-jul">-</td>
+                  <td class="cell-ags">-</td>
+                  <td class="cell-sep">-</td>
+                  <td class="cell-okt">-</td>
+                  <td class="cell-nov">-</td>
+                  <td class="cell-des">-</td>
+                  <td class="cell-trend" style="position: sticky; right: 0; background: #fff; z-index: 2; box-shadow: -2px 0 5px rgba(0,0,0,0.05);">-</td>
                 </tr>
 
-                <tr class="row-category"><td colspan="5"><i class="fas fa-calculator"></i> Mathematics</td></tr>
-                <tr>
-                  <td class="aspect-name">Logika &amp; Problem Solving</td>
-                  <td><span class="score-chip score-a">87</span></td>
-                  <td><span class="score-chip score-a">89</span></td>
-                  <td><span class="score-chip score-a" id="cell-may-logic">91</span></td>
-                  <td><span class="trend-up"><i class="fas fa-arrow-up"></i> +4</span></td>
+                <tr class="row-category" data-subject="english"><td colspan="8"><i class="fas fa-language text-teal"></i> English Speaking</td></tr>
+                <tr data-aspect="score_fluency" data-subject="english">
+                  <td class="aspect-name" style="position: sticky; left: 0; background: #fff; z-index: 2; box-shadow: 2px 0 5px rgba(0,0,0,0.05);">Fluency</td>
+                  <td class="cell-jul">-</td>
+                  <td class="cell-ags">-</td>
+                  <td class="cell-sep">-</td>
+                  <td class="cell-okt">-</td>
+                  <td class="cell-nov">-</td>
+                  <td class="cell-des">-</td>
+                  <td class="cell-trend" style="position: sticky; right: 0; background: #fff; z-index: 2; box-shadow: -2px 0 5px rgba(0,0,0,0.05);">-</td>
                 </tr>
-                <tr>
-                  <td class="aspect-name">Aritmatika</td>
-                  <td><span class="score-chip score-b">82</span></td>
-                  <td><span class="score-chip score-b">84</span></td>
-                  <td><span class="score-chip score-b" id="cell-may-arith">87</span></td>
-                  <td><span class="trend-up"><i class="fas fa-arrow-up"></i> +5</span></td>
+                <tr data-aspect="score_reading" data-subject="english">
+                  <td class="aspect-name" style="position: sticky; left: 0; background: #fff; z-index: 2; box-shadow: 2px 0 5px rgba(0,0,0,0.05);">Reading Comprehension</td>
+                  <td class="cell-jul">-</td>
+                  <td class="cell-ags">-</td>
+                  <td class="cell-sep">-</td>
+                  <td class="cell-okt">-</td>
+                  <td class="cell-nov">-</td>
+                  <td class="cell-des">-</td>
+                  <td class="cell-trend" style="position: sticky; right: 0; background: #fff; z-index: 2; box-shadow: -2px 0 5px rgba(0,0,0,0.05);">-</td>
+                </tr>
+
+                <tr class="row-category" data-subject="matematika"><td colspan="8"><i class="fas fa-calculator text-green"></i> Mathematics</td></tr>
+                <tr data-aspect="score_logic" data-subject="matematika">
+                  <td class="aspect-name" style="position: sticky; left: 0; background: #fff; z-index: 2; box-shadow: 2px 0 5px rgba(0,0,0,0.05);">Logika &amp; Problem Solving</td>
+                  <td class="cell-jul">-</td>
+                  <td class="cell-ags">-</td>
+                  <td class="cell-sep">-</td>
+                  <td class="cell-okt">-</td>
+                  <td class="cell-nov">-</td>
+                  <td class="cell-des">-</td>
+                  <td class="cell-trend" style="position: sticky; right: 0; background: #fff; z-index: 2; box-shadow: -2px 0 5px rgba(0,0,0,0.05);">-</td>
+                </tr>
+                <tr data-aspect="score_arithmetic" data-subject="matematika">
+                  <td class="aspect-name" style="position: sticky; left: 0; background: #fff; z-index: 2; box-shadow: 2px 0 5px rgba(0,0,0,0.05);">Aritmatika</td>
+                  <td class="cell-jul">-</td>
+                  <td class="cell-ags">-</td>
+                  <td class="cell-sep">-</td>
+                  <td class="cell-okt">-</td>
+                  <td class="cell-nov">-</td>
+                  <td class="cell-des">-</td>
+                  <td class="cell-trend" style="position: sticky; right: 0; background: #fff; z-index: 2; box-shadow: -2px 0 5px rgba(0,0,0,0.05);">-</td>
                 </tr>
               </tbody>
               <tfoot>
                 <tr class="row-average">
-                  <td class="aspect-name"><strong>Rata-Rata Total</strong></td>
-                  <td><strong>82.1</strong></td>
-                  <td><strong>84.4</strong></td>
-                  <td><strong><span id="cell-may-average">87.0</span></strong></td>
-                  <td><span class="trend-up"><i class="fas fa-arrow-up"></i> +4.9</span></td>
+                  <td class="aspect-name" style="position: sticky; left: 0; background: #fff; z-index: 2; box-shadow: 2px 0 5px rgba(0,0,0,0.05);"><strong>Rata-Rata Total</strong></td>
+                  <td id="avg-jul"><strong>-</strong></td>
+                  <td id="avg-ags"><strong>-</strong></td>
+                  <td id="avg-sep"><strong>-</strong></td>
+                  <td id="avg-okt"><strong>-</strong></td>
+                  <td id="avg-nov"><strong>-</strong></td>
+                  <td id="avg-des"><strong>-</strong></td>
+                  <td id="avg-trend" style="position: sticky; right: 0; background: #fff; z-index: 2; box-shadow: -2px 0 5px rgba(0,0,0,0.05);"><strong>-</strong></td>
                 </tr>
               </tfoot>
             </table>
           </div>
         </div>
 
-        <!-- Line Chart Placeholder -->
+        <!-- Line Chart -->
         <div class="dashboard-card" style="margin-top:2rem">
           <div class="card-header">
             <h3><i class="fas fa-chart-line text-green"></i> Grafik Tren Perkembangan</h3>
-            <span class="badge badge-green">Mar — Mei 2026</span>
+            <span class="badge badge-green" id="chart-semester-badge">Jul — Des 2026</span>
           </div>
-          <p class="card-desc">Tren nilai keseluruhan selama 3 bulan terakhir.</p>
+          <p class="card-desc">Tren nilai keseluruhan selama 1 semester (6 bulan).</p>
 
-          <!-- CSS-drawn line chart placeholder -->
           <div class="chart-placeholder">
             <div class="chart-y-axis">
               <span>100</span><span>85</span><span>70</span><span>55</span>
             </div>
             <div class="chart-area">
-              <svg viewBox="0 0 400 140" xmlns="http://www.w3.org/2000/svg" class="chart-svg">
-                <!-- Grid lines -->
-                <line x1="0" y1="0" x2="400" y2="0" stroke="#E8EDF0" stroke-width="1"/>
-                <line x1="0" y1="46" x2="400" y2="46" stroke="#E8EDF0" stroke-width="1"/>
-                <line x1="0" y1="93" x2="400" y2="93" stroke="#E8EDF0" stroke-width="1"/>
-                <line x1="0" y1="140" x2="400" y2="140" stroke="#E8EDF0" stroke-width="1"/>
-                <!-- Karakter line (orange) -->
-                <polyline points="66,45 200,34 334,20" fill="none" stroke="var(--accent-orange)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="66" cy="45" r="5" fill="var(--accent-orange)"/>
-                <circle cx="200" cy="34" r="5" fill="var(--accent-orange)"/>
-                <circle cx="334" cy="20" r="5" fill="var(--accent-orange)"/>
-                <!-- English line (teal) -->
-                <polyline points="66,88 200,80 334,72" fill="none" stroke="var(--color-secondary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="66" cy="88" r="5" fill="var(--color-secondary)"/>
-                <circle cx="200" cy="80" r="5" fill="var(--color-secondary)"/>
-                <circle cx="334" cy="72" r="5" fill="var(--color-secondary)"/>
-                <!-- Math line (green) -->
-                <polyline points="66,52 200,44 334,36" fill="none" stroke="var(--accent-green)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="66" cy="52" r="5" fill="var(--accent-green)"/>
-                <circle cx="200" cy="44" r="5" fill="var(--accent-green)"/>
-                <circle cx="334" cy="36" r="5" fill="var(--accent-green)"/>
-              </svg>
-              <div class="chart-x-labels">
-                <span>Maret</span><span>April</span><span>Mei</span>
+              <div class="chart-scroll-wrapper" style="width: 100%; overflow-x: auto; padding-bottom: 1rem;">
+                <div style="width: 700px; margin: 0 auto;">
+                  <svg viewBox="0 0 700 140" xmlns="http://www.w3.org/2000/svg" class="chart-svg" width="100%" height="140">
+                    <line x1="0" y1="0" x2="700" y2="0" stroke="#E8EDF0" stroke-width="1"/>
+                    <line x1="0" y1="46" x2="700" y2="46" stroke="#E8EDF0" stroke-width="1"/>
+                    <line x1="0" y1="93" x2="700" y2="93" stroke="#E8EDF0" stroke-width="1"/>
+                    <line x1="0" y1="140" x2="700" y2="140" stroke="#E8EDF0" stroke-width="1"/>
+
+                    <polyline id="chart-poly-char" points="" fill="none" stroke="var(--accent-orange)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    <polyline id="chart-poly-eng" points="" fill="none" stroke="var(--color-secondary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    <polyline id="chart-poly-math" points="" fill="none" stroke="var(--accent-green)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <div class="chart-labels chart-x-labels" id="rapor-chart-x-labels" style="display: grid; grid-template-columns: repeat(6, 1fr); text-align: center;">
+                    <span>Jul</span><span>Ags</span><span>Sep</span><span>Okt</span><span>Nov</span><span>Des</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -664,206 +2021,193 @@
           </div>
         </div>
 
+        </div><!-- /rapor-cards-container -->
       </section><!-- /view-rapor -->
 
       <!-- ===================================================== -->
-      <!-- VIEW 4a: KEHADIRAN (Student)                          -->
+      <!-- VIEW: DATA DIRI SAYA (ALL ROLES)                      -->
       <!-- ===================================================== -->
-      <section id="view-kehadiran-siswa" class="dashboard-view">
-        <div class="view-header">
-          <h2 class="view-title"><i class="fas fa-calendar-check text-green"></i> Kehadiran Saya</h2>
-          <p class="view-subtitle">Rekap kehadiran bulanan kelas School of Character Pojok Hope.</p>
+      <section id="view-data-diri" class="dashboard-view" style="display:none;">
+        <div class="view-header" style="margin-bottom: 1.5rem;">
+          <h2 class="view-title"><i class="fas fa-user-circle text-teal"></i> Data Diri Saya</h2>
+          <p class="view-subtitle">Kelola informasi profil pribadi dan kredensial akun login Anda.</p>
         </div>
 
-        <!-- Attendance summary bar -->
-        <div class="attendance-summary-row">
-          <div class="att-sum-card hadir-card">
-            <span class="att-sum-val" id="att-sum-hadir-val">19</span>
-            <span class="att-sum-label"><i class="fas fa-check-circle"></i> Hadir</span>
-          </div>
-          <div class="att-sum-card sakit-card">
-            <span class="att-sum-val" id="att-sum-sakit-val">1</span>
-            <span class="att-sum-label"><i class="fas fa-thermometer-half"></i> Sakit</span>
-          </div>
-          <div class="att-sum-card izin-card">
-            <span class="att-sum-val" id="att-sum-izin-val">0</span>
-            <span class="att-sum-label"><i class="fas fa-envelope"></i> Izin</span>
-          </div>
-          <div class="att-sum-card alpa-card">
-            <span class="att-sum-val" id="att-sum-alpa-val">0</span>
-            <span class="att-sum-label"><i class="fas fa-times-circle"></i> Alpa</span>
-          </div>
-          <div class="att-sum-card pct-card">
-            <span class="att-sum-val" id="att-sum-pct-val">95%</span>
-            <span class="att-sum-label"><i class="fas fa-chart-pie"></i> Kehadiran</span>
-          </div>
-        </div>
-
-        <!-- Calendar month: Mei 2026 -->
-        <div class="dashboard-card" style="margin-top:1.5rem">
-          <div class="card-header">
-            <h3><i class="fas fa-calendar text-teal"></i> Kalender Kehadiran — Mei 2026</h3>
-            <span class="badge badge-green">95% Hadir</span>
+        <div class="dashboard-card" style="padding: 2rem; max-width: 820px; margin: 0 auto;">
+          <div class="card-header" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <h3><i class="fas fa-id-badge text-orange"></i> Informasi Akun &amp; Profil</h3>
+            <span class="badge badge-teal" id="self-role-badge">Siswa</span>
           </div>
 
-          <div class="attendance-calendar">
-            <!-- Day names header -->
-            <div class="cal-day-name">Min</div>
-            <div class="cal-day-name">Sen</div>
-            <div class="cal-day-name">Sel</div>
-            <div class="cal-day-name">Rab</div>
-            <div class="cal-day-name">Kam</div>
-            <div class="cal-day-name">Jum</div>
-            <div class="cal-day-name">Sab</div>
-
-            <!-- Week 1 (Mei starts Kamis = col 5) -->
-            <div class="cal-day empty"></div>
-            <div class="cal-day empty"></div>
-            <div class="cal-day empty"></div>
-            <div class="cal-day empty"></div>
-            <div class="cal-day day-no-class">1</div>
-            <div class="cal-day day-weekend">2</div>
-            <div class="cal-day day-weekend">3</div>
-
-            <!-- Week 2 -->
-            <div class="cal-day day-weekend">4</div>
-            <div class="cal-day day-hadir" title="Hadir — Karakter">5</div>
-            <div class="cal-day day-hadir" title="Hadir — English">6</div>
-            <div class="cal-day day-no-class">7</div>
-            <div class="cal-day day-hadir" title="Hadir — Math">8</div>
-            <div class="cal-day day-weekend">9</div>
-            <div class="cal-day day-weekend">10</div>
-
-            <!-- Week 3 -->
-            <div class="cal-day day-weekend">11</div>
-            <div class="cal-day day-hadir">12</div>
-            <div class="cal-day day-sakit" title="Sakit">13</div>
-            <div class="cal-day day-no-class">14</div>
-            <div class="cal-day day-hadir">15</div>
-            <div class="cal-day day-weekend">16</div>
-            <div class="cal-day day-weekend">17</div>
-
-            <!-- Week 4 -->
-            <div class="cal-day day-weekend">18</div>
-            <div class="cal-day day-hadir">19</div>
-            <div class="cal-day day-hadir">20</div>
-            <div class="cal-day day-no-class">21</div>
-            <div class="cal-day day-hadir">22</div>
-            <div class="cal-day day-weekend">23</div>
-            <div class="cal-day day-weekend">24</div>
-
-            <!-- Week 5 -->
-            <div class="cal-day day-weekend">25</div>
-            <div class="cal-day day-hadir">26</div>
-            <div class="cal-day day-hadir">27</div>
-            <div class="cal-day day-no-class">28</div>
-            <div class="cal-day day-hadir">29</div>
-            <div class="cal-day day-weekend">30</div>
-            <div class="cal-day day-hadir">31</div>
-          </div>
-
-          <!-- Legend -->
-          <div class="cal-legend">
-            <span class="cal-legend-item"><span class="cal-legend-dot hadir"></span> Hadir</span>
-            <span class="cal-legend-item"><span class="cal-legend-dot sakit"></span> Sakit</span>
-            <span class="cal-legend-item"><span class="cal-legend-dot izin"></span> Izin</span>
-            <span class="cal-legend-item"><span class="cal-legend-dot alpa"></span> Alpa</span>
-            <span class="cal-legend-item"><span class="cal-legend-dot no-class"></span> Tidak Ada Kelas</span>
-            <span class="cal-legend-item"><span class="cal-legend-dot weekend"></span> Akhir Pekan</span>
-          </div>
-        </div>
-
-      </section><!-- /view-kehadiran-siswa -->
-
-      <!-- ===================================================== -->
-      <!-- VIEW 4b: KELOLA ABSENSI (Teacher)                     -->
-      <!-- ===================================================== -->
-      <section id="view-kehadiran-guru" class="dashboard-view">
-        <div class="view-header">
-          <h2 class="view-title"><i class="fas fa-clipboard-list text-orange"></i> Kelola Absensi</h2>
-          <p class="view-subtitle">Input dan pantau kehadiran siswa untuk setiap sesi kelas.</p>
-        </div>
-
-        <div class="dashboard-grid">
-          <!-- Left: Absensi Input -->
-          <div class="dashboard-card card-large">
-            <div class="card-header">
-              <h3><i class="fas fa-user-check text-orange"></i> Absensi Harian</h3>
-            </div>
-            <p class="card-desc">Tandai kehadiran siswa untuk kelas yang sedang Anda kelola hari ini.</p>
-
-            <!-- Header for restricted view -->
-            <div class="absensi-class-header" id="absensi-class-header" style="margin-bottom: 1.5rem;">
-              <h4 id="absensi-class-title" style="font-family: var(--font-heading); color: var(--color-secondary-dark); font-weight: 700; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
-                <i class="fas fa-users text-teal"></i> Daftar Siswa: Kelas A
-              </h4>
-            </div>
-
-            <!-- Dynamic Roster Container -->
-            <div class="absensi-roster" id="absensi-dynamic-roster">
-              <!-- Dynamic roster loaded by JS -->
-            </div>
-
-            <button class="btn btn-secondary btn-sm btn-full" style="margin-top:1.5rem" id="btn-save-absensi">
-              <i class="fas fa-check-circle"></i> Simpan Absensi Hari Ini
-            </button>
-          </div>
-
-          <!-- Right: Attendance History -->
-          <div class="dashboard-side-column">
-            <div class="dashboard-card">
-              <div class="card-header">
-                <h3><i class="fas fa-history text-teal"></i> Riwayat Absensi</h3>
-                <span class="badge badge-teal">Mei 2026</span>
+          <form id="form-data-diri-saya">
+            <!-- Centered Circular Profile Photo Preview at Top -->
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 1.75rem; text-align: center;">
+              <div style="position: relative; margin-bottom: 0.75rem;">
+                <img id="self-photo-preview" src="static/src/assets/ui/logo.png" alt="Foto Profil" style="width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent-orange); box-shadow: 0 4px 15px rgba(0,0,0,0.25); background: #fff;">
               </div>
-              <p class="card-desc">Ringkasan kehadiran per sesi kelas bulan ini.</p>
+              <label for="self-photo-input" class="btn btn-outline btn-sm" style="cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.95rem; font-size: 0.85rem;">
+                <i class="fas fa-camera"></i> Upload / Ganti Foto Profil
+              </label>
+              <input type="file" id="self-photo-input" accept="image/jpeg,image/png,image/webp" style="display: none;">
+              <small style="display:block; margin-top:0.35rem; color:var(--text-muted); font-size:0.75rem;">Format: JPG, PNG, atau WEBP | Maks: 2MB</small>
+            </div>
 
-              <div class="absensi-history-table">
-                <div class="absensi-hist-header">
-                  <span>Tanggal</span><span>Kelas</span><span>Hadir</span><span>Alpha</span>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+              <div class="form-group">
+                <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">ID / NIS Akun (Username)</label>
+                <input type="text" id="self-id-input" class="form-control" readonly disabled style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px; font-family: monospace; font-weight: 700; background-color: #f1f5f9; cursor: not-allowed;">
+                <small style="color: var(--text-muted); font-size: 0.75rem;">ID / NIS bersifat permanen dan tidak dapat diubah.</small>
+              </div>
+              <div class="form-group">
+                <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Password Akun</label>
+                <input type="text" id="self-password-input" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px; font-family: monospace;" placeholder="Password baru (kosongkan jika tidak ingin ganti)">
+              </div>
+              <div class="form-group" style="grid-column: span 2;">
+                <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Nama Lengkap <span style="color:var(--accent-orange);">*</span></label>
+                <input type="text" id="self-fullname-input" class="form-control" required style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+              </div>
+              <div class="form-group">
+                <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Nama Panggilan</label>
+                <input type="text" id="self-nickname-input" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+              </div>
+              <div class="form-group">
+                <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Jenis Kelamin</label>
+                <select id="self-gender-input" class="form-control custom-select" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                  <option value="Laki-laki">Laki-laki</option>
+                  <option value="Perempuan">Perempuan</option>
+                </select>
+              </div>
+
+              <!-- Student fields -->
+              <div id="self-student-fields-wrapper" style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Tempat Lahir</label>
+                  <input type="text" id="self-birthplace-input" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
                 </div>
-                <div class="absensi-hist-row">
-                  <span>15 Mei</span><span>Karakter</span>
-                  <span class="hist-hadir">12</span>
-                  <span class="hist-alpha">0</span>
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Tanggal Lahir</label>
+                  <input type="date" id="self-birthdate-input" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
                 </div>
-                <div class="absensi-hist-row">
-                  <span>22 Mei</span><span>English</span>
-                  <span class="hist-hadir">10</span>
-                  <span class="hist-alpha">2</span>
+                <div class="form-group" style="grid-column: span 2;">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Nama Orang Tua / Wali</label>
+                  <input type="text" id="self-parentname-input" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
                 </div>
-                <div class="absensi-hist-row">
-                  <span>29 Mei</span><span>Math</span>
-                  <span class="hist-hadir">11</span>
-                  <span class="hist-alpha">1</span>
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">No HP Siswa</label>
+                  <input type="tel" id="self-studentphone-input" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
                 </div>
-                <div class="absensi-hist-row absensi-hist-today">
-                  <span>05 Jun</span><span>English</span>
-                  <span class="hist-hadir">—</span>
-                  <span class="hist-alpha">—</span>
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">No HP Orang Tua</label>
+                  <input type="tel" id="self-parentphone-input" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                </div>
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Level English</label>
+                  <div style="padding: 0.65rem 0.85rem; background: #f8fafc; border: 1.5px solid var(--border-color); border-radius: 8px; font-weight: 600;">
+                    <span id="self-english-badge" class="badge badge-teal">—</span>
+                    <small style="color:var(--text-muted); display:block; margin-top:0.25rem;">Penempatan kelas ditentukan oleh pihak sekolah.</small>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Level Matematika</label>
+                  <div style="padding: 0.65rem 0.85rem; background: #f8fafc; border: 1.5px solid var(--border-color); border-radius: 8px; font-weight: 600;">
+                    <span id="self-math-badge" class="badge badge-green">—</span>
+                    <small style="color:var(--text-muted); display:block; margin-top:0.25rem;">Penempatan kelas ditentukan oleh pihak sekolah.</small>
+                  </div>
                 </div>
               </div>
 
-              <!-- Class attendance rate summary -->
-              <div style="margin-top:1.5rem">
-                <p style="font-size:0.85rem;font-weight:700;color:var(--color-secondary-dark);margin-bottom:0.75rem">Tingkat Kehadiran per Siswa</p>
-                <div class="mini-progress-list">
-                  <div class="mini-prog-item"><span>Budi</span><div class="mini-bar"><div class="mini-bar-fill" style="width:95%;background:var(--accent-green)"></div></div><span>95%</span></div>
-                  <div class="mini-prog-item"><span>Aisyah</span><div class="mini-bar"><div class="mini-bar-fill" style="width:100%;background:var(--accent-green)"></div></div><span>100%</span></div>
-                  <div class="mini-prog-item"><span>Rendi</span><div class="mini-bar"><div class="mini-bar-fill" style="width:75%;background:var(--accent-orange)"></div></div><span>75%</span></div>
-                  <div class="mini-prog-item"><span>Fajar</span><div class="mini-bar"><div class="mini-bar-fill" style="width:88%;background:var(--accent-green)"></div></div><span>88%</span></div>
-                  <div class="mini-prog-item"><span>Siti</span><div class="mini-bar"><div class="mini-bar-fill" style="width:100%;background:var(--accent-green)"></div></div><span>100%</span></div>
+              <!-- Staff fields (guru, manager, founder, admin) -->
+              <div id="self-staff-fields-wrapper" style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">No HP / Kontak</label>
+                  <input type="tel" id="self-contact-input" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                </div>
+                <div class="form-group">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Email</label>
+                  <input type="email" id="self-email-input" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                  <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; display: block; color: var(--color-secondary-dark);">Jurusan / Jabatan</label>
+                  <input type="text" id="self-jurusan-input" class="form-control" style="width: 100%; padding: 0.65rem 0.85rem; border: 1.5px solid var(--border-color); border-radius: 8px;">
                 </div>
               </div>
             </div>
+
+            <div style="margin-top: 1.75rem; display: flex; justify-content: flex-end;">
+              <button type="submit" class="btn btn-primary" style="padding: 0.75rem 1.75rem; display: inline-flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-save"></i> Simpan Perubahan Profil
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- ===================================================== -->
+      <!-- VIEW: ID CARD SAYA (GURU & SISWA)                     -->
+      <!-- ===================================================== -->
+      <section id="view-my-idcard" class="dashboard-view" style="display:none;">
+        <div class="view-header" style="margin-bottom: 1.5rem;">
+          <h2 class="view-title"><i class="fas fa-id-card text-teal"></i> Kartu ID Saya</h2>
+          <p class="view-subtitle">Kartu identitas resmi digital Anda di School of Character Pojok Hope lengkap dengan QR absensi.</p>
+        </div>
+
+        <div class="dashboard-card" style="padding: 2rem; max-width: 600px; margin: 0 auto;">
+          <div class="card-header" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+            <h3><i class="fas fa-id-badge text-teal"></i> Kartu Identitas &amp; QR Absensi</h3>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <button type="button" class="btn btn-outline btn-sm" onclick="printMyIdCard()">
+                <i class="fas fa-print"></i> Cetak Kartu ID
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="downloadMyIdCard()">
+                <i class="fas fa-download"></i> Download ID Card (PNG)
+              </button>
+            </div>
+          </div>
+
+          <!-- Official ID Card Mockup Container -->
+          <div id="my-idcard-render-area" style="max-width: 440px; margin: 0 auto; background: linear-gradient(135deg, #072d3b 0%, #0d202d 100%); border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.25); color: #fff; border: 2px solid rgba(32,201,151,0.3); font-family: var(--font-body, sans-serif);">
+            <!-- Top branding -->
+            <div style="background: rgba(255,255,255,0.06); padding: 1.25rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1);">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <img src="static/src/assets/ui/logo.png" alt="SoC" style="width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--accent-orange); background: #fff;">
+                <div>
+                  <h4 style="margin: 0; font-size: 0.95rem; font-weight: 800; letter-spacing: 0.5px; color: #fff;">SCHOOL OF CHARACTER</h4>
+                  <span style="font-size: 0.75rem; color: var(--accent-orange); font-weight: 600;" id="my-idcard-subheading">POJOK HOPE • KARTU IDENTITAS</span>
+                </div>
+              </div>
+              <span class="badge badge-orange" style="font-size: 0.7rem; padding: 0.25rem 0.6rem;">OFFICIAL</span>
+            </div>
+
+            <!-- Body -->
+            <div style="padding: 1.5rem; display: flex; flex-direction: column; align-items: center; text-align: center;">
+              <div style="position: relative; margin-bottom: 1rem;">
+                <img id="my-idcard-photo" src="static/src/assets/ui/logo.png" alt="Foto Profil" style="width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent-orange); box-shadow: 0 4px 15px rgba(0,0,0,0.3); background:#fff;">
+              </div>
+              <h3 id="my-idcard-name" style="margin: 0 0 0.25rem 0; font-size: 1.2rem; font-weight: 700; color: #fff;">Nama Pengguna</h3>
+              <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap; justify-content: center;" id="my-idcard-badges">
+                <span class="badge badge-teal" id="my-idcard-code-badge" style="font-family: monospace; font-size: 0.85rem; padding: 0.3rem 0.7rem;">ID: -</span>
+              </div>
+
+              <!-- QR Container -->
+              <div style="background: #fff; padding: 0.75rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); margin-bottom: 0.75rem;">
+                <img id="my-idcard-qr" src="" alt="QR Absensi" style="width: 140px; height: 140px; display: block;">
+              </div>
+              <small style="color: rgba(255,255,255,0.7); font-size: 0.75rem;"><i class="fas fa-qrcode"></i> Scan untuk verifikasi identitas &amp; absensi</small>
+            </div>
           </div>
         </div>
-      </section><!-- /view-kehadiran-guru -->
+      </section>
 
     </div><!-- /dashboard-viewport -->
   </main>
 </div><!-- /dashboard-layout -->
 
-<script src="js/dashboard.js"></script>
+
+<script>
+  window.onerror = function(msg, url, line) {
+    alert('CRASH DETECTED!\nError: ' + msg + '\nBaris: ' + line + '\nFile: ' + url);
+  };
+</script>
+<script type="module" src="js/dashboard.js"></script>
 </body>
 </html>

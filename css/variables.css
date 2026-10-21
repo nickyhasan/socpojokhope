@@ -26,6 +26,12 @@
   --accent-green-hover: #3E8E41;  /* Darker Leaf Green */
   --accent-green-tint: #EEF8EF;   /* Soft Green tint */
 
+  /* Color Aliases for components */
+  --color-accent: var(--accent-orange);
+  --color-primary: var(--color-secondary);
+  --color-success: var(--accent-green);
+  --color-primary-dark: var(--color-secondary-dark);
+
   /* Neutral Text and Borders */
   --text-dark: #2F3E46;           /* Charcoal Text for body readability */
   --text-light: #FDFBF8;          /* Cream White for dark teal background text */

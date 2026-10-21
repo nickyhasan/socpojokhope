@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="icon" type="image/png" href="static/src/assets/ui/logo.png">
 
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -83,42 +83,6 @@
     .login-subtitle {
       font-size: 0.9rem;
       color: var(--text-muted);
-    }
-
-    /* ====== ROLE PILLS ====== */
-    .role-pills {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1.75rem;
-      background: var(--cream-alt);
-      padding: 0.35rem;
-      border-radius: 50px;
-      border: 1px solid var(--border);
-    }
-
-    .role-pill {
-      flex: 1;
-      text-align: center;
-      padding: 0.5rem 1rem;
-      border-radius: 50px;
-      font-family: var(--font-heading);
-      font-size: 0.875rem;
-      font-weight: 700;
-      cursor: pointer;
-      border: none;
-      background: transparent;
-      color: var(--text-muted);
-      transition: all 0.25s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.4rem;
-    }
-
-    .role-pill.active {
-      background: var(--teal);
-      color: white;
-      box-shadow: 0 4px 12px rgba(12, 74, 96, 0.25);
     }
 
     /* ====== ERROR ====== */
@@ -244,33 +208,6 @@
 
     .register-link a:hover { text-decoration: underline; }
 
-    /* ====== DEMO HINT ====== */
-    .demo-hint {
-      margin-top: 1.25rem;
-      padding: 0.875rem 1rem;
-      background: var(--cream-alt);
-      border: 1px dashed var(--border);
-      border-radius: 10px;
-      font-size: 0.78rem;
-      color: var(--text-muted);
-    }
-
-    .demo-hint strong {
-      display: block;
-      font-family: var(--font-heading);
-      color: var(--text-dark);
-      margin-bottom: 0.35rem;
-      font-size: 0.8rem;
-    }
-
-    .demo-hint code {
-      background: rgba(12,74,96,0.07);
-      padding: 0.1rem 0.4rem;
-      border-radius: 4px;
-      font-size: 0.78rem;
-      color: var(--teal);
-    }
-
     /* ====== BACK LINK ====== */
     .back-link {
       text-align: center;
@@ -327,13 +264,13 @@
 
       <div class="form-group">
         <div class="form-label-row">
-          <label class="form-label" for="login-username">Email / Nomor HP</label>
+          <label class="form-label" for="login-username">Email / Username</label>
         </div>
         <input
           type="text"
           id="login-username"
           class="form-input"
-          placeholder="Masukkan email atau no whatsapp"
+          placeholder="Masukkan username atau email"
           autocomplete="username"
           required
         >
@@ -344,14 +281,18 @@
           <label class="form-label" for="login-password">Kata Sandi</label>
           <a href="#" class="forgot-link">Lupa Sandi?</a>
         </div>
-        <input
-          type="password"
-          id="login-password"
-          class="form-input"
-          placeholder="Kata sandi akun Anda"
-          autocomplete="current-password"
-          required
-        >
+        <div class="password-input-wrapper" style="position: relative; display: flex; align-items: center;">
+          <input
+            type="password"
+            id="login-password"
+            class="form-input"
+            style="padding-right: 2.75rem;"
+            placeholder="Kata sandi akun Anda"
+            autocomplete="current-password"
+            required
+          >
+          <i class="fas fa-eye toggle-password" id="toggle-password-icon" style="position: absolute; right: 1rem; cursor: pointer; color: var(--text-muted); font-size: 1rem; z-index: 10;" title="Tampilkan / Sembunyikan Kata Sandi"></i>
+        </div>
       </div>
 
       <button type="submit" class="btn-login" id="btn-login-submit">
@@ -365,12 +306,6 @@
       Belum punya akun? <a href="index.html#/pendaftaran" id="daftar-link">Daftar disini</a>
     </div>
 
-    <!-- Demo Credentials Hint -->
-    <div class="demo-hint">
-      <strong>🔑 Akun Demo:</strong>
-      Siswa: <code>user</code> / <code>user</code> &nbsp;|&nbsp; Guru A: <code>gurua</code> / <code>gurua</code> &nbsp;|&nbsp; Guru B: <code>gurub</code> / <code>gurub</code>
-    </div>
-
     <!-- Back to Home -->
     <div class="back-link">
       <a href="index.html"><i class="fas fa-arrow-left"></i> Kembali ke Beranda</a>
@@ -379,47 +314,17 @@
   </div>
 
   <script>
-    // Main authentication handler
-    function handleLogin(e) {
-      e.preventDefault();
-
-      const username = document.getElementById('login-username').value.trim().toLowerCase();
-      const password = document.getElementById('login-password').value.trim();
-      const errorMsg = document.getElementById('error-msg');
-      const spinner  = document.getElementById('login-spinner');
-      const btnText  = document.getElementById('btn-text');
-      const card     = document.getElementById('login-card');
-
-      // Reset error
-      errorMsg.classList.remove('visible');
-
-      // Show loading
-      spinner.style.display = 'block';
-      btnText.style.display = 'none';
-
-      setTimeout(() => {
-        if (username === 'user' && password === 'user') {
-          window.location.href = 'dashboard.html?role=siswa';
-        } else if (username === 'gurua' && password === 'gurua') {
-          window.location.href = 'dashboard.html?role=guru&kelas=A';
-        } else if (username === 'gurub' && password === 'gurub') {
-          window.location.href = 'dashboard.html?role=guru&kelas=B';
-        } else if (username === 'guru' && password === 'guru') {
-          window.location.href = 'dashboard.html?role=guru&kelas=A';
-        } else {
-          // Restore button
-          spinner.style.display = 'none';
-          btnText.style.display = 'flex';
-
-          // Show error + shake
-          errorMsg.classList.add('visible');
-          card.style.animation = 'none';
-          card.offsetHeight; // reflow
-          card.style.animation = 'shake 0.4s ease';
-        }
-      }, 750);
+    const togglePasswordIcon = document.getElementById('toggle-password-icon');
+    const loginPasswordInput = document.getElementById('login-password');
+    if (togglePasswordIcon && loginPasswordInput) {
+      togglePasswordIcon.addEventListener('click', function () {
+        const isPassword = loginPasswordInput.getAttribute('type') === 'password';
+        loginPasswordInput.setAttribute('type', isPassword ? 'text' : 'password');
+        this.classList.toggle('fa-eye', !isPassword);
+        this.classList.toggle('fa-eye-slash', isPassword);
+      });
     }
   </script>
-
+  <script src="js/login.js"></script>
 </body>
 </html>

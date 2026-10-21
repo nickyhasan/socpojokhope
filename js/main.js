@@ -99,4 +99,95 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
+
+  // 8. Dynamic Site Location & Settings Loader
+  async function loadSiteSettings() {
+    try {
+      let res;
+      try {
+        res = await fetch('/api/settings');
+      } catch (err) {
+        res = await fetch('http://localhost:5000/api/settings');
+      }
+      if (!res || !res.ok) {
+        res = await fetch('http://localhost:5000/api/settings');
+      }
+      if (!res.ok) return;
+      const settings = await res.json();
+
+      // 1. Lokasi & Jam Operasional
+      const alamat = settings.alamat_soc || 'Jln Pasar Minggu, Kec Kabila, Desa Dutohe, Gorontalo.';
+      const jam = settings.jam_operasional || 'Senin - Sabtu (14:00 - 17:30 WITA)';
+
+      const addrEl = document.getElementById('landing-alamat-text') || document.querySelector('.location-address p');
+      if (addrEl) addrEl.textContent = alamat;
+
+      const jamEl = document.getElementById('landing-jam-operasional');
+      if (jamEl) jamEl.textContent = `Jam Operasional: ${jam}`;
+
+      const mapIframe = document.getElementById('landing-map-iframe') || document.querySelector('.location-map iframe');
+      if (mapIframe) {
+        mapIframe.src = `https://maps.google.com/maps?q=${encodeURIComponent(alamat)}&t=&z=17&ie=UTF8&iwloc=&output=embed`;
+      }
+
+      const footerAddr = document.getElementById('footer-alamat-text') || document.querySelector('.footer-contact .contact-item .contact-text');
+      if (footerAddr) {
+        footerAddr.innerHTML = `<strong>Alamat Kami:</strong> ${alamat}`;
+      }
+
+      // 2. Mitra & Sponsor (Tab Tentang)
+      const mitraGrid = document.getElementById('mitra-logo-grid') || document.querySelector('.mitra-logo-grid');
+      if (mitraGrid && settings.sponsors_json) {
+        try {
+          const rawSponsors = typeof settings.sponsors_json === 'string' ? JSON.parse(settings.sponsors_json) : settings.sponsors_json;
+          if (Array.isArray(rawSponsors) && rawSponsors.length > 0) {
+            mitraGrid.innerHTML = rawSponsors.map((s, idx) => `
+              <a href="${s.url || '#'}" target="_blank" rel="noopener noreferrer" class="mitra-logo-btn" id="mitra-btn-${idx+1}">
+                <i class="${s.icon || 'fas fa-handshake'}"></i>
+                <span>${s.name || 'Mitra SoC'}</span>
+              </a>
+            `).join('');
+          }
+        } catch (e) {
+          console.warn('Gagal merender daftar mitra/sponsor:', e);
+        }
+      }
+
+      // 3. Kontrol Pendaftaran (Tab Pendaftaran)
+      const btnSiswa = document.getElementById('portal-btn-siswa') || document.querySelector('.portal-card.card-orange .portal-cta-btn');
+      const btnGuru = document.getElementById('portal-btn-guru') || document.querySelector('.portal-card.card-green .portal-cta-btn');
+      const btnVolunteer = document.getElementById('portal-btn-volunteer') || document.querySelector('.portal-card.card-teal .portal-cta-btn');
+
+      const applyPortalStatus = (btn, isOpen, targetUrl, activeLabel) => {
+        if (!btn) return;
+        const open = (isOpen === true || isOpen === 'true' || isOpen === 1 || isOpen === '1');
+        if (!open) {
+          btn.classList.add('btn-closed');
+          btn.setAttribute('href', 'javascript:void(0)');
+          btn.setAttribute('aria-disabled', 'true');
+          btn.innerHTML = '<i class="fas fa-lock"></i> Pendaftaran Ditutup Sementara';
+          btn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          };
+        } else {
+          btn.classList.remove('btn-closed');
+          btn.removeAttribute('aria-disabled');
+          btn.setAttribute('href', targetUrl || '#');
+          btn.innerHTML = `${activeLabel} <i class="fas fa-external-link-alt"></i>`;
+          btn.onclick = null;
+        }
+      };
+
+      applyPortalStatus(btnSiswa, settings.reg_siswa_open, settings.reg_siswa_url, 'Daftar Siswa Baru');
+      applyPortalStatus(btnGuru, settings.reg_guru_open, settings.reg_guru_url, 'Lamar Sebagai Guru');
+      applyPortalStatus(btnVolunteer, settings.reg_volunteer_open, settings.reg_volunteer_url, 'Daftar Relawan / Volunteer');
+
+    } catch (e) {
+      console.warn('Gagal memuat pengaturan lokasi & sistem:', e);
+    }
+  }
+  loadSiteSettings();
 });
+

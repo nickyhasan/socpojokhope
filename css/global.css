@@ -114,6 +114,18 @@ h1, h2, h3, h4, h5, h6 {
   transform: translateY(-2px);
 }
 
+body.dark-mode .btn-outline {
+  color: #38bdf8 !important;
+  border-color: #38bdf8 !important;
+  background-color: rgba(56, 189, 248, 0.08) !important;
+}
+
+body.dark-mode .btn-outline:hover {
+  background-color: rgba(56, 189, 248, 0.22) !important;
+  color: #ffffff !important;
+  border-color: #38bdf8 !important;
+}
+
 /* Badge / Pill styling */
 .badge {
   display: inline-flex;
@@ -603,6 +615,19 @@ h1, h2, h3, h4, h5, h6 {
 .portal-cta-btn {
   width: 100%;
   margin-top: auto;
+}
+
+.portal-cta-btn.btn-closed,
+.portal-cta-btn:disabled,
+.portal-cta-btn[disabled] {
+  background-color: #94a3b8 !important;
+  border-color: #94a3b8 !important;
+  color: #ffffff !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  transform: none !important;
+  opacity: 0.8 !important;
+  pointer-events: none !important;
 }
 
 .portal-card.card-orange {
