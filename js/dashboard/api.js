@@ -2,7 +2,7 @@
  * js/dashboard/api.js
  * API communication and data fetching layer for School of Character Dashboard.
  */
-import { initSemesterSelector, applySemesterPeriod, parseSemesterKey } from './ui.js';
+import { initSemesterSelector, applySemesterPeriod, parseSemesterKey, updateRaporGauges } from './ui.js';
 
 // Ensure global containers exist
 if (!window.allStudents) window.allStudents = [];
@@ -357,6 +357,10 @@ export async function loadManagerSchedules() {
         `;
       }).join('');
     } else {
+      if (typeof window.renderManagerSchedules === 'function') {
+        window.renderManagerSchedules();
+        return;
+      }
       const subjectColors = {
         'Karakter': { color: 'orange', badge: 'badge-orange' },
         'English': { color: 'teal', badge: 'badge-teal' },
@@ -473,6 +477,11 @@ export async function loadRaporData(customStudentId) {
     indivStudentName.style.display = 'block';
   }
 
+  // Check and render Alumni Graduation Certificate if target student is alumni
+  if (typeof window.renderAlumniCertificate === 'function') {
+    window.renderAlumniCertificate(targetStudent);
+  }
+
   let allEvals = [];
   try {
     const res = await fetch(`http://localhost:5000/api/evaluations?student_id=${targetStudentId}`);
@@ -547,6 +556,30 @@ export async function loadRaporData(customStudentId) {
   });
 
   const currentEval = monthEvalMap[selectedMonth.toLowerCase()] || null;
+
+  // Update Rapor Gauges strictly from evaluation record
+  if (typeof updateRaporGauges === 'function') {
+    updateRaporGauges(currentEval);
+  } else if (typeof window.updateRaporGauges === 'function') {
+    window.updateRaporGauges(currentEval);
+  }
+
+  if (monthSel) {
+    monthSel.onchange = (e) => {
+      const chosenMonth = e.target.value;
+      const ev = monthEvalMap[chosenMonth.toLowerCase()] || null;
+      if (typeof updateRaporGauges === 'function') {
+        updateRaporGauges(ev);
+      } else if (typeof window.updateRaporGauges === 'function') {
+        window.updateRaporGauges(ev);
+      }
+      const stCount = document.getElementById('student-star-count');
+      const tcCount = document.getElementById('teacher-star-count');
+      const stVal = (ev && ev.stars !== undefined && ev.stars !== null) ? ev.stars : (targetStudent ? (targetStudent.stars ?? 0) : 0);
+      if (stCount) stCount.textContent = stVal;
+      if (tcCount) tcCount.textContent = stVal;
+    };
+  }
 
   const empathy = currentEval ? (currentEval.score_empathy ?? 50) : 50;
   const honesty = currentEval ? (currentEval.score_honesty ?? 50) : 50;

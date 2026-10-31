@@ -2,9 +2,9 @@ import datetime
 from flask import Blueprint, request, jsonify
 
 try:
-    from database import get_db, get_db_connection, normalize_short_class_name
+    from database import get_db, get_db_connection, normalize_short_class_name, save_profile_image_file
 except ImportError:
-    from ..database import get_db, get_db_connection, normalize_short_class_name
+    from ..database import get_db, get_db_connection, normalize_short_class_name, save_profile_image_file
 
 teachers_bp = Blueprint('teachers', __name__)
 
@@ -170,6 +170,7 @@ def create_user():
 
         teacher_code = custom_id if role == 'guru' else ''
         username = (data.get('username') or custom_id).strip()
+        photo_url = save_profile_image_file(custom_id, photo_url)
 
         # Auto-generate default password: SoC + last 4 digits (or SoC + YYNNN: SoC26007)
         password = (data.get('password') or '').strip()
@@ -287,6 +288,7 @@ def bulk_create_teachers():
         current_seq = (max(existing_nums) + 1) if existing_nums else 1
 
         created_count = 0
+        skipped_count = 0
         created_records = []
 
         for item in teachers_list:
@@ -301,6 +303,23 @@ def bulk_create_teachers():
             email = (item.get('email') or item.get('Email') or '').strip()
             jurusan = (item.get('jurusan') or item.get('Jurusan/Lulusan') or item.get('specialization') or '').strip()
             photo_url = item.get('photo_url') or ''
+
+            # Duplicate check: check if teacher with same full_name (case-insensitive) OR same email OR same contact already exists
+            norm_name = full_name.lower().strip()
+            norm_email = email.lower().strip()
+            norm_contact = contact.strip()
+            cursor.execute("""
+                SELECT id FROM users 
+                WHERE role = 'guru' AND (
+                    LOWER(TRIM(full_name)) = %s
+                    OR (%s != '' AND LOWER(TRIM(email)) = %s)
+                    OR (%s != '' AND TRIM(contact) = %s)
+                )
+                LIMIT 1
+            """, (norm_name, norm_email, norm_email, norm_contact, norm_contact))
+            if cursor.fetchone():
+                skipped_count += 1
+                continue
 
             # Generate unique 03YYNNN
             teacher_id = f"03{yy}{str(current_seq).zfill(3)}"
@@ -375,8 +394,9 @@ def bulk_create_teachers():
         cursor.close()
         return jsonify({
             "status": "success",
-            "message": f"Berhasil membuat {created_count} akun pengajar baru secara massal!",
+            "message": f"Impor selesai: {created_count} data baru berhasil ditambahkan, {skipped_count} data dilewati karena sudah terdaftar di database.",
             "count": created_count,
+            "skipped": skipped_count,
             "created": created_records
         }), 201
     except Exception as e:
@@ -423,7 +443,7 @@ def update_teacher(teacher_id):
         old_photo = (old_user['photo_url'] if isinstance(old_user, dict) else (old_user[4] if len(old_user) > 4 else '')) if old_user else ''
 
         final_pwd = password if password else (old_pwd or 'password123')
-        final_photo = photo_url if photo_url is not None else old_photo
+        final_photo = save_profile_image_file(new_id, photo_url) if photo_url is not None else old_photo
 
         # Update users table
         cursor.execute("""
@@ -565,13 +585,19 @@ def delete_teacher(teacher_id):
 def get_class_assignments():
     """
     GET /api/classes/assignments
-    Returns all teacher assignments per class.
+    Returns all teacher assignments per class with category and display_label.
     """
     connection = None
     try:
         connection = get_db_connection()
         cursor = connection.cursor()
-        cursor.execute("SELECT class_name, teacher_name FROM class_assignments ORDER BY class_name ASC")
+        cursor.execute("""
+            SELECT class_name, teacher_name, 
+                   COALESCE(category, 'Umum') AS category, 
+                   COALESCE(display_label, class_name) AS display_label 
+            FROM class_assignments 
+            ORDER BY FIELD(class_name, 'Calistung', 'English A', 'English B', 'English C', 'Math A', 'Math B', 'Math C'), class_name ASC
+        """)
         if hasattr(cursor, 'description') and cursor.description:
             columns = [desc[0] for desc in cursor.description]
             rows = cursor.fetchall()
@@ -592,7 +618,7 @@ def save_class_assignments():
     POST /api/classes/assignments
     Upserts teacher assignments.
     Body can be:
-      - { "assignments": [{"class_name": "...", "teacher_name": "..."}, ...] }
+      - { "assignments": [{"class_name": "...", "teacher_name": "...", "category": "...", "display_label": "..."}, ...] }
       - [{"class_name": "...", "teacher_name": "..."}, ...]
       - {"class_name": "...", "teacher_name": "..."}
     """
@@ -620,18 +646,94 @@ def save_class_assignments():
             raw_class_name = str(item.get('class_name', '')).strip()
             teacher_name   = str(item.get('teacher_name', '')).strip()
             class_name     = normalize_short_class_name(raw_class_name)
+            category       = str(item.get('category', 'Umum')).strip() or 'Umum'
+            display_label  = str(item.get('display_label', '')).strip() or None
             if not class_name:
                 continue
             cursor.execute(
-                """INSERT INTO class_assignments (class_name, teacher_name)
-                   VALUES (%s, %s)
-                   ON DUPLICATE KEY UPDATE teacher_name = VALUES(teacher_name)""",
-                (class_name, teacher_name)
+                """INSERT INTO class_assignments (class_name, teacher_name, category, display_label)
+                   VALUES (%s, %s, %s, %s)
+                   ON DUPLICATE KEY UPDATE 
+                       teacher_name = VALUES(teacher_name),
+                       category = COALESCE(NULLIF(VALUES(category), 'Umum'), category),
+                       display_label = COALESCE(VALUES(display_label), display_label)""",
+                (class_name, teacher_name, category, display_label)
             )
         if not getattr(connection, 'autocommit', False):
             connection.commit()
         cursor.close()
         return jsonify({'status': 'success', 'message': 'Penugasan pengajar berhasil disimpan!'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if connection and hasattr(connection, 'close'):
+            connection.close()
+
+@teachers_bp.route('/api/classes/assignments/add', methods=['POST'])
+def add_class_assignment():
+    """
+    POST /api/classes/assignments/add
+    Adds a new class level.
+    Body: { "class_name": "Calistung B", "display_label": "Calistung B (Lanjutan)", "category": "Calistung", "teacher_name": "" }
+    """
+    connection = None
+    try:
+        data = request.get_json() or {}
+        class_name = str(data.get('class_name', '')).strip()
+        display_label = str(data.get('display_label', '')).strip() or class_name
+        category = str(data.get('category', 'Umum')).strip() or 'Umum'
+        teacher_name = str(data.get('teacher_name', '')).strip()
+
+        if not class_name:
+            return jsonify({'error': 'Kode / Nama Singkat Kelas wajib diisi.'}), 400
+
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute("""
+            INSERT INTO class_assignments (class_name, teacher_name, category, display_label)
+            VALUES (%s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                display_label = VALUES(display_label),
+                category = VALUES(category),
+                teacher_name = COALESCE(NULLIF(VALUES(teacher_name), ''), teacher_name)
+        """, (class_name, teacher_name, category, display_label))
+        if not getattr(connection, 'autocommit', False):
+            connection.commit()
+        cursor.close()
+        return jsonify({
+            'status': 'success',
+            'message': f'Kelas {class_name} berhasil ditambahkan!',
+            'data': {
+                'class_name': class_name,
+                'display_label': display_label,
+                'category': category,
+                'teacher_name': teacher_name
+            }
+        }), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if connection and hasattr(connection, 'close'):
+            connection.close()
+
+@teachers_bp.route('/api/classes/assignments/<path:class_name>', methods=['DELETE'])
+def delete_class_assignment(class_name):
+    """
+    DELETE /api/classes/assignments/<class_name>
+    Removes a class from class_assignments table.
+    """
+    connection = None
+    try:
+        clean_name = str(class_name).strip()
+        if not clean_name:
+            return jsonify({'error': 'Nama kelas wajib ditentukan.'}), 400
+        connection = get_db_connection()
+        cursor = connection.cursor()
+        cursor.execute("DELETE FROM class_assignments WHERE class_name = %s", (clean_name,))
+        if not getattr(connection, 'autocommit', False):
+            connection.commit()
+        cursor.close()
+        return jsonify({'status': 'success', 'message': f'Kelas {clean_name} berhasil dihapus!'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:

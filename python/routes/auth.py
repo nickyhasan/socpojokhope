@@ -1,9 +1,9 @@
 from flask import Blueprint, request, jsonify
 
 try:
-    from database import get_db, get_db_connection
+    from database import get_db, get_db_connection, save_profile_image_file
 except ImportError:
-    from ..database import get_db, get_db_connection
+    from ..database import get_db, get_db_connection, save_profile_image_file
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -65,6 +65,40 @@ def login():
                 "student_id": user[5]
             }
 
+        # 90-Day Alumni Login Grace Period Verification
+        if user_info.get('role') == 'siswa' or user_info.get('student_id'):
+            s_cur = connection.cursor()
+            try:
+                s_cur.execute("""
+                    SELECT status_siswa, graduated_at, alumni_access_until,
+                           DATEDIFF(alumni_access_until, NOW()) AS days_left
+                    FROM students
+                    WHERE id = %s OR nis = %s
+                """, (user_info.get('student_id'), user_info.get('id')))
+                st_info = s_cur.fetchone()
+                if st_info:
+                    st_dict = st_info if isinstance(st_info, dict) else {
+                        'status_siswa': st_info[0],
+                        'graduated_at': st_info[1],
+                        'alumni_access_until': st_info[2],
+                        'days_left': st_info[3]
+                    }
+                    if st_dict.get('status_siswa') == 'alumni':
+                        user_info['status_siswa'] = 'alumni'
+                        user_info['graduated_at'] = str(st_dict.get('graduated_at')) if st_dict.get('graduated_at') else None
+                        user_info['alumni_access_until'] = str(st_dict.get('alumni_access_until')) if st_dict.get('alumni_access_until') else None
+                        days_left = st_dict.get('days_left')
+                        user_info['days_left'] = days_left if days_left is not None else 0
+                        if days_left is not None and days_left < 0:
+                            s_cur.close()
+                            return jsonify({
+                                "error": "Masa akses akun alumni selama 6 bulan telah berakhir. Silakan hubungi pihak sekolah/admin SoC jika memerlukan perpanjangan akses."
+                            }), 403
+            except Exception:
+                pass
+            finally:
+                s_cur.close()
+
         return jsonify({
             "message": "Login berhasil",
             "user": user_info
@@ -108,7 +142,8 @@ def get_user_profile(user_id):
         if profile.get('role') == 'siswa' or profile.get('student_id'):
             s_id = profile.get('student_id')
             cursor.execute("""
-                SELECT nis, full_name, nickname, gender, birth_place, birth_date, parents_name, student_phone, parent_phone, kelas_english, kelas_math, photo_url
+                SELECT nis, full_name, nickname, gender, birth_place, birth_date, parents_name, student_phone, parent_phone, kelas_english, kelas_math, photo_url,
+                       status_siswa, graduated_at, alumni_access_until, DATEDIFF(alumni_access_until, NOW()) AS days_left
                 FROM students
                 WHERE id = %s OR nis = %s
             """, (s_id, profile['id']))
@@ -124,6 +159,10 @@ def get_user_profile(user_id):
                 profile['parent_phone'] = s_dict.get('parent_phone') or ''
                 profile['kelas_english'] = s_dict.get('kelas_english') or 'Belum Ditentukan'
                 profile['kelas_math'] = s_dict.get('kelas_math') or 'Belum Ditentukan'
+                profile['status_siswa'] = s_dict.get('status_siswa') or 'aktif'
+                profile['graduated_at'] = str(s_dict.get('graduated_at')) if s_dict.get('graduated_at') else None
+                profile['alumni_access_until'] = str(s_dict.get('alumni_access_until')) if s_dict.get('alumni_access_until') else None
+                profile['days_left'] = s_dict.get('days_left')
                 if s_dict.get('photo_url') and not profile.get('photo_url'):
                     profile['photo_url'] = s_dict['photo_url']
 
@@ -179,7 +218,25 @@ def update_profile():
         role = existing['role'] if isinstance(existing, dict) else existing[1]
         student_id = existing['student_id'] if isinstance(existing, dict) else existing[2]
         old_photo = existing['photo_url'] if isinstance(existing, dict) else existing[3]
-        final_photo = photo_url if photo_url else old_photo
+        final_photo = save_profile_image_file(user_id, photo_url) if photo_url else old_photo
+
+        # If student, lock legal credentials (full_name, gender, birth_place, birth_date, parents_name) from DB
+        if role == 'siswa' or student_id:
+            cursor.execute("SELECT full_name, gender, birth_place, birth_date, parents_name, parent_name FROM students WHERE id = %s OR nis = %s", (student_id, user_id))
+            st_row = cursor.fetchone()
+            if st_row:
+                if isinstance(st_row, dict):
+                    full_name = st_row.get('full_name') or full_name
+                    gender = st_row.get('gender') or gender
+                    birth_place = st_row.get('birth_place') or birth_place
+                    birth_date = st_row.get('birth_date') or birth_date
+                    parents_name = st_row.get('parents_name') or st_row.get('parent_name') or parents_name
+                else:
+                    full_name = st_row[0] or full_name
+                    gender = st_row[1] or gender
+                    birth_place = st_row[2] or birth_place
+                    birth_date = st_row[3] or birth_date
+                    parents_name = st_row[4] or (st_row[5] if len(st_row) > 5 else None) or parents_name
 
         # Update users table
         if password:

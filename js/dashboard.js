@@ -122,12 +122,45 @@ Object.defineProperty(window, 'currentRole', {
   configurable: true
 });
 
+export function getDefaultUserForRole(role) {
+  if (role === 'founder') {
+    return { id: '0125001', username: 'founder', full_name: 'Minarti Monoarfa', nama: 'Minarti Monoarfa', role: 'founder' };
+  } else if (role === 'manager') {
+    return { id: '0225001', username: 'sity', full_name: 'Sity Djabar, M.Pd.', nama: 'Sity Djabar, M.Pd.', role: 'manager' };
+  } else if (role === 'admin') {
+    return { id: '1001001', username: 'admin', full_name: 'Administrator SoC', nama: 'Administrator SoC', role: 'admin' };
+  } else if (role === 'guru') {
+    return { id: '0326001', full_name: 'Sir Nicky, S.Kom.', nama: 'Sir Nicky, S.Kom.', role: 'guru' };
+  } else {
+    return { id: '1', full_name: 'Muhammad Raffa', nama: 'Muhammad Raffa', nickname: 'Raffa', role: 'siswa' };
+  }
+}
+window.getDefaultUserForRole = getDefaultUserForRole;
+
+export function togglePasswordVisibility(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  const isPass = inp.type === 'password';
+  inp.type = isPass ? 'text' : 'password';
+  const icon = btn ? btn.querySelector('i') : null;
+  if (icon) {
+    icon.className = isPass ? 'fas fa-eye-slash' : 'fas fa-eye';
+  }
+}
+window.togglePasswordVisibility = togglePasswordVisibility;
+
 try {
-  const roleNameFallback = (currentRole === 'admin') ? 'Administrator' : ((['manager', 'founder'].includes(currentRole)) ? 'Manager Operasional' : 'Simulated User');
-  window.currentUser = JSON.parse(localStorage.getItem('user')) || { id: '999', full_name: roleNameFallback, nama: roleNameFallback, role: currentRole || 'guru' };
+  let stored = JSON.parse(localStorage.getItem('user'));
+  if (stored && stored.role === 'manager' && (!stored.id || stored.id === 'manager' || stored.id === '999')) {
+    stored = { ...stored, id: '0225001', username: 'sity', full_name: 'Sity Djabar, M.Pd.', nama: 'Sity Djabar, M.Pd.' };
+  } else if (stored && stored.role === 'founder' && (!stored.id || stored.id === 'founder' || stored.id === '999')) {
+    stored = { ...stored, id: '0125001', username: 'founder', full_name: 'Minarti Monoarfa', nama: 'Minarti Monoarfa' };
+  } else if (stored && stored.role === 'admin' && (!stored.id || stored.id === 'admin' || stored.id === '999')) {
+    stored = { ...stored, id: '1001001', username: 'admin', full_name: 'Administrator SoC', nama: 'Administrator SoC' };
+  }
+  window.currentUser = stored || getDefaultUserForRole(currentRole);
 } catch (e) {
-  const roleNameFallback = (currentRole === 'admin') ? 'Administrator' : ((['manager', 'founder'].includes(currentRole)) ? 'Manager Operasional' : 'Simulated User');
-  window.currentUser = { id: '999', full_name: roleNameFallback, nama: roleNameFallback, role: currentRole || 'guru' };
+  window.currentUser = getDefaultUserForRole(currentRole);
 }
 let loggedInUser = window.currentUser;
 
@@ -232,7 +265,11 @@ window.loadDashboardData = loadDashboardData;
 
 // 5. Global SPA Hash Routing Listener
 window.addEventListener('hashchange', function() {
-  const viewId = window.location.hash.replace('#', '') || 'ringkasan';
+  let viewId = window.location.hash.replace('#', '') || 'ringkasan';
+  if ((window.currentRole === 'guru' || window.currentRole === 'siswa') && (viewId === 'data-siswa' || viewId === 'detail-siswa' || viewId === 'data-alumni')) {
+    viewId = 'rapor';
+    window.location.hash = 'rapor';
+  }
   switchView(viewId);
 });
 
@@ -260,14 +297,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (urlRole && ['guru', 'siswa', 'manager', 'founder', 'admin'].includes(urlRole)) {
       if (urlRole === 'admin') {
-        window.currentUser = { id: 'admin', username: 'admin', full_name: 'Administrator', nama: 'Administrator', role: 'admin' };
+        window.currentUser = { id: '1001001', username: 'admin', full_name: 'Administrator SoC', nama: 'Administrator SoC', role: 'admin' };
       } else if (urlRole === 'manager') {
-        window.currentUser = { id: 'manager', username: 'manager', full_name: 'Manager Operasional', nama: 'Manager Operasional', role: 'manager' };
+        window.currentUser = { id: '0225001', username: 'sity', full_name: 'Sity Djabar, M.Pd.', nama: 'Sity Djabar, M.Pd.', role: 'manager' };
       } else if (urlRole === 'founder') {
-        window.currentUser = { id: 'founder', username: 'founder', full_name: 'Founder / Owner', nama: 'Founder / Owner', role: 'founder' };
+        window.currentUser = { id: '0125001', username: 'founder', full_name: 'Minarti Monoarfa', nama: 'Minarti Monoarfa', role: 'founder' };
       } else if (urlRole === 'guru') {
         if (!window.currentUser || window.currentUser.role !== 'guru') {
-          window.currentUser = { id: '999', full_name: 'Guru Pengajar', nama: 'Guru Pengajar', role: 'guru' };
+          window.currentUser = { id: '0326001', full_name: 'Sir Nicky, S.Kom.', nama: 'Sir Nicky, S.Kom.', role: 'guru' };
         }
       } else {
         if (!window.currentUser || window.currentUser.role !== 'siswa') {
@@ -276,9 +313,24 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
+    if (window.currentUser) {
+      if (window.currentUser.role === 'manager' && (!window.currentUser.id || window.currentUser.id === 'manager' || window.currentUser.id === '999')) {
+        window.currentUser.id = '0225001';
+        window.currentUser.full_name = 'Sity Djabar, M.Pd.';
+        window.currentUser.nama = 'Sity Djabar, M.Pd.';
+      } else if (window.currentUser.role === 'founder' && (!window.currentUser.id || window.currentUser.id === 'founder' || window.currentUser.id === '999')) {
+        window.currentUser.id = '0125001';
+        window.currentUser.full_name = 'Minarti Monoarfa';
+        window.currentUser.nama = 'Minarti Monoarfa';
+      } else if (window.currentUser.role === 'admin' && (!window.currentUser.id || window.currentUser.id === 'admin' || window.currentUser.id === '999')) {
+        window.currentUser.id = '1001001';
+        window.currentUser.full_name = 'Administrator SoC';
+        window.currentUser.nama = 'Administrator SoC';
+      }
+    }
+
     if (!window.currentUser) {
-      const fallbackName = (currentRole === 'admin') ? 'Administrator' : ((['manager', 'founder'].includes(currentRole)) ? 'Manager Operasional' : 'Simulated User');
-      window.currentUser = { id: '999', full_name: fallbackName, nama: fallbackName, role: currentRole || 'guru' };
+      window.currentUser = getDefaultUserForRole(currentRole);
     }
     loggedInUser = window.currentUser;
 
@@ -293,7 +345,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     applyRole(currentRole);
 
     // Step 4: Fire the hash routing logic (switchView)
-    const initialView = window.location.hash.replace('#', '') || 'ringkasan';
+    let initialView = window.location.hash.replace('#', '') || 'ringkasan';
+    if ((window.currentRole === 'guru' || window.currentRole === 'siswa') && (initialView === 'data-siswa' || initialView === 'detail-siswa' || initialView === 'data-alumni')) {
+      initialView = 'rapor';
+      window.location.hash = 'rapor';
+    }
     switchView(initialView);
 
     // Update dynamic class header text for attendance view
@@ -330,7 +386,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('.sidebar-menu .menu-item[data-view]').forEach(item => {
     item.addEventListener('click', (e) => {
       e.preventDefault();
-      const view = item.getAttribute('data-view');
+      let view = item.getAttribute('data-view');
+      if ((window.currentRole === 'guru' || window.currentRole === 'siswa') && (view === 'data-siswa' || view === 'detail-siswa' || view === 'data-alumni')) {
+        view = 'rapor';
+      }
       if (window.location.hash === '#' + view) {
         switchView(view);
       } else {
@@ -394,6 +453,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const ortu = (document.getElementById('input-siswa-ortu')?.value || '').trim();
       const hpSiswa = (document.getElementById('input-siswa-hp-siswa')?.value || '').trim();
       const hpOrtu = (document.getElementById('input-siswa-hp-ortu')?.value || '').trim();
+      const kelasEng = (document.getElementById('input-siswa-kelas-eng')?.value || '').trim();
+      const kelasMath = (document.getElementById('input-siswa-kelas-math')?.value || '').trim();
       const fotoInput = document.getElementById('input-siswa-foto');
 
       if (!nama) {
@@ -415,6 +476,8 @@ document.addEventListener('DOMContentLoaded', async () => {
               parents_name: ortu,
               student_phone: hpSiswa,
               parent_phone: hpOrtu,
+              kelas_english: kelasEng,
+              kelas_math: kelasMath,
               photo_url: photoBase64 || ''
             })
           });
@@ -446,7 +509,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       };
 
-      if (fotoInput && fotoInput.files && fotoInput.files[0]) {
+      if (fotoInput && fotoInput._croppedDataUrl) {
+        processCreateStudent(fotoInput._croppedDataUrl);
+      } else if (fotoInput && fotoInput.files && fotoInput.files[0]) {
         const file = fotoInput.files[0];
         if (file.size > 2 * 1024 * 1024) {
           alert('Ukuran foto siswa melebihi batas maksimal 2MB.');
@@ -461,22 +526,52 @@ document.addEventListener('DOMContentLoaded', async () => {
         processCreateStudent('');
       }
     });
+
+    const inputSiswaFoto = document.getElementById('input-siswa-foto');
+    if (inputSiswaFoto) {
+      inputSiswaFoto.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (file && typeof window.openSoCImageCropper === 'function') {
+          const cropped = await window.openSoCImageCropper(file);
+          if (cropped) {
+            inputSiswaFoto._croppedDataUrl = cropped;
+          } else {
+            e.target.value = '';
+            inputSiswaFoto._croppedDataUrl = null;
+          }
+        }
+      });
+    }
   }
 
-  // Live preview for Edit Siswa profile photo
+  // Interactive Cropper for Edit Siswa profile photo
   const editSiswaFoto = document.getElementById('edit-siswa-foto');
   if (editSiswaFoto) {
-    editSiswaFoto.addEventListener('change', (e) => {
+    editSiswaFoto.addEventListener('change', async (e) => {
       const file = e.target.files && e.target.files[0];
       if (file) {
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-          const prev = document.getElementById('detail-siswa-photo-preview');
-          if (prev) prev.src = evt.target.result;
-          const cardPrev = document.getElementById('card-student-photo');
-          if (cardPrev) cardPrev.src = evt.target.result;
-        };
-        reader.readAsDataURL(file);
+        if (typeof window.openSoCImageCropper === 'function') {
+          const cropped = await window.openSoCImageCropper(file);
+          if (cropped) {
+            editSiswaFoto._croppedDataUrl = cropped;
+            const prev = document.getElementById('detail-siswa-photo-preview');
+            if (prev) prev.src = cropped;
+            const cardPrev = document.getElementById('card-student-photo');
+            if (cardPrev) cardPrev.src = cropped;
+          } else {
+            e.target.value = '';
+            editSiswaFoto._croppedDataUrl = null;
+          }
+        } else {
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            const prev = document.getElementById('detail-siswa-photo-preview');
+            if (prev) prev.src = evt.target.result;
+            const cardPrev = document.getElementById('card-student-photo');
+            if (cardPrev) cardPrev.src = evt.target.result;
+          };
+          reader.readAsDataURL(file);
+        }
       }
     });
   }
@@ -522,9 +617,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             birth_date: tanggalLahir || null,
             parents_name: ortu,
             student_phone: hpSiswa,
-            parent_phone: hpOrtu,
-            kelas_english: engClass,
-            kelas_math: mathClass
+            parent_phone: hpOrtu
           };
           if (photoBase64) payload.photo_url = photoBase64;
 
@@ -549,7 +642,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       };
 
-      if (fotoInput && fotoInput.files && fotoInput.files[0]) {
+      if (fotoInput && fotoInput._croppedDataUrl) {
+        processEditStudent(fotoInput._croppedDataUrl);
+      } else if (fotoInput && fotoInput.files && fotoInput.files[0]) {
         const file = fotoInput.files[0];
         if (file.size > 2 * 1024 * 1024) {
           alert('Ukuran foto siswa melebihi batas maksimal 2MB.');
@@ -640,7 +735,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       };
 
-      if (fotoInput && fotoInput.files && fotoInput.files[0]) {
+      if (fotoInput && fotoInput._croppedDataUrl) {
+        processCreation(fotoInput._croppedDataUrl);
+      } else if (fotoInput && fotoInput.files && fotoInput.files[0]) {
         const file = fotoInput.files[0];
         if (file.size > 2 * 1024 * 1024) {
           alert('Ukuran foto melebihi batas maksimal 2MB.');
@@ -659,22 +756,52 @@ document.addEventListener('DOMContentLoaded', async () => {
         processCreation('');
       }
     });
+
+    const inputGuruFoto = document.getElementById('input-guru-foto');
+    if (inputGuruFoto) {
+      inputGuruFoto.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (file && typeof window.openSoCImageCropper === 'function') {
+          const cropped = await window.openSoCImageCropper(file);
+          if (cropped) {
+            inputGuruFoto._croppedDataUrl = cropped;
+          } else {
+            e.target.value = '';
+            inputGuruFoto._croppedDataUrl = null;
+          }
+        }
+      });
+    }
   }
 
-  // Live preview for Edit Guru profile photo
+  // Interactive Cropper for Edit Guru profile photo
   const editGuruFoto = document.getElementById('edit-guru-foto');
   if (editGuruFoto) {
-    editGuruFoto.addEventListener('change', (e) => {
+    editGuruFoto.addEventListener('change', async (e) => {
       const file = e.target.files && e.target.files[0];
       if (file) {
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-          const prev = document.getElementById('detail-guru-photo-preview');
-          if (prev) prev.src = evt.target.result;
-          const cardPrev = document.getElementById('card-teacher-photo');
-          if (cardPrev) cardPrev.src = evt.target.result;
-        };
-        reader.readAsDataURL(file);
+        if (typeof window.openSoCImageCropper === 'function') {
+          const cropped = await window.openSoCImageCropper(file);
+          if (cropped) {
+            editGuruFoto._croppedDataUrl = cropped;
+            const prev = document.getElementById('detail-guru-photo-preview');
+            if (prev) prev.src = cropped;
+            const cardPrev = document.getElementById('card-teacher-photo');
+            if (cardPrev) cardPrev.src = cropped;
+          } else {
+            e.target.value = '';
+            editGuruFoto._croppedDataUrl = null;
+          }
+        } else {
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            const prev = document.getElementById('detail-guru-photo-preview');
+            if (prev) prev.src = evt.target.result;
+            const cardPrev = document.getElementById('card-teacher-photo');
+            if (cardPrev) cardPrev.src = evt.target.result;
+          };
+          reader.readAsDataURL(file);
+        }
       }
     });
   }
@@ -744,7 +871,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       };
 
-      if (fotoInput && fotoInput.files && fotoInput.files[0]) {
+      if (fotoInput && fotoInput._croppedDataUrl) {
+        processUpdate(fotoInput._croppedDataUrl);
+      } else if (fotoInput && fotoInput.files && fotoInput.files[0]) {
         const file = fotoInput.files[0];
         if (file.size > 2 * 1024 * 1024) {
           alert('Ukuran foto melebihi batas maksimal 2MB.');
@@ -1078,104 +1207,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     newSchedDate.value = new Date().toISOString().split('T')[0];
   }
 
-  // Cancel edit button listener
-  const btnCancelEdit = document.getElementById('btn-cancel-edit');
-  if (btnCancelEdit) {
-    btnCancelEdit.addEventListener('click', (e) => {
-      e.preventDefault();
-      resetScheduleForm();
-    });
-  }
-
-  // Create or Update schedule button listener (Manager/Owner)
-  const btnCreateSched = document.getElementById('btn-create-sched');
-  if (btnCreateSched) {
-    btnCreateSched.addEventListener('click', async () => {
-      const editIdInput = document.getElementById('edit-schedule-id');
-      const dateInput = document.getElementById('new-sched-date');
-      const subjectInput = document.getElementById('new-sched-subject');
-      const kelasInput = document.getElementById('new-sched-kelas');
-      const topicInput = document.getElementById('new-sched-topic');
-      const linkInput = document.getElementById('new-sched-link');
-      const studentLinkInput = document.getElementById('new-sched-student-link');
-      const startTimeInput = document.getElementById('new-sched-start-time');
-      const endTimeInput = document.getElementById('new-sched-end-time');
-      const lokasiInput = document.getElementById('new-sched-lokasi');
-      const catatanInput = document.getElementById('new-sched-catatan');
-
-      const editId = editIdInput ? editIdInput.value : '';
-      const isEdit = Boolean(editId);
-
-      const dateVal = dateInput ? dateInput.value : '';
-      const subjectVal = subjectInput ? subjectInput.value : '';
-      const kelasVal = kelasInput ? kelasInput.value : '';
-      const topicVal = topicInput ? topicInput.value.trim() : '';
-      const linkVal = linkInput ? linkInput.value.trim() : '';
-      const studentLinkVal = studentLinkInput ? studentLinkInput.value.trim() : '';
-      const startTimeVal = startTimeInput ? startTimeInput.value.trim() : '14:00';
-      const endTimeVal = endTimeInput ? endTimeInput.value.trim() : '15:30';
-      const lokasiVal = lokasiInput ? lokasiInput.value.trim() : '';
-      const catatanVal = catatanInput ? catatanInput.value.trim() : '';
-
-      if (!dateVal) {
-        alert('Harap pilih tanggal jadwal terlebih dahulu.');
-        return;
-      }
-      if (!subjectVal) {
-        alert('Harap pilih mata pelajaran.');
-        return;
-      }
-      if (!kelasVal) {
-        alert('Harap pilih kelas.');
-        return;
-      }
-
-      btnCreateSched.disabled = true;
-      btnCreateSched.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${isEdit ? 'Memperbarui...' : 'Menyimpan...'}`;
-
-      try {
-        const url = isEdit ? `http://localhost:5000/api/schedules/${editId}` : 'http://localhost:5000/api/schedules';
-        const method = isEdit ? 'PUT' : 'POST';
-
-        const response = await fetch(url, {
-          method: method,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            date: dateVal,
-            mata_pelajaran: subjectVal,
-            kelas: kelasVal,
-            topik: topicVal,
-            materi_link: linkVal,
-            link_materi_siswa: studentLinkVal,
-            start_time: startTimeVal,
-            end_time: endTimeVal,
-            lokasi: lokasiVal,
-            catatan: catatanVal
-          })
-        });
-
-        if (!response.ok) {
-          const errData = await response.json().catch(() => ({}));
-          throw new Error(errData.error || `HTTP ${response.status}`);
-        }
-
-        alert(isEdit ? 'Jadwal berhasil diperbarui!' : 'Jadwal berhasil ditambahkan!');
-        resetScheduleForm();
-        await loadManagerSchedules();
-        loadSchedules();
-        renderJadwalKelas();
-        renderManagerSummary();
-      } catch (err) {
-        console.error('Error saving schedule:', err);
-        alert((isEdit ? 'Gagal memperbarui jadwal: ' : 'Gagal menambahkan jadwal: ') + err.message);
-      } finally {
-        btnCreateSched.disabled = false;
-        const currentEditId = editIdInput ? editIdInput.value : '';
-        btnCreateSched.innerHTML = currentEditId ? '<i class="fas fa-save"></i> Update Jadwal' : '<i class="fas fa-plus-circle"></i> Buat Jadwal Baru';
-      }
-    });
-  }
-
   // Month Navigator buttons listener
   document.querySelectorAll('.month-nav-prev').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -1246,20 +1277,20 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     container.innerHTML = currentSponsors.map((s, idx) => `
-      <div class="sponsor-admin-card" style="display:flex; align-items:center; justify-content:space-between; padding:0.75rem 1rem; background:var(--bg-card); border:1px solid var(--border-color); border-radius:8px;">
-        <div style="display:flex; align-items:center; gap:0.75rem;">
-          <div style="width:34px; height:34px; border-radius:6px; background:var(--accent-orange-tint); color:var(--accent-orange); display:flex; align-items:center; justify-content:center; font-size:1rem;">
+      <div class="sponsor-admin-card" style="display:flex; align-items:center; justify-content:space-between; padding:0.85rem 1.25rem; background:var(--bg-card, #ffffff); border:1px solid var(--border-color); border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.04); gap:1rem; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:0.85rem;">
+          <div style="width:44px; height:44px; border-radius:10px; background:var(--accent-orange-tint, rgba(243,156,18,0.12)); color:var(--accent-orange, #e67e22); display:flex; align-items:center; justify-content:center; font-size:1.2rem; flex-shrink:0;">
             <i class="${s.icon || 'fas fa-handshake'}"></i>
           </div>
           <div>
-            <strong style="font-size:0.9rem; color:var(--color-secondary-dark); display:block;">${s.name || 'Mitra SoC'}</strong>
-            <a href="${s.url || '#'}" target="_blank" rel="noopener noreferrer" style="font-size:0.78rem; color:var(--color-secondary); text-decoration:none;">
+            <strong style="font-size:0.95rem; color:var(--color-secondary-dark); display:block; font-weight:700;">${s.name || 'Mitra SoC'}</strong>
+            <a href="${s.url || '#'}" target="_blank" rel="noopener noreferrer" style="font-size:0.82rem; color:var(--color-secondary); text-decoration:none;">
               ${s.url || '-'} <i class="fas fa-external-link-alt" style="font-size:0.7rem;"></i>
             </a>
           </div>
         </div>
-        <button type="button" class="btn btn-outline btn-sm btn-delete-sponsor" data-index="${idx}" style="color:#e53e3e; border-color:#e53e3e; padding:0.25rem 0.65rem; font-size:0.8rem;">
-          <i class="fas fa-trash"></i> Hapus
+        <button type="button" class="btn btn-outline btn-sm btn-delete-sponsor" data-index="${idx}" style="color:#e53e3e; border-color:#e53e3e; padding:0.4rem 0.85rem; border-radius:8px; font-size:0.82rem; display:inline-flex; align-items:center; gap:0.35rem;">
+          <i class="fas fa-trash-alt"></i> Hapus
         </button>
       </div>
     `).join('');
@@ -1310,11 +1341,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (!res.ok) return;
       const data = await res.json();
 
-      // Tab 1: Lokasi & Jam
+      // Tab 1: Lokasi & Jam & Link Sertifikat
       const alamatInput = document.getElementById('input-setting-alamat');
       const jamInput = document.getElementById('input-setting-jam');
+      const certUrlInput = document.getElementById('input-setting-sertifikat-url');
       if (alamatInput && data.alamat_soc) alamatInput.value = data.alamat_soc;
       if (jamInput && data.jam_operasional) jamInput.value = data.jam_operasional;
+      if (certUrlInput && data.alumni_certificate_drive_url) certUrlInput.value = data.alumni_certificate_drive_url;
+      window.siteSettings = data;
 
       // Tab 2: Mitra & Sponsor
       if (data.sponsors_json) {
@@ -1359,6 +1393,28 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (switchDarkMode) {
         switchDarkMode.checked = localStorage.getItem('soc_dark_mode') === 'true';
       }
+
+      // Tab 5: Galeri & Media Web
+      if (data.gallery_json) {
+        try {
+          window.currentGalleryItems = typeof data.gallery_json === 'string' ? JSON.parse(data.gallery_json) : (data.gallery_json || []);
+        } catch (e) {
+          window.currentGalleryItems = [];
+        }
+      } else {
+        window.currentGalleryItems = [];
+      }
+      renderAdminGalleryList();
+
+      const ts = Date.now();
+      const heroPrev = document.getElementById('preview-media-hero');
+      if (heroPrev) heroPrev.src = `static/src/assets/ui/hero-photo.jpg?t=${ts}`;
+      const team1Prev = document.getElementById('preview-media-team1');
+      if (team1Prev) team1Prev.src = `static/src/assets/ui/team1.jpg?t=${ts}`;
+      const founderPrev = document.getElementById('preview-media-founder');
+      if (founderPrev) founderPrev.src = `static/src/assets/ui/founder.jpg?t=${ts}`;
+      const team2Prev = document.getElementById('preview-media-team2');
+      if (team2Prev) team2Prev.src = `static/src/assets/ui/team2.jpg?t=${ts}`;
     } catch (e) {
       console.warn('Gagal memuat pengaturan sistem:', e);
     }
@@ -1373,22 +1429,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tabMitra = document.querySelector('.settings-tab-btn[data-tab="tab-settings-mitra"]');
     const tabPendaftaran = document.querySelector('.settings-tab-btn[data-tab="tab-settings-pendaftaran"]');
     const tabTampilan = document.querySelector('.settings-tab-btn[data-tab="tab-settings-tampilan"]');
+    const tabMedia = document.querySelector('.settings-tab-btn[data-tab="tab-settings-media"]');
 
     if (!canManageAll) {
       // Guru & Siswa: Hide management tabs, show ONLY Mode Tampilan (Dark Mode)
       if (tabLokasi) tabLokasi.style.display = 'none';
       if (tabMitra) tabMitra.style.display = 'none';
       if (tabPendaftaran) tabPendaftaran.style.display = 'none';
+      if (tabMedia) tabMedia.style.display = 'none';
       if (tabTampilan) {
         tabTampilan.style.display = 'inline-flex';
         tabTampilan.click();
       }
     } else {
-      // Admin, Founder, Manager: Show all 4 tabs
+      // Admin, Founder, Manager: Show all 5 tabs
       if (tabLokasi) tabLokasi.style.display = 'inline-flex';
       if (tabMitra) tabMitra.style.display = 'inline-flex';
       if (tabPendaftaran) tabPendaftaran.style.display = 'inline-flex';
       if (tabTampilan) tabTampilan.style.display = 'inline-flex';
+      if (tabMedia) tabMedia.style.display = 'inline-flex';
       if (tabLokasi) tabLokasi.click();
     }
   }
@@ -1473,6 +1532,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       e.preventDefault();
       const alamat = (document.getElementById('input-setting-alamat')?.value || '').trim();
       const jam = (document.getElementById('input-setting-jam')?.value || '').trim();
+      const certUrl = (document.getElementById('input-setting-sertifikat-url')?.value || '').trim();
       const saveBtn = document.getElementById('btn-save-settings');
 
       if (!alamat || !jam) {
@@ -1495,15 +1555,20 @@ document.addEventListener('DOMContentLoaded', async () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             alamat_soc: alamat,
-            jam_operasional: jam
+            jam_operasional: jam,
+            alumni_certificate_drive_url: certUrl
           })
         });
 
         if (res.ok) {
+          if (!window.siteSettings) window.siteSettings = {};
+          window.siteSettings.alamat_soc = alamat;
+          window.siteSettings.jam_operasional = jam;
+          window.siteSettings.alumni_certificate_drive_url = certUrl;
           if (typeof window.showSoCModal === 'function') {
-            window.showSoCModal('Pengaturan lokasi & jam operasional berhasil disimpan dan disinkronkan ke Landing Page!', 'success', 'Berhasil');
+            window.showSoCModal('Pengaturan lokasi, jam & link sertifikat berhasil disimpan dan disinkronkan!', 'success', 'Berhasil');
           } else {
-            alert('Pengaturan lokasi & jam operasional berhasil disimpan!');
+            alert('Pengaturan lokasi, jam & link sertifikat berhasil disimpan!');
           }
         } else {
           const errData = await res.json().catch(() => ({}));
@@ -1629,24 +1694,289 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // Tab 5: Galeri & Media Web Helpers
+  async function handleWebsiteMediaUpload(inputElem, targetName, previewElemId) {
+    const file = inputElem.files && inputElem.files[0];
+    if (!file) return;
+
+    try {
+      const photoData = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      if (!photoData) {
+        inputElem.value = '';
+        return;
+      }
+
+      const res = await fetch('http://localhost:5000/api/settings/media', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          target_name: targetName,
+          photo_data: photoData
+        })
+      });
+
+      const resData = await res.json();
+      if (res.ok) {
+        const prev = document.getElementById(previewElemId);
+        if (prev) prev.src = resData.file_url;
+        if (typeof window.showSoCModal === 'function') {
+          window.showSoCModal(`Foto ${targetName} berhasil diperbarui!`, 'success', 'Berhasil');
+        } else if (typeof window.socAlert === 'function') {
+          window.socAlert(`Foto ${targetName} berhasil diperbarui!`, 'success');
+        }
+      } else {
+        throw new Error(resData.error || 'Gagal mengunggah foto.');
+      }
+    } catch (err) {
+      console.error('Error uploading media:', err);
+      if (typeof window.showSoCModal === 'function') {
+        window.showSoCModal('Gagal memperbarui foto: ' + err.message, 'error', 'Error');
+      }
+    } finally {
+      inputElem.value = '';
+    }
+  }
+  window.handleWebsiteMediaUpload = handleWebsiteMediaUpload;
+
+  function renderAdminGalleryList() {
+    const list = document.getElementById('admin-gallery-list');
+    if (!list) return;
+
+    const items = window.currentGalleryItems || [];
+    if (items.length === 0) {
+      list.innerHTML = `
+        <div style="text-align:center; padding:1.5rem; background:var(--bg-contrast, #f8fafc); border-radius:8px; border:1px dashed var(--border-color); color:var(--text-muted); font-size:0.85rem;">
+          <i class="fas fa-images" style="font-size:1.8rem; margin-bottom:0.5rem; display:block; opacity:0.5;"></i>
+          Belum ada foto galeri kegiatan.
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = items.map((item, idx) => `
+      <div style="background:var(--bg-card, #ffffff); border:1px solid var(--border-color); border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.04); padding:1rem 1.25rem; display:flex; align-items:center; gap:1.25rem; flex-wrap:wrap;">
+        <div style="width:80px; height:80px; border-radius:10px; overflow:hidden; background:#e2e8f0; flex-shrink:0; box-shadow:0 2px 6px rgba(0,0,0,0.06);">
+          <img id="admin-gallery-thumb-${idx}" src="${item.image_url}" alt="Thumb" style="width:100%; height:100%; object-fit:cover;">
+        </div>
+        <div style="flex:1; min-width:220px; display:flex; flex-direction:column; gap:0.5rem;">
+          <div style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">
+            <select class="custom-select" style="max-width:200px; font-size:0.86rem; padding:0.45rem 0.8rem; border-radius:8px;" onchange="updateGalleryItemCategory(${idx}, this.value)">
+              <option value="matematika" ${item.category === 'matematika' ? 'selected' : ''}>Matematika</option>
+              <option value="karakter" ${item.category === 'karakter' ? 'selected' : ''}>Karakter</option>
+              <option value="outdoor" ${item.category === 'outdoor' ? 'selected' : ''}>Outdoor Learning</option>
+              <option value="inggris" ${item.category === 'inggris' ? 'selected' : ''}>Bahasa Inggris</option>
+            </select>
+            <label class="btn btn-sm btn-outline" style="cursor:pointer; display:inline-flex; align-items:center; gap:0.35rem; font-size:0.82rem; padding:0.4rem 0.75rem; border-radius:8px; margin:0;">
+              <i class="fas fa-camera text-teal"></i> Ganti Foto
+              <input type="file" accept="image/*" style="display:none;" onchange="handleReplaceGalleryPhoto(this, ${idx})">
+            </label>
+          </div>
+          <input type="text" class="form-control" style="font-size:0.88rem; width:100%; border-radius:8px; padding:0.5rem 0.85rem;" value="${(item.caption || '').replace(/"/g, '&quot;')}" placeholder="Judul / Deskripsi foto kegiatan..." onchange="updateGalleryItemCaption(${idx}, this.value)">
+        </div>
+      </div>
+    `).join('');
+  }
+  window.renderAdminGalleryList = renderAdminGalleryList;
+
+  function updateGalleryItemCategory(index, newCategory) {
+    if (window.currentGalleryItems && window.currentGalleryItems[index]) {
+      window.currentGalleryItems[index].category = newCategory;
+    }
+  }
+  window.updateGalleryItemCategory = updateGalleryItemCategory;
+
+  function updateGalleryItemCaption(index, newCaption) {
+    if (window.currentGalleryItems && window.currentGalleryItems[index]) {
+      window.currentGalleryItems[index].caption = (newCaption || '').trim();
+    }
+  }
+  window.updateGalleryItemCaption = updateGalleryItemCaption;
+
+  function deleteGalleryItem(index) {
+    if (!window.currentGalleryItems || !window.currentGalleryItems[index]) return;
+    window.currentGalleryItems.splice(index, 1);
+    renderAdminGalleryList();
+  }
+  window.deleteGalleryItem = deleteGalleryItem;
+
+  async function handleReplaceGalleryPhoto(inputElem, index) {
+    const file = inputElem.files && inputElem.files[0];
+    if (!file) return;
+
+    try {
+      const photoData = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      if (!photoData) {
+        inputElem.value = '';
+        return;
+      }
+
+      const targetName = `gallery_${Date.now()}.jpg`;
+      const res = await fetch('http://localhost:5000/api/settings/media', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          target_name: targetName,
+          photo_data: photoData
+        })
+      });
+      const resData = await res.json();
+      if (res.ok) {
+        if (window.currentGalleryItems && window.currentGalleryItems[index]) {
+          window.currentGalleryItems[index].image_url = resData.file_url;
+        }
+        renderAdminGalleryList();
+      } else {
+        throw new Error(resData.error || 'Gagal mengunggah foto.');
+      }
+    } catch (err) {
+      console.error('Error replacing gallery photo:', err);
+      if (typeof window.showSoCModal === 'function') {
+        window.showSoCModal('Gagal mengganti foto: ' + err.message, 'error', 'Error');
+      }
+    } finally {
+      inputElem.value = '';
+    }
+  }
+  window.handleReplaceGalleryPhoto = handleReplaceGalleryPhoto;
+
+  async function handleAddNewGalleryPhoto(inputElem) {
+    const file = inputElem.files && inputElem.files[0];
+    if (!file) return;
+
+    try {
+      const photoData = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      if (!photoData) {
+        inputElem.value = '';
+        return;
+      }
+
+      const targetName = `gallery_${Date.now()}.jpg`;
+      const res = await fetch('http://localhost:5000/api/settings/media', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          target_name: targetName,
+          photo_data: photoData
+        })
+      });
+      const resData = await res.json();
+      if (res.ok) {
+        if (!window.currentGalleryItems) window.currentGalleryItems = [];
+        window.currentGalleryItems.push({
+          id: Date.now(),
+          image_url: resData.file_url,
+          category: 'karakter',
+          caption: 'Aktivitas School of Character'
+        });
+        renderAdminGalleryList();
+        if (typeof window.showSoCModal === 'function') {
+          window.showSoCModal('Foto berhasil ditambahkan ke galeri kegiatan! Jangan lupa klik "Simpan Galeri".', 'success', 'Berhasil');
+        }
+      } else {
+        throw new Error(resData.error || 'Gagal menambahkan foto.');
+      }
+    } catch (err) {
+      console.error('Error adding gallery photo:', err);
+      if (typeof window.showSoCModal === 'function') {
+        window.showSoCModal('Gagal menambahkan foto: ' + err.message, 'error', 'Error');
+      }
+    } finally {
+      inputElem.value = '';
+    }
+  }
+  window.handleAddNewGalleryPhoto = handleAddNewGalleryPhoto;
+
+  async function saveGallerySettings() {
+    const saveBtn = document.getElementById('btn-save-gallery-settings');
+    try {
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+      }
+
+      const items = window.currentGalleryItems || [];
+      const res = await fetch('http://localhost:5000/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gallery_json: items
+        })
+      });
+
+      if (res.ok) {
+        if (typeof window.showSoCModal === 'function') {
+          window.showSoCModal('Pengaturan Galeri Kegiatan berhasil disimpan dan disinkronkan ke Landing Page!', 'success', 'Berhasil');
+        } else if (typeof window.socAlert === 'function') {
+          window.socAlert('Pengaturan Galeri Kegiatan berhasil disimpan!');
+        }
+      } else {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Gagal menyimpan galeri.');
+      }
+    } catch (err) {
+      console.error('Error saving gallery:', err);
+      if (typeof window.showSoCModal === 'function') {
+        window.showSoCModal('Terjadi kesalahan saat menyimpan galeri: ' + err.message, 'error', 'Error');
+      }
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fas fa-save"></i> Simpan Galeri';
+      }
+    }
+  }
+  window.saveGallerySettings = saveGallerySettings;
+
   // Pre-load settings in background
   loadAdminSettingsModal();
 
   // Attach Manajemen Kelas listeners
   attachKelasListeners();
 
-  // Task 4: Self Profile Photo Live Preview
+  // Task 4: Self Profile Photo Live Preview with Cropper
   const selfPhotoInput = document.getElementById('self-photo-input');
   if (selfPhotoInput) {
-    selfPhotoInput.addEventListener('change', (e) => {
+    selfPhotoInput.addEventListener('change', async (e) => {
       const file = e.target.files && e.target.files[0];
       if (file) {
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-          const prev = document.getElementById('self-photo-preview');
-          if (prev) prev.src = evt.target.result;
-        };
-        reader.readAsDataURL(file);
+        if (typeof window.openSoCImageCropper === 'function') {
+          const cropped = await window.openSoCImageCropper(file);
+          if (cropped) {
+            selfPhotoInput._croppedDataUrl = cropped;
+            const prev = document.getElementById('self-photo-preview');
+            if (prev) prev.src = cropped;
+            const sbAvatar = document.getElementById('sidebar-avatar-img');
+            if (sbAvatar) sbAvatar.src = cropped;
+          } else {
+            e.target.value = '';
+            selfPhotoInput._croppedDataUrl = null;
+          }
+        } else {
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            const prev = document.getElementById('self-photo-preview');
+            if (prev) prev.src = evt.target.result;
+          };
+          reader.readAsDataURL(file);
+        }
       }
     });
   }
@@ -1714,13 +2044,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Update localStorage and currentUser
             const updatedUser = { ...user, ...resData.user };
             localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+            localStorage.setItem('user', JSON.stringify(updatedUser));
             window.currentUser = updatedUser;
 
-            // Immediately update sidebar avatar & user display name
+            // Immediately sync profile photo simultaneously across #sidebar-avatar-img, #self-photo-preview, and #my-idcard-photo
+            const photoSrc = updatedUser.photo_url || (resData.user && resData.user.photo_url) || 'static/src/assets/ui/logo.png';
             const sidebarAvatar = document.getElementById('sidebar-avatar-img');
-            if (sidebarAvatar && updatedUser.photo_url) {
-              sidebarAvatar.src = updatedUser.photo_url;
+            if (sidebarAvatar) {
+              sidebarAvatar.src = photoSrc;
             }
+            const selfPhotoPrev = document.getElementById('self-photo-preview');
+            if (selfPhotoPrev) selfPhotoPrev.src = photoSrc;
+            const myIdCardPhoto = document.getElementById('my-idcard-photo');
+            if (myIdCardPhoto) myIdCardPhoto.src = photoSrc;
             const userDisplayName = document.getElementById('user-display-name');
             if (userDisplayName && updatedUser.full_name) {
               userDisplayName.textContent = updatedUser.full_name;
@@ -1738,7 +2074,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       };
 
-      if (photoFile) {
+      const selfPhotoInputEl = document.getElementById('self-photo-input');
+      if (selfPhotoInputEl && selfPhotoInputEl._croppedDataUrl) {
+        saveProfile(selfPhotoInputEl._croppedDataUrl);
+      } else if (photoFile) {
         const reader = new FileReader();
         reader.onload = () => saveProfile(reader.result);
         reader.onerror = () => {
@@ -1767,7 +2106,7 @@ export async function loadMyProfileData() {
   const roleBadge = document.getElementById('self-role-badge');
   if (roleBadge) {
     if (role === 'founder') roleBadge.textContent = 'Founder / Owner';
-    else if (role === 'manager') roleBadge.textContent = 'Manager Operasional';
+    else if (role === 'manager') roleBadge.textContent = 'Manager';
     else if (role === 'admin') roleBadge.textContent = 'Administrator SoC';
     else if (role === 'guru') roleBadge.textContent = 'Guru / Pengajar';
     else roleBadge.textContent = 'Siswa';
@@ -1785,6 +2124,7 @@ export async function loadMyProfileData() {
   }
 
   // Populate basic data
+  const idDisplay = document.getElementById('self-profile-id-display');
   const idInp = document.getElementById('self-id-input');
   const pwdInp = document.getElementById('self-password-input');
   const nameInp = document.getElementById('self-fullname-input');
@@ -1792,15 +2132,25 @@ export async function loadMyProfileData() {
   const genderInp = document.getElementById('self-gender-input');
   const photoPrev = document.getElementById('self-photo-preview');
 
+  const isSiswa = (role === 'siswa');
+  if (idDisplay) idDisplay.textContent = user.id || '-';
   if (idInp) idInp.value = user.id || '';
-  if (pwdInp) pwdInp.value = '';
-  if (nameInp) nameInp.value = user.full_name || '';
+  if (pwdInp) pwdInp.value = user.password || '';
+  if (nameInp) {
+    nameInp.value = user.full_name || '';
+    nameInp.readOnly = isSiswa;
+    nameInp.style.backgroundColor = isSiswa ? '#f8f9fa' : '#fff';
+  }
   if (nickInp) nickInp.value = user.nickname || '';
-  if (genderInp) genderInp.value = (user.gender && user.gender.startsWith('P')) ? 'Perempuan' : 'Laki-laki';
+  if (genderInp) {
+    genderInp.value = (user.gender && user.gender.startsWith('P')) ? 'Perempuan' : 'Laki-laki';
+    genderInp.disabled = isSiswa;
+    genderInp.style.backgroundColor = isSiswa ? '#f8f9fa' : '#fff';
+  }
 
   if (photoPrev) {
     photoPrev.src = user.photo_url || `static/src/assets/profiles/${user.id}.jpg`;
-    photoPrev.onerror = () => { photoPrev.src = (role === 'siswa') ? 'static/src/assets/ui/logo.png' : 'static/src/assets/ui/team2.jpg'; };
+    photoPrev.onerror = () => { photoPrev.src = 'static/src/assets/ui/logo.png'; };
   }
 
   // Fetch full profile from GET /api/profile/<id>
@@ -1808,10 +2158,28 @@ export async function loadMyProfileData() {
     const res = await fetch(`http://localhost:5000/api/profile/${user.id}`);
     if (res.ok) {
       const data = await res.json();
-      if (nameInp && data.full_name) nameInp.value = data.full_name;
+      if (idDisplay && (data.nis || data.id)) idDisplay.textContent = data.nis || data.id;
+      if (pwdInp && data.password) pwdInp.value = data.password;
+      if (nameInp && data.full_name) {
+        nameInp.value = data.full_name;
+        nameInp.readOnly = isSiswa;
+        nameInp.style.backgroundColor = isSiswa ? '#f8f9fa' : '#fff';
+      }
       if (nickInp) nickInp.value = data.nickname || '';
-      if (genderInp && data.gender) genderInp.value = (data.gender.startsWith('P')) ? 'Perempuan' : 'Laki-laki';
-      if (photoPrev && data.photo_url) photoPrev.src = data.photo_url;
+      if (genderInp && data.gender) {
+        genderInp.value = (data.gender.startsWith('P')) ? 'Perempuan' : 'Laki-laki';
+        genderInp.disabled = isSiswa;
+        genderInp.style.backgroundColor = isSiswa ? '#f8f9fa' : '#fff';
+      }
+      if (data.photo_url) {
+        if (photoPrev) photoPrev.src = data.photo_url;
+        const sidebarAvatar = document.getElementById('sidebar-avatar-img');
+        if (sidebarAvatar) {
+          sidebarAvatar.src = data.photo_url;
+        }
+        const cardPhoto = document.getElementById('my-idcard-photo');
+        if (cardPhoto) cardPhoto.src = data.photo_url;
+      }
 
       if (role === 'siswa') {
         const bpInp = document.getElementById('self-birthplace-input');
@@ -1822,9 +2190,21 @@ export async function loadMyProfileData() {
         const engBadge = document.getElementById('self-english-badge');
         const mathBadge = document.getElementById('self-math-badge');
 
-        if (bpInp) bpInp.value = data.birth_place || '';
-        if (bdInp) bdInp.value = data.birth_date ? String(data.birth_date).split('T')[0] : '';
-        if (ortuInp) ortuInp.value = data.parents_name || '';
+        if (bpInp) {
+          bpInp.value = data.birth_place || '';
+          bpInp.readOnly = true;
+          bpInp.style.backgroundColor = '#f8f9fa';
+        }
+        if (bdInp) {
+          bdInp.value = data.birth_date ? String(data.birth_date).split('T')[0] : '';
+          bdInp.readOnly = true;
+          bdInp.style.backgroundColor = '#f8f9fa';
+        }
+        if (ortuInp) {
+          ortuInp.value = data.parents_name || '';
+          ortuInp.readOnly = true;
+          ortuInp.style.backgroundColor = '#f8f9fa';
+        }
         if (sPhoneInp) sPhoneInp.value = data.student_phone || data.contact || '';
         if (pPhoneInp) pPhoneInp.value = data.parent_phone || '';
         if (engBadge) engBadge.textContent = data.kelas_english || 'Belum Ditentukan';
@@ -1862,7 +2242,7 @@ export async function renderMyIdCard() {
 
   if (cardPhoto) {
     cardPhoto.src = user.photo_url || `static/src/assets/profiles/${user.id}.jpg`;
-    cardPhoto.onerror = () => { cardPhoto.src = (role === 'siswa') ? 'static/src/assets/ui/logo.png' : 'static/src/assets/ui/team2.jpg'; };
+    cardPhoto.onerror = () => { cardPhoto.src = 'static/src/assets/ui/logo.png'; };
   }
   if (cardName) cardName.textContent = uName;
   if (cardQr) {
@@ -1887,17 +2267,14 @@ export async function renderMyIdCard() {
       area.style.border = '2px solid rgba(32,201,151,0.3)';
     }
 
-    const sEng = profileData.kelas_english && profileData.kelas_english !== 'Belum Ditentukan' ? profileData.kelas_english : '-';
-    const sMath = profileData.kelas_math && profileData.kelas_math !== 'Belum Ditentukan' ? profileData.kelas_math : '-';
-    const rawG = String(profileData.gender || '').trim().toUpperCase();
-    const sGender = rawG.startsWith('P') ? 'P' : 'L';
+    const isAlum = profileData.status_siswa === 'alumni';
+    const statusText = isAlum ? 'ALUMNI • POJOK HOPE' : 'SISWA AKTIF • POJOK HOPE';
+    const statusClass = isAlum ? 'badge badge-orange' : 'badge badge-green';
 
     if (cardBadges) {
       cardBadges.innerHTML = `
-        <span class="badge badge-teal" style="font-family: monospace; font-size: 0.85rem; padding: 0.3rem 0.7rem;">NIS: ${uId}</span>
-        <span class="badge badge-teal" style="font-size: 0.82rem; padding: 0.3rem 0.65rem;">English: ${sEng}</span>
-        <span class="badge badge-green" style="font-size: 0.82rem; padding: 0.3rem 0.65rem;">Math: ${sMath}</span>
-        <span class="badge badge-orange" style="font-size: 0.82rem; padding: 0.3rem 0.65rem;">${sGender}</span>
+        <span class="badge badge-teal" style="font-family: monospace; font-size: 0.85rem; padding: 0.35rem 0.75rem;">NIS: ${uId}</span>
+        <span class="${statusClass}" style="font-size: 0.85rem; padding: 0.35rem 0.75rem; font-weight: 700;">${statusText}</span>
       `;
     }
   } else {

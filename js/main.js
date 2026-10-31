@@ -56,20 +56,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // 6. Filterable Gallery Logic
-  const filterBtns = document.querySelectorAll('.gallery-filters .filter-btn');
-  const galleryItems = document.querySelectorAll('#home-gallery-grid .gallery-item');
-  
-  if (filterBtns.length > 0 && galleryItems.length > 0) {
+  // 6. Filterable Gallery Logic & Dynamic Loading from Settings
+  function setupGalleryFilters() {
+    const filterBtns = document.querySelectorAll('.gallery-filters .filter-btn');
+    const galleryItems = document.querySelectorAll('#home-gallery-grid .gallery-item');
+
     filterBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        // Toggle active class on buttons
+      btn.onclick = () => {
         filterBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        
+
         const filterValue = btn.getAttribute('data-filter');
-        
-        galleryItems.forEach(item => {
+        const currentItems = document.querySelectorAll('#home-gallery-grid .gallery-item');
+        currentItems.forEach(item => {
           const category = item.getAttribute('data-category');
           if (filterValue === 'all' || category === filterValue) {
             item.classList.remove('hidden');
@@ -77,9 +76,38 @@ document.addEventListener('DOMContentLoaded', () => {
             item.classList.add('hidden');
           }
         });
-      });
+      };
     });
   }
+
+  async function loadDynamicHomeGallery() {
+    const grid = document.getElementById('home-gallery-grid');
+    if (!grid) return;
+
+    try {
+      const res = await fetch('http://localhost:5000/api/settings');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.gallery_json) {
+          const items = typeof data.gallery_json === 'string' ? JSON.parse(data.gallery_json) : (data.gallery_json || []);
+          if (Array.isArray(items) && items.length > 0) {
+            grid.innerHTML = items.map(item => `
+              <div class="gallery-item" data-category="${item.category || 'karakter'}">
+                <img src="${item.image_url}" alt="${item.caption || 'Aktivitas School of Character'}">
+                <div class="gallery-caption">${item.caption || ''}</div>
+              </div>
+            `).join('');
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Menggunakan galeri default statis:', e);
+    } finally {
+      setupGalleryFilters();
+    }
+  }
+
+  loadDynamicHomeGallery();
 
   // 7. Scroll-controlled Back to Top Button
   const backToTopBtn = document.getElementById('back-to-top');

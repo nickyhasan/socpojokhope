@@ -32,25 +32,66 @@ const currentMonthIndex = d.getMonth();
 window.activeMonths = currentMonthIndex < 6 
   ? ["Januari", "Februari", "Maret", "April", "Mei", "Juni"]
   : ["Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-window.semesterName = currentMonthIndex < 6 ? "Semester Genap" : "Semester Ganjil";
+window.semesterName = currentMonthIndex < 6 ? "Semester Ganjil" : "Semester Genap";
 window.currentViewMonth = currentMonthIndex + 1;
 window.currentViewYear = d.getFullYear();
 
 export const CLASS_NAME_MAP = {
-  'English A': 'English A (Foundation)',
-  'English B': 'English B (Beginner)',
-  'English C': 'English C (Intermediate)',
-  'English D': 'English D (Advanced)',
-  'Math A': 'Math A (Dasar Angka)',
-  'Math B': 'Math B (Operasi Lanjut)',
-  'Math C': 'Math C (Pecahan & Logika)',
-  'Math D': 'Math D (Pra-Aljabar & Kritis)'
+  'Calistung': 'Calistung (Baca Tulis Hitung)',
+  'English A': 'English A (Beginner)',
+  'English B': 'English B (Intermediate)',
+  'English C': 'English C (Advanced)',
+  'Math A': 'Math A (Beginner)',
+  'Math B': 'Math B (Intermediate)',
+  'Math C': 'Math C (Advanced)'
 };
 window.CLASS_NAME_MAP = CLASS_NAME_MAP;
+
+export function normalizeScheduleClass(kelas, subject) {
+  const subj = (subject || '').trim().toLowerCase();
+  const k = (kelas || '').trim();
+  const kUpper = k.toUpperCase();
+
+  if (subj.includes('karakter') || subj.includes('outdoor') || kUpper.includes('SEMUA')) {
+    return 'Semua';
+  }
+  if (!k) return 'Semua';
+
+  if (subj.includes('calistung') || kUpper.includes('CALISTUNG')) return 'Calistung';
+
+  if (kUpper.includes('ENGLISH A')) return 'English A';
+  if (kUpper.includes('ENGLISH B')) return 'English B';
+  if (kUpper.includes('ENGLISH C') || kUpper.includes('ENGLISH D')) return 'English C';
+  if (kUpper.includes('MATH A')) return 'Math A';
+  if (kUpper.includes('MATH B')) return 'Math B';
+  if (kUpper.includes('MATH C') || kUpper.includes('MATH D')) return 'Math C';
+
+  const m = kUpper.match(/(?:KELAS\s+)?([A-D])\b/);
+  if (m) {
+    let letter = m[1];
+    if (letter === 'D') letter = 'C';
+    if (subj.includes('mat')) return `Math ${letter}`;
+    if (subj.includes('eng')) return `English ${letter}`;
+    return `Kelas ${letter}`;
+  }
+
+  return k;
+}
+window.normalizeScheduleClass = normalizeScheduleClass;
 
 export function formatClassName(rawName) {
   if (!rawName) return '';
   const trimmed = String(rawName).trim();
+  if (trimmed === 'English D') return 'English C (Advanced)';
+  if (trimmed === 'Math D') return 'Math C (Advanced)';
+
+  // Check window.allClassAssignments first if available
+  if (window.allClassAssignments && Array.isArray(window.allClassAssignments)) {
+    const found = window.allClassAssignments.find(c => c && c.class_name && c.class_name.toLowerCase() === trimmed.toLowerCase());
+    if (found && found.display_label) return found.display_label;
+    if (found && found.class_name) return found.class_name;
+  }
+
   if (CLASS_NAME_MAP[trimmed]) return CLASS_NAME_MAP[trimmed];
 
   const upper = trimmed.toUpperCase();
@@ -71,24 +112,42 @@ export function getRawClassName(name) {
   const trimmed = String(name).trim();
   const lower = trimmed.toLowerCase();
 
+  // Check window.allClassAssignments first
+  if (window.allClassAssignments && Array.isArray(window.allClassAssignments)) {
+    const found = window.allClassAssignments.find(c => 
+      c && c.class_name && (
+        c.class_name.toLowerCase() === lower || 
+        (c.display_label && c.display_label.toLowerCase() === lower)
+      )
+    );
+    if (found) return found.class_name;
+  }
+
+  if (lower.includes('calistung') || lower.includes('baca tulis hitung')) return 'Calistung';
+
   for (const [raw, formatted] of Object.entries(CLASS_NAME_MAP)) {
     if (raw.toLowerCase() === lower || formatted.toLowerCase() === lower) {
       return raw;
     }
   }
 
-  if (lower.includes('foundation')) return 'English A';
-  if (lower.includes('beginner')) return 'English B';
-  if (lower.includes('intermediate')) return 'English C';
-  if (lower.includes('advanced')) return 'English D';
-  if (lower.includes('dasar angka')) return 'Math A';
-  if (lower.includes('operasi lanjut') || lower.includes('operasi hitung')) return 'Math B';
-  if (lower.includes('pecahan & logika') || lower.includes('pecahan & desimal')) return 'Math C';
-  if (lower.includes('pra-aljabar & kritis') || lower.includes('aljabar & geometri')) return 'Math D';
+  if (lower.includes('english')) {
+    if (lower.includes('beginner') || lower.includes('foundation') || lower.includes('level a') || lower.includes(' a')) return 'English A';
+    if (lower.includes('intermediate') || lower.includes('level b') || lower.includes(' b')) return 'English B';
+    if (lower.includes('advanced') || lower.includes('level c') || lower.includes('level d') || lower.includes(' c') || lower.includes(' d')) return 'English C';
+  }
+
+  if (lower.includes('math') || lower.includes('matematika')) {
+    if (lower.includes('beginner') || lower.includes('dasar') || lower.includes('level a') || lower.includes(' a')) return 'Math A';
+    if (lower.includes('intermediate') || lower.includes('operasi') || lower.includes('level b') || lower.includes(' b')) return 'Math B';
+    if (lower.includes('advanced') || lower.includes('pecahan') || lower.includes('aljabar') || lower.includes('level c') || lower.includes('level d') || lower.includes(' c') || lower.includes(' d')) return 'Math C';
+  }
 
   const match = trimmed.match(/^(English|Math)\s+([A-D])/i);
   if (match) {
-    return `${match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase()} ${match[2].toUpperCase()}`;
+    let letter = match[2].toUpperCase();
+    if (letter === 'D') letter = 'C';
+    return `${match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase()} ${letter}`;
   }
 
   return trimmed;
@@ -247,6 +306,18 @@ export function forceRingkasanVisibility(role) {
 }
 
 export function switchView(viewId) {
+  // Guard: if guru or siswa tries to navigate to data-siswa or detail-siswa, redirect to 'rapor'
+  if ((window.currentRole === 'guru' || window.currentRole === 'siswa') && (viewId === 'data-siswa' || viewId === 'detail-siswa' || viewId === 'data-alumni')) {
+    viewId = 'rapor';
+    if (window.location.hash !== '#rapor') {
+      window.location.hash = 'rapor';
+    }
+  }
+
+  if (viewId !== 'rapor') {
+    window.isViewingAlumniRapor = false;
+  }
+
   document.querySelectorAll('.dashboard-view').forEach(el => {
     el.classList.remove('active');
     el.style.display = 'none';
@@ -286,6 +357,7 @@ export function switchView(viewId) {
     'detail-guru':        'Detail Pengajar',
     'data-diri':          'Data Diri Saya',
     'my-idcard':          'Kartu ID Saya',
+    'data-alumni':        'Data Alumni Siswa',
     kehadiran:            (window.currentRole === 'guru') ? 'Daftar Hadir' : (isStaff ? 'Kelola Absensi' : 'Kehadiran Saya'),
   };
   const titleEl = document.getElementById('header-title-text');
@@ -300,6 +372,17 @@ export function switchView(viewId) {
       v.style.display = 'block';
     }
     forceRingkasanVisibility(window.currentRole);
+    if (typeof window.loadAllSchedulesData === 'function') {
+      window.loadAllSchedulesData().then(() => {
+        if (window.currentRole === 'siswa' && typeof window.renderSiswaSummary === 'function') {
+          window.renderSiswaSummary();
+        } else if (window.currentRole === 'guru' && typeof window.renderGuruSummary === 'function') {
+          window.renderGuruSummary();
+        } else if (typeof window.renderManagerSummary === 'function') {
+          window.renderManagerSummary();
+        }
+      }).catch(e => console.warn('Error reloading schedules for summary:', e));
+    }
     if (typeof window.loadDashboardData === 'function') window.loadDashboardData();
 
   } else if (viewId === 'akun-siswa' || viewId === 'akun-guru') {
@@ -335,6 +418,7 @@ export function switchView(viewId) {
       v.style.display = 'block';
     }
     if (typeof window.loadManagerSchedules === 'function') window.loadManagerSchedules();
+    if (typeof window.renderManagerSchedules === 'function') window.renderManagerSchedules();
 
   } else if (viewId === 'manajemen-kelas') {
     const v = document.getElementById('view-manajemen-kelas');
@@ -369,7 +453,16 @@ export function switchView(viewId) {
       v.classList.add('active');
       v.style.display = 'block';
     }
-    if (typeof window.renderJadwalKelas === 'function') window.renderJadwalKelas();
+    if (typeof window.loadAllSchedulesData === 'function') {
+      window.loadAllSchedulesData().then(() => {
+        if (typeof window.renderJadwalKelas === 'function') window.renderJadwalKelas();
+      }).catch(e => {
+        console.warn('Error loading schedules for jadwal view:', e);
+        if (typeof window.renderJadwalKelas === 'function') window.renderJadwalKelas();
+      });
+    } else if (typeof window.renderJadwalKelas === 'function') {
+      window.renderJadwalKelas();
+    }
 
   } else if (viewId === 'rapor') {
     if (window.currentRole === 'guru') {
@@ -397,13 +490,33 @@ export function switchView(viewId) {
 
     if (badgeContainer) badgeContainer.style.display = 'none';
 
+    const currentStudent = (window.allStudents || []).find(s => s.id === parseInt(window.selectedStudentKey, 10));
+    const isAlumniRapor = window.isViewingAlumniRapor || (currentStudent && currentStudent.status_siswa === 'alumni');
+    const alumniArchiveHeader = document.getElementById('alumni-rapor-archive-header');
+    const managerBackContainer = document.getElementById('manager-rapor-back-container');
+    const teacherStarCard = document.getElementById('teacher-star-card');
+    const raporGuruInputCard = document.getElementById('rapor-guru-input-card');
+
     if (window.currentRole === 'founder' || window.currentRole === 'manager' || window.currentRole === 'admin') {
       if (guruRaporSelectionView) guruRaporSelectionView.style.display = 'none';
       if (backBtnContainer) backBtnContainer.style.display = 'none';
       if (guruSubjectToggles) guruSubjectToggles.style.display = 'none';
       if (guruNoClassAlert) guruNoClassAlert.style.display = 'none';
-      if (managerPlottingContainer) managerPlottingContainer.style.display = 'block';
-      if (row) row.style.display = 'flex';
+      
+      if (isAlumniRapor) {
+        if (alumniArchiveHeader) alumniArchiveHeader.style.display = 'flex';
+        if (managerBackContainer) managerBackContainer.style.display = 'none';
+        if (managerPlottingContainer) managerPlottingContainer.style.display = 'none';
+        if (teacherStarCard) teacherStarCard.style.display = 'none';
+        if (raporGuruInputCard) raporGuruInputCard.style.display = 'none';
+        if (row) row.style.display = 'none';
+      } else {
+        if (alumniArchiveHeader) alumniArchiveHeader.style.display = 'none';
+        if (managerBackContainer) managerBackContainer.style.display = 'flex';
+        if (managerPlottingContainer) managerPlottingContainer.style.display = 'block';
+        if (row) row.style.display = 'flex';
+      }
+
       if (studentSelectBox) studentSelectBox.style.display = 'none';
       if (cardsContainer) cardsContainer.style.display = 'block';
       if (typeof window.applyRaporSubjectFilter === 'function') window.applyRaporSubjectFilter();
@@ -416,6 +529,8 @@ export function switchView(viewId) {
       const btnSaveScore = document.getElementById('btn-save-score');
       if (btnSaveScore) btnSaveScore.style.display = 'none';
     } else if (window.currentRole === 'guru') {
+      if (alumniArchiveHeader) alumniArchiveHeader.style.display = 'none';
+      if (managerBackContainer) managerBackContainer.style.display = 'none';
       if (guruSubjectToggles) guruSubjectToggles.style.display = 'none';
       if (guruNoClassAlert) guruNoClassAlert.style.display = 'none';
       if (managerPlottingContainer) managerPlottingContainer.style.display = 'none';
@@ -442,6 +557,8 @@ export function switchView(viewId) {
       const btnSaveScore = document.getElementById('btn-save-score');
       if (btnSaveScore) btnSaveScore.style.display = 'inline-block';
     } else {
+      if (alumniArchiveHeader) alumniArchiveHeader.style.display = 'none';
+      if (managerBackContainer) managerBackContainer.style.display = 'none';
       if (guruRaporSelectionView) guruRaporSelectionView.style.display = 'none';
       if (backBtnContainer) backBtnContainer.style.display = 'none';
       if (guruSubjectToggles) guruSubjectToggles.style.display = 'none';
@@ -502,6 +619,27 @@ export function switchView(viewId) {
     if (typeof window.renderMyIdCard === 'function') {
       window.renderMyIdCard();
     }
+  } else if (viewId === 'data-alumni') {
+    const v = document.getElementById('view-data-alumni');
+    if (v) {
+      v.classList.add('active');
+      v.style.display = 'block';
+    }
+    if (typeof window.renderDataAlumniTable === 'function') {
+      window.renderDataAlumniTable();
+    }
+  }
+
+  if (window.currentRole === 'siswa') {
+    const kLabel = document.getElementById('kehadiran-label');
+    if (kLabel) kLabel.textContent = 'Kehadiran Saya';
+    const rLabel = document.getElementById('menu-report-label');
+    if (rLabel) rLabel.textContent = 'Raport Saya';
+    const mReport = document.getElementById('menu-report');
+    if (mReport) {
+      mReport.setAttribute('data-view', 'rapor');
+      mReport.setAttribute('title', 'Raport Saya');
+    }
   }
 }
 
@@ -519,13 +657,19 @@ export function applyRole(role) {
     if (userDisplayName) {
       if (role === 'guru') {
         userDisplayName.textContent = formatTeacherName(loggedInUser);
+      } else if (role === 'founder') {
+        userDisplayName.textContent = (loggedInUser.full_name && loggedInUser.full_name !== 'Simulated User') ? loggedInUser.full_name : 'Minarti Monoarfa';
+      } else if (role === 'manager') {
+        userDisplayName.textContent = (loggedInUser.full_name && loggedInUser.full_name !== 'Simulated User' && loggedInUser.full_name !== 'Manager Operasional') ? loggedInUser.full_name : 'Sity Djabar, M.Pd.';
+      } else if (role === 'admin') {
+        userDisplayName.textContent = (loggedInUser.full_name && loggedInUser.full_name !== 'Simulated User') ? loggedInUser.full_name : 'Administrator SoC';
       } else {
-        userDisplayName.textContent = loggedInUser.full_name || loggedInUser.nama || (role === 'admin' ? 'Administrator' : (role === 'manager' ? 'Manager Operasional' : (role === 'founder' ? 'Founder / Owner' : 'User')));
+        userDisplayName.textContent = loggedInUser.full_name || loggedInUser.nama || 'User';
       }
     }
     if (userDisplayRole) {
       if (role === 'admin') userDisplayRole.textContent = 'Administrator';
-      else if (role === 'manager') userDisplayRole.textContent = 'Manager Operasional';
+      else if (role === 'manager') userDisplayRole.textContent = 'Manager';
       else if (role === 'founder') userDisplayRole.textContent = 'Founder / Owner';
       else if (role === 'guru') userDisplayRole.textContent = 'Guru / Pengajar';
       else userDisplayRole.textContent = 'Siswa';
@@ -533,16 +677,8 @@ export function applyRole(role) {
 
     const sidebarAvatar = document.getElementById('sidebar-avatar-img');
     if (sidebarAvatar) {
-      if (role === 'admin' || role === 'manager' || role === 'founder') {
-        sidebarAvatar.src = "static/src/assets/ui/logo.png";
-      } else if (loggedInUser && loggedInUser.id && loggedInUser.id !== 'admin' && loggedInUser.id !== '999') {
-        sidebarAvatar.src = "static/src/assets/profiles/" + loggedInUser.id + ".jpg";
-      } else {
-        sidebarAvatar.src = "static/src/assets/ui/logo.png";
-      }
-      sidebarAvatar.onerror = () => {
-        sidebarAvatar.src = 'static/src/assets/ui/logo.png';
-      };
+      sidebarAvatar.src = loggedInUser.photo_url || "static/src/assets/ui/logo.png";
+      sidebarAvatar.onerror = () => { sidebarAvatar.src = "static/src/assets/ui/logo.png"; };
     }
 
     const btnHeaderAdminSettings = document.getElementById('btn-header-admin-settings');
@@ -573,7 +709,7 @@ export function applyRole(role) {
       if (kehadiranLabel) kehadiranLabel.textContent = "Kelola Absensi";
 
       const userDisplayName = document.getElementById('user-display-name');
-      if (userDisplayName) userDisplayName.textContent = (loggedInUser && loggedInUser.full_name && loggedInUser.full_name !== 'Simulated User') ? loggedInUser.full_name : 'Administrator';
+      if (userDisplayName) userDisplayName.textContent = (loggedInUser && loggedInUser.full_name && loggedInUser.full_name !== 'Simulated User') ? loggedInUser.full_name : 'Administrator SoC';
       const userDisplayRole = document.getElementById('user-display-role');
       if (userDisplayRole) userDisplayRole.textContent = 'Administrator';
 
@@ -587,11 +723,26 @@ export function applyRole(role) {
       try { if (typeof window.loadDashboardData === 'function') window.loadDashboardData(); } catch(e) {}
 
     } else if (role === 'manager' || role === 'founder') {
+      const isFounder = (role === 'founder');
       document.getElementById('menu-dashboard')?.style.setProperty('display', 'flex');
-      document.getElementById('menu-akun-siswa')?.style.setProperty('display', 'none');
-      document.getElementById('menu-akun-guru')?.style.setProperty('display', 'none');
+
+      // Manager has access to create student and teacher accounts and admin-action-bar; Founder is read-only
+      if (isFounder) {
+        document.getElementById('menu-akun-siswa')?.style.setProperty('display', 'none');
+        document.getElementById('menu-akun-guru')?.style.setProperty('display', 'none');
+        document.getElementById('admin-action-bar')?.style.setProperty('display', 'none');
+      } else {
+        document.getElementById('menu-akun-siswa')?.style.setProperty('display', 'flex');
+        document.getElementById('menu-akun-guru')?.style.setProperty('display', 'flex');
+        document.getElementById('admin-action-bar')?.style.setProperty('display', 'flex');
+      }
+
       document.getElementById('menu-data-guru')?.style.setProperty('display', 'flex');
-      document.getElementById('menu-manajemen-jadwal')?.style.setProperty('display', 'flex');
+      if (isFounder) {
+        document.getElementById('menu-manajemen-jadwal')?.style.setProperty('display', 'none');
+      } else {
+        document.getElementById('menu-manajemen-jadwal')?.style.setProperty('display', 'flex');
+      }
       document.getElementById('menu-manajemen-kelas')?.style.setProperty('display', 'flex');
       document.getElementById('menu-schedule')?.style.setProperty('display', 'flex');
       document.getElementById('menu-kehadiran')?.style.setProperty('display', 'flex');
@@ -607,17 +758,15 @@ export function applyRole(role) {
         menuReport.setAttribute('title', 'Data Siswa');
       }
 
-      const defaultName = role === 'founder' ? 'Founder' : 'Manager';
-      const name = (loggedInUser && loggedInUser.full_name && loggedInUser.full_name !== 'Simulated User') ? loggedInUser.full_name : defaultName;
+      const defaultName = isFounder ? 'Minarti Monoarfa' : 'Sity Djabar, M.Pd.';
+      const name = (loggedInUser && loggedInUser.full_name && loggedInUser.full_name !== 'Simulated User' && loggedInUser.full_name !== 'Manager Operasional') ? loggedInUser.full_name : defaultName;
       const userDisplayName = document.getElementById('user-display-name');
       if (userDisplayName) userDisplayName.textContent = name;
       const userDisplayRole = document.getElementById('user-display-role');
-      if (userDisplayRole) userDisplayRole.textContent = role === 'founder' ? 'Founder / Owner' : 'Manager Operasional';
+      if (userDisplayRole) userDisplayRole.textContent = isFounder ? 'Founder / Owner' : 'Manager';
 
       const managerWelcomeText = document.querySelector('#ringkasan-manager .welcome-text h2') || document.getElementById('manager-welcome-name');
       if (managerWelcomeText) managerWelcomeText.textContent = "Selamat datang, " + name + "! 💼";
-
-      document.getElementById('admin-action-bar')?.style.setProperty('display', 'none');
 
       try { if (typeof window.loadManagerSchedules === 'function') window.loadManagerSchedules(); } catch(e) {}
       try { if (typeof window.renderManagerSummary === 'function') window.renderManagerSummary(); } catch(e) {}
@@ -678,9 +827,9 @@ export function applyRole(role) {
       const menuReport = document.getElementById('menu-report');
       if (menuReport) {
         menuReport.style.display = 'flex';
-        menuReport.innerHTML = '<i class="fas fa-file-invoice"></i> <span class="menu-label" id="menu-report-label">Rapor Siswa</span>';
+        menuReport.innerHTML = '<i class="fas fa-file-invoice"></i> <span class="menu-label" id="menu-report-label">Raport Saya</span>';
         menuReport.setAttribute('data-view', 'rapor');
-        menuReport.setAttribute('title', 'Rapor Siswa');
+        menuReport.setAttribute('title', 'Raport Saya');
       }
 
       const studentWelcomeText = document.querySelector('#ringkasan-siswa .welcome-text h2');
@@ -692,7 +841,7 @@ export function applyRole(role) {
       const userDisplayRole = document.getElementById('user-display-role');
       if (userDisplayRole) userDisplayRole.textContent = 'Siswa';
       const kehadiranLabel = document.getElementById('kehadiran-label');
-      if (kehadiranLabel) kehadiranLabel.textContent = "Kehadiran";
+      if (kehadiranLabel) kehadiranLabel.textContent = "Kehadiran Saya";
 
       document.getElementById('admin-action-bar')?.style.setProperty('display', 'none');
 
@@ -700,17 +849,70 @@ export function applyRole(role) {
       try { if (typeof window.loadDashboardData === 'function') window.loadDashboardData(); } catch(e) {}
     }
 
-    // Two new sidebar tabs: "Data Diri" (ALL 5 roles) & "ID Card" (Guru & Siswa only)
+    // Sidebar tabs: "Data Diri" (ALL 5 roles), "ID Card" (Guru & Siswa only, not Alumni), "Data Alumni" (Admin/Manager/Founder)
     const menuDataDiri = document.getElementById('menu-data-diri');
     if (menuDataDiri) menuDataDiri.style.setProperty('display', 'flex');
 
+    const isAlumni = (loggedInUser && loggedInUser.status_siswa === 'alumni');
+
     const menuMyIdCard = document.getElementById('menu-my-idcard');
     if (menuMyIdCard) {
-      if (role === 'guru' || role === 'siswa') {
+      if ((role === 'guru' || role === 'siswa') && !isAlumni) {
         menuMyIdCard.style.setProperty('display', 'flex');
       } else {
         menuMyIdCard.style.setProperty('display', 'none');
       }
+    }
+
+    const menuDataAlumni = document.getElementById('menu-data-alumni');
+    if (menuDataAlumni) {
+      if (role === 'admin' || role === 'manager' || role === 'founder') {
+        menuDataAlumni.style.setProperty('display', 'flex');
+      } else {
+        menuDataAlumni.style.setProperty('display', 'none');
+      }
+    }
+
+    // Alumni Banner Display
+    const alumniBanners = document.querySelectorAll('.alumni-graduation-banner');
+    if (isAlumni) {
+      alumniBanners.forEach(b => b.style.display = 'block');
+      const countdownTexts = document.querySelectorAll('.alumni-countdown-display');
+      const daysLeft = loggedInUser.days_left;
+      let text = '';
+      if (daysLeft !== undefined && daysLeft !== null) {
+        text = daysLeft > 0 ? `${daysLeft} Hari Lagi` : 'Kedaluwarsa';
+      } else if (loggedInUser.alumni_access_until) {
+        const diff = Math.ceil((new Date(loggedInUser.alumni_access_until) - new Date()) / (1000 * 60 * 60 * 24));
+        text = diff > 0 ? `${diff} Hari Lagi` : 'Kedaluwarsa';
+      } else {
+        text = '180 Hari Akses (6 Bulan)';
+      }
+      countdownTexts.forEach(el => el.textContent = text);
+
+      const updateCertDriveLinks = (url) => {
+        if (!url) return;
+        ['btn-alumni-download-cert-ringkasan', 'btn-alumni-download-cert-rapor'].forEach(btnId => {
+          const el = document.getElementById(btnId);
+          if (el) el.href = url;
+        });
+      };
+
+      if (window.siteSettings && window.siteSettings.alumni_certificate_drive_url) {
+        updateCertDriveLinks(window.siteSettings.alumni_certificate_drive_url);
+      } else {
+        fetch('http://localhost:5000/api/settings')
+          .then(r => r.json())
+          .then(st => {
+            window.siteSettings = st;
+            if (st && st.alumni_certificate_drive_url) {
+              updateCertDriveLinks(st.alumni_certificate_drive_url);
+            }
+          })
+          .catch(() => {});
+      }
+    } else {
+      alumniBanners.forEach(b => b.style.display = 'none');
     }
 
     document.getElementById('rapor-guru-input-card')?.style.setProperty('display', (role === 'guru') ? 'block' : 'none');
@@ -799,14 +1001,18 @@ export function handleLogout() {
 // =====================================================
 export const SEMESTER_CONFIG = {
   '1': {
-    label: 'Sem. Genap',
+    label: 'Semester Ganjil',
+    title: (year) => `Semester Ganjil (Jan – Jun ${year})`,
+    periodRange: (year) => `Jan — Jun ${year}`,
     fullMonths: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'],
     shortMonths: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun'],
     slotClasses: ['.cell-jul', '.cell-ags', '.cell-sep', '.cell-okt', '.cell-nov', '.cell-des'],
     slotSuffixes: ['jul', 'ags', 'sep', 'okt', 'nov', 'des']
   },
   '2': {
-    label: 'Sem. Ganjil',
+    label: 'Semester Genap',
+    title: (year) => `Semester Genap (Jul – Des ${year})`,
+    periodRange: (year) => `Jul — Des ${year}`,
     fullMonths: ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'],
     shortMonths: ['Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'],
     slotClasses: ['.cell-jul', '.cell-ags', '.cell-sep', '.cell-okt', '.cell-nov', '.cell-des'],
@@ -843,7 +1049,7 @@ export function initSemesterSelector(onChangeCallback) {
 
   selector.innerHTML = keys.map(k => {
     const [y, h] = k.split('-');
-    const label = h === '1' ? `Jan – Jun ${y} (Sem. Genap)` : `Jul – Des ${y} (Sem. Ganjil)`;
+    const label = h === '1' ? `Semester Ganjil (Jan – Jun ${y})` : `Semester Genap (Jul – Des ${y})`;
     return `<option value="${k}">${label}</option>`;
   }).join('');
 
@@ -873,7 +1079,10 @@ export function initSemesterSelector(onChangeCallback) {
 window.initSemesterSelector = initSemesterSelector;
 
 export function applySemesterPeriod(semesterKey) {
-  const key = semesterKey || window.activeSemesterKey || `${new Date().getFullYear()}-${new Date().getMonth() < 6 ? 1 : 2}`;
+  const now = new Date();
+  const defHalf = now.getMonth() < 6 ? 1 : 2;
+  const defKey = `${now.getFullYear()}-${defHalf}`;
+  const key = semesterKey || window.activeSemesterKey || defKey;
   window.activeSemesterKey = key;
   const { year, half, config } = parseSemesterKey(key);
 
@@ -890,11 +1099,11 @@ export function applySemesterPeriod(semesterKey) {
   }
 
   // 3. Update #rapor-semester-badge and #chart-semester-badge
-  const semesterNum = (half === '2') ? '1' : '2';
   const periodRange = `${config.shortMonths[0]} — ${config.shortMonths[5]} ${year}`;
+  const semesterTitle = half === '1' ? `Semester Ganjil (${periodRange})` : `Semester Genap (${periodRange})`;
   const semesterBadge = document.getElementById('rapor-semester-badge');
   if (semesterBadge) {
-    semesterBadge.textContent = `Semester ${semesterNum} (${periodRange})`;
+    semesterBadge.textContent = semesterTitle;
   }
   const chartSemesterBadge = document.getElementById('chart-semester-badge');
   if (chartSemesterBadge) {
@@ -910,7 +1119,6 @@ export function applySemesterPeriod(semesterKey) {
   // 5. Update #rapor-month-selector options in Input Nilai Komprehensif
   const monthSelector = document.getElementById('rapor-month-selector');
   if (monthSelector) {
-    const now = new Date();
     const currentMonthIndo = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][now.getMonth()];
     const currentYear = now.getFullYear();
 
@@ -931,11 +1139,82 @@ export function applySemesterPeriod(semesterKey) {
 }
 window.applySemesterPeriod = applySemesterPeriod;
 
+export function updateRaporGauges(evalObj) {
+  const getBadgeClassAndText = (score) => {
+    if (score === null || score === undefined || score === '' || isNaN(score) || Number(score) === 0) {
+      return { cls: 'badge-secondary', text: 'Belum Dinilai' };
+    }
+    const num = Number(score);
+    if (num >= 85) return { cls: 'badge-success', text: 'Sangat Baik' };
+    if (num >= 70) return { cls: 'badge-primary', text: 'Baik' };
+    if (num >= 55) return { cls: 'badge-warning', text: 'Cukup' };
+    return { cls: 'badge-danger', text: 'Perlu Ditingkatkan' };
+  };
+
+  const updateSingleGauge = (valId, circleId, badgeId, rawScore) => {
+    const valEl = document.getElementById(valId);
+    const circleEl = document.getElementById(circleId);
+    const badgeEl = document.getElementById(badgeId);
+
+    const hasScore = rawScore !== null && rawScore !== undefined && rawScore !== '' && !isNaN(rawScore) && Number(rawScore) > 0;
+    const numScore = hasScore ? Math.round(Number(rawScore) * 10) / 10 : 0;
+    const pct = Math.min(100, Math.max(0, numScore));
+
+    if (valEl) valEl.textContent = hasScore ? numScore : '0';
+    if (circleEl) circleEl.style.setProperty('--gauge-pct', pct);
+    if (badgeEl) {
+      const { cls, text } = getBadgeClassAndText(rawScore);
+      badgeEl.className = `badge ${cls}`;
+      badgeEl.textContent = text;
+    }
+  };
+
+  let charScore = 0;
+  let engScore = 0;
+  let mathScore = 0;
+
+  if (evalObj) {
+    const charParts = [evalObj.score_empathy, evalObj.score_honesty, evalObj.score_responsibility, evalObj.score_respect]
+      .filter(v => v !== null && v !== undefined && !isNaN(v) && Number(v) > 0);
+    if (charParts.length > 0) {
+      charScore = charParts.reduce((a, b) => a + Number(b), 0) / charParts.length;
+    } else if (evalObj.character_score || evalObj.nilai_karakter || evalObj.karakter) {
+      charScore = Number(evalObj.character_score || evalObj.nilai_karakter || evalObj.karakter);
+    }
+
+    const engParts = [evalObj.score_fluency, evalObj.score_reading]
+      .filter(v => v !== null && v !== undefined && !isNaN(v) && Number(v) > 0);
+    if (engParts.length > 0) {
+      engScore = engParts.reduce((a, b) => a + Number(b), 0) / engParts.length;
+    } else if (evalObj.english_score || evalObj.nilai_english || evalObj.english) {
+      engScore = Number(evalObj.english_score || evalObj.nilai_english || evalObj.english);
+    }
+
+    const mathParts = [evalObj.score_logic, evalObj.score_arithmetic]
+      .filter(v => v !== null && v !== undefined && !isNaN(v) && Number(v) > 0);
+    if (mathParts.length > 0) {
+      mathScore = mathParts.reduce((a, b) => a + Number(b), 0) / mathParts.length;
+    } else if (evalObj.math_score || evalObj.nilai_matematika || evalObj.matematika) {
+      mathScore = Number(evalObj.math_score || evalObj.nilai_matematika || evalObj.matematika);
+    }
+  }
+
+  updateSingleGauge('gauge-char-val', 'gauge-char-circle', 'gauge-char-badge', charScore);
+  updateSingleGauge('gauge-eng-val', 'gauge-eng-circle', 'gauge-eng-badge', engScore);
+  updateSingleGauge('gauge-math-val', 'gauge-math-circle', 'gauge-math-badge', mathScore);
+}
+window.updateRaporGauges = updateRaporGauges;
+
 // =====================================================
 // SOC CUSTOM MODAL & DIALOG SYSTEM
 // =====================================================
 export function showSoCModal({ title = 'Informasi', message = '', type = 'info', confirmText = 'OK', cancelText = null, html = null } = {}) {
   return new Promise((resolve) => {
+    if (window._socModalCloseTimer) {
+      clearTimeout(window._socModalCloseTimer);
+      window._socModalCloseTimer = null;
+    }
+
     let overlay = document.getElementById('soc-custom-dialog-overlay');
     if (!overlay) {
       overlay = document.createElement('div');
@@ -996,13 +1275,16 @@ export function showSoCModal({ title = 'Informasi', message = '', type = 'info',
     overlay.style.display = 'flex';
     requestAnimationFrame(() => overlay.classList.add('active'));
 
-    const cleanup = (val) => {
-      overlay.classList.remove('active');
-      setTimeout(() => {
-        overlay.style.display = 'none';
-      }, 250);
+    const cleanup = async (val) => {
       btnConfirm?.removeEventListener('click', onConfirm);
       btnCancel?.removeEventListener('click', onCancel);
+      overlay.classList.remove('active');
+      overlay.style.display = 'none';
+      if (window._socModalCloseTimer) {
+        clearTimeout(window._socModalCloseTimer);
+        window._socModalCloseTimer = null;
+      }
+      await new Promise(r => setTimeout(r, 60));
       resolve(val);
     };
 
@@ -1019,3 +1301,210 @@ window.socConfirm = (msg, title = 'Konfirmasi') => showSoCModal({ title, message
 window.alert = function(msg) {
   return showSoCModal({ title: 'Informasi', message: String(msg), type: 'info' });
 };
+
+// =====================================================
+// INTERACTIVE PHOTO CROPPER MODAL (1:1 Square/Circle)
+// =====================================================
+export function openSoCImageCropper(file) {
+  return new Promise((resolve) => {
+    if (!file) {
+      resolve(null);
+      return;
+    }
+
+    let overlay = document.getElementById('soc-image-cropper-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'soc-image-cropper-overlay';
+      overlay.className = 'soc-dialog-overlay';
+      overlay.style.zIndex = '99999';
+      overlay.innerHTML = `
+        <div class="soc-dialog-card" style="max-width: 400px; width: 92vw; padding: 1.5rem; text-align: center;">
+          <h3 style="margin-top: 0; margin-bottom: 0.4rem; font-size: 1.15rem; color: var(--color-secondary-dark, #0c4a60);">
+            <i class="fas fa-crop-alt text-teal"></i> Sesuaikan Foto Profil
+          </h3>
+          <p style="font-size: 0.85rem; color: var(--text-muted, #64748b); margin-bottom: 1rem;">
+            Geser untuk mengatur posisi & gunakan slider untuk zoom (1:1).
+          </p>
+
+          <div style="position: relative; width: 280px; height: 280px; margin: 0 auto 1.25rem; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 3px var(--color-primary, #0c4a60), 0 8px 24px rgba(0,0,0,0.2); background: #0f172a; cursor: grab; user-select: none; touch-action: none;" id="soc-cropper-viewport">
+            <canvas id="soc-cropper-canvas" width="300" height="300" style="width: 100%; height: 100%; display: block;"></canvas>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.75rem; justify-content: center; margin-bottom: 1.5rem; padding: 0 0.5rem;">
+            <i class="fas fa-search-minus" style="color: var(--text-muted); font-size: 0.85rem;"></i>
+            <input type="range" id="soc-cropper-zoom" min="1" max="3" step="0.05" value="1" style="flex: 1; accent-color: var(--color-primary, #0c4a60); cursor: pointer;">
+            <i class="fas fa-search-plus" style="color: var(--text-muted); font-size: 0.85rem;"></i>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+            <button type="button" class="btn btn-outline btn-sm" id="soc-cropper-btn-cancel" style="padding: 0.45rem 1rem;">Batal</button>
+            <button type="button" class="btn btn-primary btn-sm" id="soc-cropper-btn-save" style="padding: 0.45rem 1.25rem; display: inline-flex; align-items: center; gap: 0.4rem;">
+              <i class="fas fa-check"></i> Gunakan Foto
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+    }
+
+    const canvas = document.getElementById('soc-cropper-canvas');
+    const ctx = canvas.getContext('2d');
+    const viewport = document.getElementById('soc-cropper-viewport');
+    const zoomSlider = document.getElementById('soc-cropper-zoom');
+    const btnCancel = document.getElementById('soc-cropper-btn-cancel');
+    const btnSave = document.getElementById('soc-cropper-btn-save');
+
+    zoomSlider.value = '1';
+    let zoom = 1.0;
+    let offsetX = 0;
+    let offsetY = 0;
+    let isDragging = false;
+    let startX = 0, startY = 0;
+    let startOffX = 0, startOffY = 0;
+
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.src = objectUrl;
+
+    const draw = () => {
+      ctx.clearRect(0, 0, 300, 300);
+      if (!img.complete || img.naturalWidth === 0) return;
+
+      const baseScale = Math.max(300 / img.naturalWidth, 300 / img.naturalHeight);
+      const currentScale = baseScale * zoom;
+      const w = img.naturalWidth * currentScale;
+      const h = img.naturalHeight * currentScale;
+
+      const maxOffX = Math.max(0, (w - 300) / 2);
+      const maxOffY = Math.max(0, (h - 300) / 2);
+      offsetX = Math.max(-maxOffX, Math.min(maxOffX, offsetX));
+      offsetY = Math.max(-maxOffY, Math.min(maxOffY, offsetY));
+
+      const drawX = (300 - w) / 2 + offsetX;
+      const drawY = (300 - h) / 2 + offsetY;
+
+      ctx.save();
+      ctx.drawImage(img, drawX, drawY, w, h);
+      ctx.restore();
+    };
+
+    img.onload = () => {
+      offsetX = 0;
+      offsetY = 0;
+      zoom = 1.0;
+      zoomSlider.value = '1';
+      draw();
+    };
+
+    const onZoomInput = (e) => {
+      zoom = parseFloat(e.target.value) || 1.0;
+      draw();
+    };
+    zoomSlider.addEventListener('input', onZoomInput);
+
+    const onMouseDown = (e) => {
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      startOffX = offsetX;
+      startOffY = offsetY;
+      if (viewport) viewport.style.cursor = 'grabbing';
+    };
+    const onMouseMove = (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      offsetX = startOffX + dx;
+      offsetY = startOffY + dy;
+      draw();
+    };
+    const onMouseUp = () => {
+      if (isDragging) {
+        isDragging = false;
+        if (viewport) viewport.style.cursor = 'grab';
+      }
+    };
+
+    const onTouchStart = (e) => {
+      if (e.touches.length === 1) {
+        isDragging = true;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        startOffX = offsetX;
+        startOffY = offsetY;
+      }
+    };
+    const onTouchMove = (e) => {
+      if (!isDragging || e.touches.length !== 1) return;
+      e.preventDefault();
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+      offsetX = startOffX + dx;
+      offsetY = startOffY + dy;
+      draw();
+    };
+    const onTouchEnd = () => {
+      isDragging = false;
+    };
+
+    viewport.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    viewport.addEventListener('touchstart', onTouchStart, { passive: false });
+    viewport.addEventListener('touchmove', onTouchMove, { passive: false });
+    viewport.addEventListener('touchend', onTouchEnd);
+
+    const onWheel = (e) => {
+      e.preventDefault();
+      zoom = Math.min(3, Math.max(1, zoom - e.deltaY * 0.0015));
+      zoomSlider.value = zoom.toFixed(2);
+      draw();
+    };
+    viewport.addEventListener('wheel', onWheel, { passive: false });
+
+    overlay.style.display = 'flex';
+    requestAnimationFrame(() => overlay.classList.add('active'));
+
+    const cleanup = (result) => {
+      overlay.classList.remove('active');
+      overlay.style.display = 'none';
+
+      zoomSlider.removeEventListener('input', onZoomInput);
+      viewport.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      viewport.removeEventListener('touchstart', onTouchStart);
+      viewport.removeEventListener('touchmove', onTouchMove);
+      viewport.removeEventListener('touchend', onTouchEnd);
+      viewport.removeEventListener('wheel', onWheel);
+      btnCancel?.removeEventListener('click', onCancelClick);
+      btnSave?.removeEventListener('click', onSaveClick);
+
+      try { URL.revokeObjectURL(objectUrl); } catch(e) {}
+      resolve(result);
+    };
+
+    const onCancelClick = () => cleanup(null);
+    const onSaveClick = () => {
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+      cleanup(dataUrl);
+    };
+
+    btnCancel?.addEventListener('click', onCancelClick);
+    btnSave?.addEventListener('click', onSaveClick);
+  });
+}
+window.openSoCImageCropper = openSoCImageCropper;
+
+export function togglePasswordVisibility(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const isPass = input.type === 'password';
+  input.type = isPass ? 'text' : 'password';
+  const icon = btn.querySelector('i');
+  if (icon) {
+    icon.className = isPass ? 'fas fa-eye-slash' : 'fas fa-eye';
+  }
+}
+window.togglePasswordVisibility = togglePasswordVisibility;

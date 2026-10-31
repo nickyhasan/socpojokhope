@@ -1,10 +1,10 @@
 // =====================================================
 // TEACHER MODULE (js/dashboard/teacher.js)
 // =====================================================
-import { formatStudentDisplayName, getSelectedSchedule, formatTeacherName, formatClassName, getRawClassName, SEMESTER_CONFIG, parseSemesterKey, initSemesterSelector, applySemesterPeriod } from './ui.js';
+import { formatStudentDisplayName, getSelectedSchedule, formatTeacherName, formatClassName, getRawClassName, SEMESTER_CONFIG, parseSemesterKey, initSemesterSelector, applySemesterPeriod, updateRaporGauges } from './ui.js';
 import { loadAllStudents, loadAllSchedulesData, loadRaporData } from './api.js';
 
-export { SEMESTER_CONFIG, parseSemesterKey, initSemesterSelector, applySemesterPeriod };
+export { SEMESTER_CONFIG, parseSemesterKey, initSemesterSelector, applySemesterPeriod, updateRaporGauges };
 
 export function isTeacherMatch(assignmentTeacherName, user) {
   if (!assignmentTeacherName || !user) return false;
@@ -56,7 +56,7 @@ export async function renderGuruSummary() {
     // 0. Fetch class assignments or use safe fallback
     let assignedClasses = [];
     try {
-      const asgnRes = await fetch('http://localhost:5000/api/classes/assignments');
+      const asgnRes = await fetch('/api/classes/assignments').catch(() => fetch('http://localhost:5000/api/classes/assignments'));
       if (asgnRes.ok) {
         const asgnList = await asgnRes.json();
         if (Array.isArray(asgnList)) {
@@ -73,24 +73,84 @@ export async function renderGuruSummary() {
       console.warn('Error fetching class assignments for guru summary:', e);
     }
 
-    if (assignedClasses.length === 0) {
-      assignedClasses = ['English A (Foundation)', 'English B (Beginner)', 'Math A (Dasar Angka)', 'Math B (Operasi Hitung)'];
-    }
     const safeAssigned = assignedClasses.map(c => String(c));
 
-    const guruSchedules = schedules.filter(s => safeAssigned.includes(s.kelas) || s.kelas === 'Semua Kelas' || s.kelas === 'Semua');
-    const activeStudents = students.filter(s => safeAssigned.includes(s.kelas_english) || safeAssigned.includes(s.kelas_math));
-    const targetStudents = activeStudents.length > 0 ? activeStudents : students;
+    const isStudentActive = st => {
+      const s = String(st.status_siswa || 'aktif').toLowerCase();
+      return s !== 'alumni' && s !== 'lulus';
+    };
 
-    // Stats banner
-    const activeStudentsEl = document.getElementById('guru-active-students-count');
+    const guruSchedules = schedules.filter(s => {
+      if (!s) return false;
+      const subj = String(s.mata_pelajaran || '');
+      const normK = (typeof window.normalizeScheduleClass === 'function' ? window.normalizeScheduleClass(s.kelas, subj) : (s.kelas || '')).trim().toUpperCase();
+      const isUniversal = !normK || normK === 'SEMUA' || normK === 'SEMUA KELAS' || subj === 'Karakter' || subj === 'Outdoor Learning';
+      if (isUniversal) return true;
+      if (safeAssigned.length === 0) return true;
+      const upperAssigned = safeAssigned.map(c => c.trim().toUpperCase());
+      return upperAssigned.includes(normK) || upperAssigned.some(ac => normK.startsWith(ac) || ac.startsWith(normK));
+    });
+
+    const activeStudents = students.filter(s => isStudentActive(s));
+    const targetStudents = activeStudents;
+
+    // Render assigned class badges under teacher welcome message
+    const assignedBadgesEl = document.getElementById('guru-assigned-class-badges');
+    const engClasses = safeAssigned.filter(c => /english/i.test(c));
+    const mathClasses = safeAssigned.filter(c => /math/i.test(c));
+    const calistungClasses = safeAssigned.filter(c => /calistung/i.test(c));
+
+    if (assignedBadgesEl) {
+      if (safeAssigned.length === 0) {
+        assignedBadgesEl.style.display = 'none';
+        assignedBadgesEl.innerHTML = '';
+      } else {
+        assignedBadgesEl.style.display = 'flex';
+        let bHtml = '';
+        if (calistungClasses.length > 0) {
+          bHtml += `<span class="badge badge-teal" style="font-size:0.8rem; padding:0.25rem 0.65rem; border-radius:6px;"><i class="fas fa-book-reader"></i> Calistung: ${calistungClasses.join(', ')}</span>`;
+        }
+        if (engClasses.length > 0) {
+          bHtml += `<span class="badge badge-teal" style="font-size:0.8rem; padding:0.25rem 0.65rem; border-radius:6px;"><i class="fas fa-language"></i> English: ${engClasses.join(', ')}</span>`;
+        }
+        if (mathClasses.length > 0) {
+          bHtml += `<span class="badge badge-green" style="font-size:0.8rem; padding:0.25rem 0.65rem; border-radius:6px;"><i class="fas fa-calculator"></i> Math: ${mathClasses.join(', ')}</span>`;
+        }
+        assignedBadgesEl.innerHTML = bHtml;
+      }
+    }
+
+    // 3 Real-time stats counters in Ringkasan Guru
+    const engStatBox = document.getElementById('guru-stat-box-english');
+    const mathStatBox = document.getElementById('guru-stat-box-math');
+    const engCountEl = document.getElementById('guru-eng-students-count');
+    const mathCountEl = document.getElementById('guru-math-students-count');
     const classesMonthEl = document.getElementById('guru-classes-month-count');
-    if (activeStudentsEl) activeStudentsEl.textContent = targetStudents.length;
+
+    const engStudents = students.filter(s => isStudentActive(s) && engClasses.includes(s.kelas_english));
+    const mathStudents = students.filter(s => isStudentActive(s) && mathClasses.includes(s.kelas_math));
+
+    if (engStatBox) {
+      if (engClasses.length > 0) {
+        engStatBox.style.display = 'flex';
+        if (engCountEl) engCountEl.textContent = engStudents.length;
+      } else {
+        engStatBox.style.display = 'none';
+      }
+    }
+    if (mathStatBox) {
+      if (mathClasses.length > 0) {
+        mathStatBox.style.display = 'flex';
+        if (mathCountEl) mathCountEl.textContent = mathStudents.length;
+      } else {
+        mathStatBox.style.display = 'none';
+      }
+    }
     if (classesMonthEl) {
       const now = new Date();
       const thisYear = now.getFullYear();
       const thisMonth = now.getMonth() + 1;
-      const count = (guruSchedules.length > 0 ? guruSchedules : schedules).filter(item => {
+      const count = guruSchedules.filter(item => {
         if (!item || !item.date) return false;
         const parts = String(item.date).split('T')[0].split('-').map(Number);
         return parts[0] === thisYear && parts[1] === thisMonth;
@@ -109,19 +169,29 @@ export async function renderGuruSummary() {
         'Outdoor Learning': { color: 'orange', badge: 'badge-orange' }
       };
 
-      const upcoming = (guruSchedules.length > 0 ? guruSchedules : schedules).filter(item => {
+      const upcoming = guruSchedules.filter(item => {
         if (!item || !item.date) return false;
         const [y, m, d] = String(item.date).split('T')[0].split('-').map(Number);
         return new Date(y, m - 1, d).setHours(0, 0, 0, 0) >= todayTime;
       });
 
-      upcoming.sort((a, b) => {
-        const dComp = String(a.date || '').localeCompare(String(b.date || ''));
-        if (dComp !== 0) return dComp;
-        return String(a.start_time || '').localeCompare(String(b.start_time || ''));
-      });
-
-      const topUpcoming = (upcoming.length > 0 ? upcoming : guruSchedules).slice(0, 3);
+      let topUpcoming = [];
+      if (upcoming.length > 0) {
+        upcoming.sort((a, b) => {
+          const dComp = String(a.date || '').localeCompare(String(b.date || ''));
+          if (dComp !== 0) return dComp;
+          return String(a.start_time || '').localeCompare(String(b.start_time || ''));
+        });
+        topUpcoming = upcoming.slice(0, 4);
+      } else {
+        // Fallback: 4 most recent schedules sorted descending
+        const recent = [...guruSchedules].sort((a, b) => {
+          const dComp = String(b.date || '').localeCompare(String(a.date || ''));
+          if (dComp !== 0) return dComp;
+          return String(b.start_time || '').localeCompare(String(a.start_time || ''));
+        });
+        topUpcoming = recent.slice(0, 4);
+      }
 
       if (topUpcoming.length === 0) {
         jadwalContainer.innerHTML = '<div class="alert alert-info" style="margin:1rem;">Belum ada data untuk ditampilkan.</div>';
@@ -181,48 +251,56 @@ export async function renderGuruSummary() {
       }
     }
 
-    // 2. Render Guru's Top Siswa
-    if (topSiswaContainer && targetStudents.length > 0) {
-      const sortedStudents = [...targetStudents].sort((a, b) => {
-        const starA = Number(a.stars || 0);
-        const starB = Number(b.stars || 0);
-        return starB - starA;
-      });
-      const top10 = sortedStudents.slice(0, 10);
-
-      if (top10.length === 0) {
-        topSiswaContainer.innerHTML = '<div class="alert alert-info" style="margin:1rem;">Belum ada data untuk ditampilkan.</div>';
+    // 2. Render Guru's Top Siswa (filtered to only show students with at least 1 star)
+    if (topSiswaContainer) {
+      const withStars = (targetStudents || []).filter(s => Number(s.stars || s.bintang || 0) >= 1);
+      if (withStars.length === 0) {
+        topSiswaContainer.innerHTML = '<div style="padding:1.25rem; text-align:center; color:var(--text-muted); font-size:0.9rem;">Belum ada siswa yang memperoleh bintang keaktifan.</div>';
       } else {
+        const sortedStudents = [...withStars].sort((a, b) => {
+          const starA = Number(a.stars || a.bintang || 0);
+          const starB = Number(b.stars || b.bintang || 0);
+          if (starB !== starA) return starB - starA;
+          const scoreA = Number(a.avg_score || 0);
+          const scoreB = Number(b.avg_score || 0);
+          return scoreB - scoreA;
+        });
+        const top10 = sortedStudents.slice(0, 10);
         let html = '<div style="display:flex; flex-direction:column; gap:0.5rem; padding-bottom:0.25rem;">';
         top10.forEach((st, idx) => {
           const rank = idx + 1;
-          let rankBadgeStyle = 'background: rgba(0,0,0,0.06); color: var(--text-dark);';
-          let rankIcon = `#${rank}`;
+          let rankBadgeStyle = 'background: rgba(0,0,0,0.05); color: var(--text-dark); font-weight: 700;';
+          let rankIcon = `<span style="font-size:0.85rem;">#${rank}</span>`;
           if (rank === 1) {
-            rankBadgeStyle = 'background: #fef3c7; color: #d97706; font-weight:800;';
-            rankIcon = '🥇 1';
+            rankBadgeStyle = 'background: #fef3c7; color: #d97706; font-weight: 800;';
+            rankIcon = '<i class="fas fa-medal" style="font-size: 1.05rem;" title="Juara 1"></i>';
           } else if (rank === 2) {
-            rankBadgeStyle = 'background: #e2e8f0; color: #475569; font-weight:800;';
-            rankIcon = '🥈 2';
+            rankBadgeStyle = 'background: #f1f5f9; color: #475569; font-weight: 800;';
+            rankIcon = '<i class="fas fa-medal" style="font-size: 1.05rem;" title="Juara 2"></i>';
           } else if (rank === 3) {
-            rankBadgeStyle = 'background: #fed7aa; color: #c2410c; font-weight:800;';
-            rankIcon = '🥉 3';
+            rankBadgeStyle = 'background: #ffedd5; color: #c2410c; font-weight: 800;';
+            rankIcon = '<i class="fas fa-medal" style="font-size: 1.05rem;" title="Juara 3"></i>';
           }
 
-          const starsDisplay = (st.stars !== undefined && st.stars !== null) ? st.stars : Math.max(10, 20 - idx);
+          const starsDisplay = Number(st.stars || st.bintang || 0);
+          const photoSrc = (st.photo_url && st.photo_url.trim()) ? st.photo_url : 'static/src/assets/ui/logo.png';
 
           html += `
             <div style="display:flex; align-items:center; justify-content:space-between; padding:0.6rem 0.85rem; background:var(--bg-contrast); border-radius:var(--border-radius-sm); border:1px solid var(--border-color);">
               <div style="display:flex; align-items:center; gap:0.75rem;">
-                <span style="font-size:0.8rem; min-width:32px; height:26px; border-radius:13px; display:inline-flex; align-items:center; justify-content:center; padding:0 0.35rem; ${rankBadgeStyle}">
+                <span style="width:36px; height:36px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; ${rankBadgeStyle}">
                   ${rankIcon}
                 </span>
+                <img src="${photoSrc}" alt="${st.full_name || 'Siswa'}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:1.5px solid var(--border-color); flex-shrink:0;" onerror="this.onerror=null; this.src='static/src/assets/ui/logo.png';">
                 <div>
                   <h5 style="margin:0; font-size:0.9rem; color:var(--color-secondary-dark); font-weight:700;">${formatStudentDisplayName(st)}</h5>
-                  <span class="badge badge-teal" style="font-size:0.68rem; padding:0.1rem 0.4rem;">${st.kelas_english || st.kelas_math || 'Siswa'}</span>
+                  <div style="display:flex; gap:0.3rem; flex-wrap:wrap; margin-top:0.2rem;">
+                    ${st.kelas_english ? `<span class="badge badge-teal" style="font-size:0.68rem; padding:0.1rem 0.4rem;">${st.kelas_english}</span>` : ''}
+                    ${st.kelas_math ? `<span class="badge badge-green" style="font-size:0.68rem; padding:0.1rem 0.4rem;">${st.kelas_math}</span>` : ''}
+                  </div>
                 </div>
               </div>
-              <div style="display:flex; align-items:center; gap:1.25rem;">
+              <div style="display:flex; align-items:center; gap:0.75rem;">
                 <span class="text-orange" style="font-weight:700; font-size:0.85rem;" title="Bintang Karakter">
                   <i class="fas fa-star"></i> ${starsDisplay} Bintang
                 </span>
@@ -267,8 +345,19 @@ export async function renderTeacherAttendanceRoster() {
 
     // Dynamic Student Filtering for Attendance (2027 logic)
     const relevantStudents = allStudents.filter(s => {
+      if (s.status_siswa === 'alumni') return false;
       if (!targetClass || targetClass === 'Semua Kelas' || targetClass === 'Semua') return true;
-      return s.kelas_english === targetClass || s.kelas_math === targetClass;
+      const tUpper = targetClass.toUpperCase();
+      const eng = (s.kelas_english || '').toUpperCase();
+      const math = (s.kelas_math || '').toUpperCase();
+      if (tUpper.includes('CALISTUNG')) {
+        return eng.includes('CALISTUNG') || math.includes('CALISTUNG');
+      }
+      return eng === tUpper || math === tUpper ||
+             (typeof window.normalizeScheduleClass === 'function' && (
+               window.normalizeScheduleClass(s.kelas_english, selectedSubject).toUpperCase() === tUpper ||
+               window.normalizeScheduleClass(s.kelas_math, selectedSubject).toUpperCase() === tUpper
+             ));
     });
 
     // Fetch attendance for selected date to sync active button states
@@ -329,6 +418,11 @@ window.renderTeacherAttendanceRoster = renderTeacherAttendanceRoster;
 export async function renderJadwalKelas() {
   const listMendatang = document.getElementById('jadwal-list-mendatang');
   const listSelesai = document.getElementById('jadwal-list-selesai');
+  const containerMendatang = document.getElementById('jadwal-container-mendatang');
+  const containerSelesai = document.getElementById('jadwal-container-selesai');
+
+  if (containerMendatang) containerMendatang.style.display = 'block';
+  if (containerSelesai) containerSelesai.style.display = 'block';
 
   if (!listMendatang || !listSelesai) {
     console.warn('Jadwal containers (#jadwal-list-mendatang, #jadwal-list-selesai) not found in DOM.');
@@ -357,11 +451,16 @@ export async function renderJadwalKelas() {
         ? parseInt(loggedInUser.student_id || loggedInUser.id, 10) 
         : (selectedStudentKey || 1);
       const student = (window.allStudents || []).find(s => s.id === curId);
-      const eng = String(student?.kelas_english || '').trim().toUpperCase();
-      const math = String(student?.kelas_math || '').trim().toUpperCase();
+      const rawEng = String(student?.kelas_english || '').trim();
+      const rawMath = String(student?.kelas_math || '').trim();
+      const eng = (typeof window.normalizeScheduleClass === 'function' ? window.normalizeScheduleClass(rawEng, 'English') : rawEng).toUpperCase();
+      const math = (typeof window.normalizeScheduleClass === 'function' ? window.normalizeScheduleClass(rawMath, 'Matematika') : rawMath).toUpperCase();
+
       schedules = schedules.filter(item => {
-        const k = String(item.kelas || '').trim().toUpperCase();
-        return !k || k === 'SEMUA' || k === 'SEMUA KELAS' || (eng && k === eng) || (math && k === math);
+        const subj = item.mata_pelajaran || 'Karakter';
+        const normK = (typeof window.normalizeScheduleClass === 'function' ? window.normalizeScheduleClass(item.kelas, subj) : (item.kelas || '')).trim().toUpperCase();
+        const isUniversal = !normK || normK === 'SEMUA' || normK === 'SEMUA KELAS' || subj === 'Karakter' || subj === 'Outdoor Learning';
+        return isUniversal || (eng && normK === eng) || (math && normK === math);
       });
     } else if (currentRole === 'guru') {
       let assignedClasses = [];
@@ -372,17 +471,21 @@ export async function renderJadwalKelas() {
           const currentTeacherName = (loggedInUser && (loggedInUser.nama || loggedInUser.full_name)) || '';
           (aList || []).forEach(asgn => {
             if (asgn.teacher_name && (asgn.teacher_name === currentTeacherName || isTeacherMatch(asgn.teacher_name, loggedInUser))) {
-              assignedClasses.push(asgn.class_name);
+              if (asgn.class_name) assignedClasses.push(String(asgn.class_name));
             }
           });
         }
       } catch (e) {
         console.warn('Error fetching class assignments for guru schedule:', e);
       }
+      const normAssigned = assignedClasses.map(c => c.trim().toUpperCase());
       schedules = schedules.filter(item => {
-        const k = item.kelas || '';
-        if (!k || k === 'Semua' || k === 'Semua Kelas') return true;
-        return assignedClasses.includes(k) || assignedClasses.some(ac => k.toLowerCase().startsWith(ac.toLowerCase()) || ac.toLowerCase().startsWith(k.toLowerCase()));
+        const subj = item.mata_pelajaran || 'Karakter';
+        const normK = (typeof window.normalizeScheduleClass === 'function' ? window.normalizeScheduleClass(item.kelas, subj) : (item.kelas || '')).trim().toUpperCase();
+        const isUniversal = !normK || normK === 'SEMUA' || normK === 'SEMUA KELAS' || subj === 'Karakter' || subj === 'Outdoor Learning';
+        if (isUniversal) return true;
+        if (normAssigned.length === 0) return true;
+        return normAssigned.includes(normK) || normAssigned.some(ac => normK.startsWith(ac) || ac.startsWith(normK));
       });
     }
 
@@ -401,7 +504,8 @@ export async function renderJadwalKelas() {
     }
 
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const currentHM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     const subjectColors = {
       'Karakter': { color: 'orange', badge: 'badge-orange' },
@@ -417,25 +521,17 @@ export async function renderJadwalKelas() {
       if (!item) return;
       const dStr = item.date ? String(item.date).split('T')[0] : '';
       if (!dStr) return;
-      const timePart = item.end_time || item.start_time || '23:59';
-      const [y, m, d] = dStr.split('-').map(Number);
-      let hours = 23, minutes = 59;
-      if (typeof timePart === 'string' && timePart.includes(':')) {
-        const tParts = timePart.split(':').map(Number);
-        hours = tParts[0] || 0;
-        minutes = tParts[1] || 0;
-      }
-      const schedDateTime = new Date(y, m - 1, d, hours, minutes, 0);
+      const endTime = item.end_time || item.start_time || '23:59';
 
-      if (schedDateTime < now) {
-        pastList.push(item);
-      } else {
+      if (dStr > todayStr || (dStr === todayStr && endTime >= currentHM)) {
         upcomingList.push(item);
+      } else {
+        pastList.push(item);
       }
     });
 
-    upcomingList.sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
-    pastList.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    upcomingList.sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')) || String(a.start_time || '').localeCompare(String(b.start_time || '')));
+    pastList.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.start_time || '').localeCompare(String(a.start_time || '')));
 
     const buildCardHtml = (item, isPast) => {
       const subject = item.mata_pelajaran || 'Karakter';
@@ -773,6 +869,7 @@ export async function renderGuruRaporView() {
       const exactClass = className.trim().toLowerCase();
 
       let filtered = (window.allStudents || []).filter(s => {
+        if (s.status_siswa === 'alumni') return false;
         const eng = String(s.kelas_english || '').trim().toLowerCase();
         const math = String(s.kelas_math || '').trim().toLowerCase();
 
@@ -1170,46 +1267,43 @@ export async function openIndividualRapor(studentId, subject) {
 
     // Helper to populate sliders and gauge for a chosen month
     const updateSlidersForMonth = (targetMonth) => {
-      const evalForSliders = monthEvalMap[(targetMonth || '').toLowerCase()] || {};
+      const evalForSliders = monthEvalMap[(targetMonth || '').toLowerCase()] || null;
 
       if (currentSubject === 'English') {
-        const fluVal = evalForSliders.score_fluency ?? 75;
-        const readVal = evalForSliders.score_reading ?? 75;
+        const fluVal = evalForSliders ? (evalForSliders.score_fluency ?? 0) : 0;
+        const readVal = evalForSliders ? (evalForSliders.score_reading ?? 0) : 0;
         const sFlu = document.getElementById('slider-eng-fluency');
         const vFlu = document.getElementById('slider-eng-fluency-val');
         const sRead = document.getElementById('slider-eng-reading');
         const vRead = document.getElementById('slider-eng-reading-val');
-        if (sFlu) sFlu.value = fluVal;
+        if (sFlu) sFlu.value = fluVal || 50;
         if (vFlu) vFlu.value = fluVal;
-        if (sRead) sRead.value = readVal;
+        if (sRead) sRead.value = readVal || 50;
         if (vRead) vRead.value = readVal;
-
-        const avgEng = ((fluVal + readVal) / 2).toFixed(1);
-        const gaugeEngCircle = document.getElementById('gauge-eng-circle');
-        const gaugeEngVal = document.getElementById('gauge-eng-val');
-        if (gaugeEngCircle) gaugeEngCircle.style.setProperty('--gauge-pct', avgEng);
-        if (gaugeEngVal) gaugeEngVal.textContent = avgEng;
       } else if (currentSubject === 'Matematika') {
-        const logVal = evalForSliders.score_logic ?? 75;
-        const arithVal = evalForSliders.score_arithmetic ?? 75;
+        const logVal = evalForSliders ? (evalForSliders.score_logic ?? 0) : 0;
+        const arithVal = evalForSliders ? (evalForSliders.score_arithmetic ?? 0) : 0;
         const sLog = document.getElementById('slider-math-logic');
         const vLog = document.getElementById('slider-math-logic-val');
         const sArith = document.getElementById('slider-math-arith');
         const vArith = document.getElementById('slider-math-arith-val');
-        if (sLog) sLog.value = logVal;
+        if (sLog) sLog.value = logVal || 50;
         if (vLog) vLog.value = logVal;
-        if (sArith) sArith.value = arithVal;
+        if (sArith) sArith.value = arithVal || 50;
         if (vArith) vArith.value = arithVal;
+      }
 
-        const avgMath = ((logVal + arithVal) / 2).toFixed(1);
-        const gaugeMathCircle = document.getElementById('gauge-math-circle');
-        const gaugeMathVal = document.getElementById('gauge-math-val');
-        if (gaugeMathCircle) gaugeMathCircle.style.setProperty('--gauge-pct', avgMath);
-        if (gaugeMathVal) gaugeMathVal.textContent = avgMath;
+      // Update Rapor Gauges strictly from evaluation record
+      if (typeof updateRaporGauges === 'function') {
+        updateRaporGauges(evalForSliders);
+      } else if (typeof window.updateRaporGauges === 'function') {
+        window.updateRaporGauges(evalForSliders);
       }
 
       // Update Stars
-      const starsVal = evalForSliders.stars ?? (student ? (student.stars ?? 0) : 0);
+      const starsVal = (evalForSliders && evalForSliders.stars !== undefined && evalForSliders.stars !== null)
+        ? evalForSliders.stars
+        : (student ? (student.stars ?? 0) : 0);
       const tStarCount = document.getElementById('teacher-star-count');
       const sStarCount = document.getElementById('student-star-count');
       if (tStarCount) tStarCount.textContent = starsVal;

@@ -1,0 +1,20 @@
+# .cursorrules - Senior Principal Engineer Rules (School of Character - Pojok Hope)
+# Methodology: obra/superpowers
+
+# 1. SURGICAL EDITS ONLY
+- Never delete, rewrite, or alter working functions, views, or CSS rules outside the immediate task scope.
+- Maintain existing comments, docstrings, classes, and IDs unless explicitly instructed.
+- Inspect exact line numbers before editing.
+
+# 2. CONCISE & DRY CODE
+- Zero duplicate event listeners across files (use idempotent locks, e.g., isSavingSchedule).
+- Always restore buttons (disabled=false and default innerHTML) in a finally block.
+- Preserve design tokens (--color-primary, --color-secondary-dark, --border-color) and mobile responsive CSS.
+
+# 3. PRE-FLIGHT & POST-FLIGHT VERIFICATION
+- Always consult PROJECT_MAP.md to understand view mappings and role permissions before modifying code.
+- Run after EVERY edit:
+    1. py check_syntax.py js
+    2. py check_regression.py
+    3. py -m compileall python/ (if backend touched)
+- Guarantee 0 errors across all verification scripts before completing work.

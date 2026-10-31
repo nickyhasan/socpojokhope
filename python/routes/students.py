@@ -1,10 +1,33 @@
+import re
 import datetime
 from flask import Blueprint, request, jsonify
 
+def parse_date_string(val):
+    if not val:
+        return None
+    s = str(val).strip()
+    if not s or s.lower() in ('null', 'none', '-'):
+        return None
+    if isinstance(val, (datetime.date, datetime.datetime)):
+        return val.strftime('%Y-%m-%d')
+    if re.match(r'^\d{4}-\d{2}-\d{2}$', s):
+        return s
+    if re.match(r'^\d{4}/\d{2}/\d{2}$', s):
+        return s.replace('/', '-')
+    m = re.match(r'^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$', s)
+    if m:
+        return f"{m.group(3)}-{m.group(2).zfill(2)}-{m.group(1).zfill(2)}"
+    try:
+        dt = datetime.datetime.fromisoformat(s)
+        return dt.strftime('%Y-%m-%d')
+    except Exception:
+        pass
+    return None
+
 try:
-    from database import get_db, get_db_connection, normalize_short_class_name
+    from database import get_db, get_db_connection, normalize_short_class_name, save_profile_image_file
 except ImportError:
-    from ..database import get_db, get_db_connection, normalize_short_class_name
+    from ..database import get_db, get_db_connection, normalize_short_class_name, save_profile_image_file
 
 students_bp = Blueprint('students', __name__)
 
@@ -55,36 +78,54 @@ def generate_student_nis(cursor, birth_date):
 @students_bp.route('/api/students', methods=['GET'])
 def get_students():
     """
-    GET /api/students?kelas=English A (Foundation)
-    Fetches student list mapped to the 2027 schema, optionally filtered by class level.
+    GET /api/students?kelas=English A (Foundation)&status=alumni
+    Fetches student list mapped to the 2027 schema, optionally filtered by class level or status.
     """
     kelas = request.args.get('kelas') or request.args.get('class')
+    status_filter = request.args.get('status')
     connection = None
     try:
         connection = get_db_connection()
         cursor = connection.cursor()
 
+        where_clauses = []
+        params = []
+
         if kelas:
-            query = """
-                SELECT s.id, s.nis, s.full_name, s.nickname, s.gender, s.birth_place, s.birth_date, s.parents_name, 
-                       s.student_phone, s.parent_phone, s.kelas_english, s.kelas_math, s.photo_url, s.created_at,
-                       u.password
-                FROM students s
-                LEFT JOIN users u ON (u.student_id = s.id OR u.id = s.nis)
-                WHERE UPPER(s.kelas_english) = %s OR UPPER(s.kelas_math) = %s
-                ORDER BY s.full_name ASC
-            """
-            cursor.execute(query, (kelas.upper(), kelas.upper()))
-        else:
-            query = """
-                SELECT s.id, s.nis, s.full_name, s.nickname, s.gender, s.birth_place, s.birth_date, s.parents_name, 
-                       s.student_phone, s.parent_phone, s.kelas_english, s.kelas_math, s.photo_url, s.created_at,
-                       u.password
-                FROM students s
-                LEFT JOIN users u ON (u.student_id = s.id OR u.id = s.nis)
-                ORDER BY s.full_name ASC
-            """
-            cursor.execute(query)
+            where_clauses.append("(UPPER(s.kelas_english) = %s OR UPPER(s.kelas_math) = %s)")
+            params.extend([kelas.upper(), kelas.upper()])
+
+        if status_filter:
+            if status_filter.lower() == 'alumni':
+                where_clauses.append("s.status_siswa = 'alumni'")
+            elif status_filter.lower() == 'aktif':
+                where_clauses.append("(s.status_siswa IS NULL OR s.status_siswa = 'aktif' OR s.status_siswa != 'alumni')")
+
+        where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+
+        query = f"""
+            SELECT s.id, s.nis, s.full_name, s.nickname, s.gender, s.birth_place, s.birth_date, s.parents_name, 
+                   COALESCE(s.parent_name, s.parents_name) AS parent_name,
+                   COALESCE(s.nama_ortu, s.parents_name) AS nama_ortu,
+                   s.student_phone, s.parent_phone, s.kelas_english, s.kelas_math, s.photo_url, s.created_at,
+                   s.status_siswa, s.graduated_at, s.alumni_access_until,
+                   DATEDIFF(s.alumni_access_until, NOW()) AS days_left,
+                   u.password,
+                   COALESCE((SELECT SUM(COALESCE(e.stars, 0)) FROM evaluations e WHERE e.student_id = s.id), 0) AS stars,
+                   COALESCE((
+                       SELECT AVG(
+                           (COALESCE(e.score_empathy, 0) + COALESCE(e.score_honesty, 0) + 
+                            COALESCE(e.score_responsibility, 0) + COALESCE(e.score_respect, 0) + 
+                            COALESCE(e.score_fluency, 0) + COALESCE(e.score_reading, 0) + 
+                            COALESCE(e.score_logic, 0) + COALESCE(e.score_arithmetic, 0)) / 8.0
+                       ) FROM evaluations e WHERE e.student_id = s.id
+                   ), 0.0) AS avg_score
+            FROM students s
+            LEFT JOIN users u ON (u.student_id = s.id OR u.id = s.nis)
+            {where_sql}
+            ORDER BY s.full_name ASC
+        """
+        cursor.execute(query, tuple(params))
 
         if hasattr(cursor, 'description') and cursor.description:
             columns = [desc[0] for desc in cursor.description]
@@ -100,6 +141,13 @@ def get_students():
                     s['birth_date'] = s['birth_date'].isoformat()
                 if isinstance(s.get('created_at'), (datetime.date, datetime.datetime)):
                     s['created_at'] = s['created_at'].isoformat()
+                if isinstance(s.get('graduated_at'), (datetime.date, datetime.datetime)):
+                    s['graduated_at'] = s['graduated_at'].isoformat()
+                if isinstance(s.get('alumni_access_until'), (datetime.date, datetime.datetime)):
+                    s['alumni_access_until'] = s['alumni_access_until'].isoformat()
+
+                if not s.get('status_siswa'):
+                    s['status_siswa'] = 'aktif'
 
                 s['nis'] = str(s.get('nis') or '').strip()
                 raw_g = str(s.get('gender') or '').strip().upper()
@@ -109,6 +157,19 @@ def get_students():
                     s['gender'] = 'L'
                 else:
                     s['gender'] = raw_g or '-'
+
+                s['parent_name'] = str(s.get('parent_name') or s.get('parents_name') or '').strip()
+                s['nama_ortu'] = s['parent_name']
+                s['parents_name'] = s['parent_name']
+                s['phone_siswa'] = str(s.get('student_phone') or '').strip()
+                s['no_hp_siswa'] = s['phone_siswa']
+                s['phone_ortu'] = str(s.get('parent_phone') or '').strip()
+                s['no_hp_ortu'] = s['phone_ortu']
+                s['tempat_lahir'] = str(s.get('birth_place') or '').strip()
+                s['tanggal_lahir'] = s.get('birth_date') or ''
+                s['stars'] = int(s.get('stars') or 0)
+                s['bintang'] = s['stars']
+                s['avg_score'] = round(float(s.get('avg_score') or 0.0), 2)
 
                 s['kelas_english'] = str(s.get('kelas_english') or 'Belum Ditentukan').strip()
                 s['kelas_math'] = str(s.get('kelas_math') or 'Belum Ditentukan').strip()
@@ -138,7 +199,10 @@ def get_student(student_id):
         cursor = connection.cursor()
         query = """
             SELECT s.id, s.nis, s.full_name, s.nickname, s.gender, s.birth_place, s.birth_date, s.parents_name, 
+                   COALESCE(s.parent_name, s.parents_name) AS parent_name,
+                   COALESCE(s.nama_ortu, s.parents_name) AS nama_ortu,
                    s.student_phone, s.parent_phone, s.kelas_english, s.kelas_math, s.photo_url, s.created_at,
+                   s.status_siswa, s.graduated_at, s.alumni_access_until,
                    u.password, u.username
             FROM students s
             LEFT JOIN users u ON (u.student_id = s.id OR u.id = s.nis)
@@ -159,6 +223,15 @@ def get_student(student_id):
             s['created_at'] = s['created_at'].isoformat()
 
         s['nis'] = str(s.get('nis') or '').strip()
+        s['parent_name'] = str(s.get('parent_name') or s.get('parents_name') or '').strip()
+        s['nama_ortu'] = s['parent_name']
+        s['parents_name'] = s['parent_name']
+        s['phone_siswa'] = str(s.get('student_phone') or '').strip()
+        s['no_hp_siswa'] = s['phone_siswa']
+        s['phone_ortu'] = str(s.get('parent_phone') or '').strip()
+        s['no_hp_ortu'] = s['phone_ortu']
+        s['tempat_lahir'] = str(s.get('birth_place') or '').strip()
+        s['tanggal_lahir'] = s.get('birth_date') or ''
         s['kelas_english'] = str(s.get('kelas_english') or 'Belum Ditentukan').strip()
         s['kelas_math'] = str(s.get('kelas_math') or 'Belum Ditentukan').strip()
         s['photo_url'] = s.get('photo_url') or ''
@@ -193,8 +266,6 @@ def update_student(student_id):
         parents_name = (data.get('parents_name') or data.get('nama_orang_tua') or data.get('ortu') or '').strip()
         student_phone = (data.get('student_phone') or data.get('no_hp_siswa') or '').strip()
         parent_phone = (data.get('parent_phone') or data.get('no_hp') or data.get('nohp') or '').strip()
-        kelas_english = normalize_short_class_name((data.get('kelas_english') or 'Belum Ditentukan').strip())
-        kelas_math = normalize_short_class_name((data.get('kelas_math') or 'Belum Ditentukan').strip())
         photo_url = data.get('photo_url')
         password = (data.get('password') or '').strip()
 
@@ -202,12 +273,26 @@ def update_student(student_id):
         cursor = connection.cursor()
 
         # Fetch current record for fallback
-        cursor.execute("SELECT nis, photo_url FROM students WHERE id = %s", (student_id,))
+        cursor.execute("SELECT nis, photo_url, kelas_english, kelas_math FROM students WHERE id = %s", (student_id,))
         curr = cursor.fetchone()
         old_nis = curr['nis'] if isinstance(curr, dict) else curr[0] if curr else ''
         old_photo = (curr['photo_url'] if isinstance(curr, dict) else curr[1]) if curr and len(curr) > 1 else ''
-        final_photo = photo_url if photo_url is not None else old_photo
+        old_eng = (curr['kelas_english'] if isinstance(curr, dict) else curr[2]) if curr and len(curr) > 2 else ''
+        old_math = (curr['kelas_math'] if isinstance(curr, dict) else curr[3]) if curr and len(curr) > 3 else ''
+
         final_nis = nis if nis else old_nis
+        final_photo = save_profile_image_file(final_nis, photo_url) if photo_url is not None else old_photo
+
+        # If kelas_english / kelas_math omitted or empty in payload, preserve current level!
+        if 'kelas_english' in data and data.get('kelas_english') and data.get('kelas_english') != 'Belum Ditentukan':
+            kelas_english = normalize_short_class_name(str(data['kelas_english']).strip())
+        else:
+            kelas_english = old_eng or 'Belum Ditentukan'
+
+        if 'kelas_math' in data and data.get('kelas_math') and data.get('kelas_math') != 'Belum Ditentukan':
+            kelas_math = normalize_short_class_name(str(data['kelas_math']).strip())
+        else:
+            kelas_math = old_math or 'Belum Ditentukan'
 
         # Update students table
         cursor.execute("""
@@ -317,6 +402,8 @@ def create_student():
         if not nis or not nis.isdigit() or len(nis) < 8:
             nis = generate_student_nis(cursor, birth_date)
 
+        photo_url = save_profile_image_file(nis, photo_url)
+
         # Auto-generate password: SoC + last 4 digits of NIS
         password = (data.get('password') or '').strip()
         if not password or password == 'password123':
@@ -346,8 +433,8 @@ def create_student():
             username = f"{username}{nis[-3:]}"
 
         cursor.execute("""
-            INSERT INTO users (id, username, password, full_name, nickname, gender, contact, role, student_id, photo_url)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, 'siswa', %s, %s)
+            INSERT INTO users (id, username, password, full_name, nickname, gender, contact, role, student_id, photo_url, kelas_english, kelas_math)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 'siswa', %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
                 full_name = VALUES(full_name),
                 nickname = VALUES(nickname),
@@ -355,8 +442,10 @@ def create_student():
                 contact = VALUES(contact),
                 password = VALUES(password),
                 student_id = VALUES(student_id),
-                photo_url = COALESCE(NULLIF(VALUES(photo_url), ''), photo_url)
-        """, (nis, username, password, full_name, nickname, gender, (student_phone or parent_phone), new_id, photo_url))
+                photo_url = COALESCE(NULLIF(VALUES(photo_url), ''), photo_url),
+                kelas_english = VALUES(kelas_english),
+                kelas_math = VALUES(kelas_math)
+        """, (nis, username, password, full_name, nickname, gender, (student_phone or parent_phone), new_id, photo_url, kelas_english, kelas_math))
 
         if not getattr(connection, 'autocommit', False):
             connection.commit()
@@ -394,6 +483,7 @@ def bulk_create_students():
     """
     POST /api/students/bulk
     Receives JSON array of student objects from Excel import, creates student records and user login accounts.
+    Includes duplicate detection: skips existing students with same name + (birth date OR parent OR birth place).
     """
     connection = None
     try:
@@ -406,24 +496,50 @@ def bulk_create_students():
         cursor = connection.cursor()
 
         created_count = 0
+        skipped_count = 0
         created_records = []
 
         for item in students_list:
-            full_name = (item.get('full_name') or item.get('nama') or item.get('Nama Lengkap') or '').strip()
+            full_name = (item.get('full_name') or item.get('nama') or item.get('Nama Lengkap') or item.get('nama_lengkap') or item.get('Nama') or '').strip()
             if not full_name:
                 continue
 
-            nickname = (item.get('nickname') or item.get('panggilan') or item.get('Nama Panggilan') or '').strip()
-            raw_g = (item.get('gender') or item.get('jenis_kelamin') or item.get('Jenis Kelamin') or 'Laki-laki').strip()
-            gender = 'Perempuan' if raw_g.lower().startswith('p') else 'Laki-laki'
+            nickname = (item.get('nickname') or item.get('panggilan') or item.get('Nama Panggilan') or item.get('Panggilan') or '').strip()
+            raw_g = (item.get('gender') or item.get('jenis_kelamin') or item.get('Jenis Kelamin') or item.get('Gender') or 'Laki-laki').strip()
+            gender = 'Perempuan' if (raw_g.lower().startswith('p') or 'perempuan' in raw_g.lower() or raw_g.lower() == 'female') else 'Laki-laki'
             birth_place = (item.get('birth_place') or item.get('tempat_lahir') or item.get('Tempat Lahir') or 'Gorontalo').strip()
-            birth_date = item.get('birth_date') or item.get('tanggal_lahir') or item.get('Tanggal Lahir') or None
-            parents_name = (item.get('parents_name') or item.get('nama_orang_tua') or item.get('ortu') or item.get('Nama Orang Tua') or '').strip()
-            student_phone = (item.get('student_phone') or item.get('no_hp_siswa') or item.get('No HP Siswa') or '').strip()
-            parent_phone = (item.get('parent_phone') or item.get('no_hp') or item.get('nohp') or item.get('No HP Orang Tua') or '').strip()
-            kelas_english = normalize_short_class_name((item.get('kelas_english') or item.get('Kelas English') or item.get('Level English') or item.get('level_english') or 'Belum Ditentukan').strip())
-            kelas_math = normalize_short_class_name((item.get('kelas_math') or item.get('Kelas Matematika') or item.get('Level Matematika') or item.get('level_matematika') or 'Belum Ditentukan').strip())
+            
+            raw_date = item.get('birth_date') or item.get('tanggal_lahir') or item.get('Tanggal Lahir') or item.get('Tanggal Lahir (YYYY-MM-DD)') or None
+            birth_date = parse_date_string(raw_date)
+
+            parents_name = (item.get('parents_name') or item.get('parent_name') or item.get('nama_ortu') or item.get('nama_orang_tua') or item.get('Nama Orang Tua') or item.get('Nama Orang Tua / Wali') or item.get('Orang Tua') or item.get('ortu') or '').strip()
+            student_phone = (item.get('student_phone') or item.get('phone_siswa') or item.get('no_hp_siswa') or item.get('No HP Siswa') or item.get('HP Siswa') or '').strip()
+            parent_phone = (item.get('parent_phone') or item.get('phone_ortu') or item.get('no_hp_ortu') or item.get('no_hp') or item.get('nohp') or item.get('No HP Orang Tua') or item.get('No HP Ortu') or item.get('HP Ortu') or '').strip()
+            kelas_english = normalize_short_class_name((item.get('kelas_english') or item.get('Kelas English') or item.get('Level English') or item.get('level_english') or item.get('English') or 'Belum Ditentukan').strip())
+            kelas_math = normalize_short_class_name((item.get('kelas_math') or item.get('Kelas Matematika') or item.get('Level Matematika') or item.get('level_matematika') or item.get('Matematika') or 'Belum Ditentukan').strip())
             photo_url = item.get('photo_url') or ''
+
+            # Duplicate check: check if student exists with case-insensitive name + (birth_date OR parent OR birth_place)
+            norm_name = full_name.lower().strip()
+            dup_query = """
+                SELECT id FROM students 
+                WHERE LOWER(TRIM(full_name)) = %s 
+                  AND (
+                      (%s IS NOT NULL AND birth_date = %s)
+                      OR (%s != '' AND (LOWER(TRIM(COALESCE(parents_name, ''))) = LOWER(TRIM(%s)) OR LOWER(TRIM(COALESCE(parent_name, ''))) = LOWER(TRIM(%s))))
+                      OR (%s != '' AND LOWER(TRIM(COALESCE(birth_place, ''))) = LOWER(TRIM(%s)))
+                  )
+                LIMIT 1
+            """
+            cursor.execute(dup_query, (
+                norm_name,
+                birth_date, birth_date,
+                parents_name, parents_name, parents_name,
+                birth_place, birth_place
+            ))
+            if cursor.fetchone():
+                skipped_count += 1
+                continue
 
             # Generate unique NIS: YY + MMDD + NNN
             nis = generate_student_nis(cursor, birth_date)
@@ -433,11 +549,11 @@ def bulk_create_students():
             cursor.execute("""
                 INSERT INTO students (
                     nis, full_name, nickname, gender, birth_place, birth_date,
-                    parents_name, student_phone, parent_phone, kelas_english, kelas_math, photo_url
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    parents_name, parent_name, nama_ortu, student_phone, parent_phone, kelas_english, kelas_math, photo_url
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """, (
                 nis, full_name, nickname, gender, birth_place, birth_date,
-                parents_name, student_phone, parent_phone, kelas_english, kelas_math, photo_url
+                parents_name, parents_name, parents_name, student_phone, parent_phone, kelas_english, kelas_math, photo_url
             ))
             new_id = cursor.lastrowid
 
@@ -478,10 +594,68 @@ def bulk_create_students():
         cursor.close()
         return jsonify({
             "status": "success",
-            "message": f"Berhasil membuat {created_count} akun siswa baru secara massal!",
+            "message": f"Impor selesai: {created_count} data baru berhasil ditambahkan, {skipped_count} data dilewati karena sudah terdaftar di database.",
             "count": created_count,
+            "skipped": skipped_count,
             "created": created_records
         }), 201
+    except Exception as e:
+        if connection and not getattr(connection, 'autocommit', False):
+            try:
+                connection.rollback()
+            except Exception:
+                pass
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if connection and hasattr(connection, 'close'):
+            connection.close()
+
+@students_bp.route('/api/students/<int:student_id>/restore', methods=['POST'])
+@students_bp.route('/api/students/<int:student_id>/ungraduate', methods=['POST'])
+def restore_student(student_id):
+    """
+    POST /api/students/<int:student_id>/restore
+    Reverts an alumnus back to active student status:
+    - status_siswa = 'aktif'
+    - graduated_at = NULL
+    - alumni_access_until = NULL
+    - kelas_english = 'English C'
+    - kelas_math = 'Math C'
+    Also updates users table.
+    """
+    connection = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            UPDATE students 
+            SET status_siswa = 'aktif',
+                graduated_at = NULL,
+                alumni_access_until = NULL,
+                kelas_english = 'English C',
+                kelas_math = 'Math C'
+            WHERE id = %s
+        """, (student_id,))
+
+        try:
+            cursor.execute("""
+                UPDATE users
+                SET kelas_english = 'English C',
+                    kelas_math = 'Math C'
+                WHERE student_id = %s OR id = %s
+            """, (student_id, str(student_id)))
+        except Exception:
+            pass
+
+        if not getattr(connection, 'autocommit', False):
+            connection.commit()
+
+        cursor.close()
+        return jsonify({
+            "status": "success",
+            "message": "Status siswa berhasil dikembalikan menjadi Siswa Aktif (English C & Math C)."
+        }), 200
     except Exception as e:
         if connection and not getattr(connection, 'autocommit', False):
             try:
@@ -653,6 +827,16 @@ def save_evaluation():
             kelas_math
         ))
 
+        # Synchronize students.stars with total evaluations.stars
+        try:
+            cursor.execute("""
+                UPDATE students 
+                SET stars = COALESCE((SELECT SUM(COALESCE(stars, 0)) FROM evaluations WHERE student_id = %s), 0)
+                WHERE id = %s
+            """, (student_id, student_id))
+        except Exception:
+            pass
+
         if not getattr(connection, 'autocommit', False):
             connection.commit()
 
@@ -671,6 +855,51 @@ def save_evaluation():
         }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    finally:
+        if connection and hasattr(connection, 'close'):
+            connection.close()
+
+@students_bp.route('/api/students/<int:student_id>/stars', methods=['POST'])
+def update_student_stars(student_id):
+    """
+    POST /api/students/<id>/stars
+    Body: { "stars": 3, "bulan": "Oktober", "tahun": 2026 }
+    Synchronizes stars across students and evaluations tables.
+    """
+    connection = None
+    try:
+        data = request.get_json() or {}
+        stars = int(data.get('stars', 0))
+        bulan = str(data.get('bulan', 'Oktober')).strip()
+        tahun = int(data.get('tahun', datetime.datetime.now().year))
+
+        connection = get_db_connection()
+        cursor = connection.cursor()
+
+        # Update or insert into evaluations
+        cursor.execute("""
+            INSERT INTO evaluations (student_id, bulan, tahun, stars)
+            VALUES (%s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE stars = VALUES(stars)
+        """, (student_id, bulan, tahun, stars))
+
+        # Synchronize students.stars
+        cursor.execute("""
+            UPDATE students
+            SET stars = COALESCE((SELECT SUM(COALESCE(stars, 0)) FROM evaluations WHERE student_id = %s), %s)
+            WHERE id = %s
+        """, (student_id, stars, student_id))
+
+        if not getattr(connection, 'autocommit', False):
+            connection.commit()
+        cursor.close()
+        return jsonify({
+            'status': 'success',
+            'message': f'Bintang siswa berhasil diperbarui menjadi {stars}!',
+            'data': {'student_id': student_id, 'stars': stars, 'bulan': bulan, 'tahun': tahun}
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
     finally:
         if connection and hasattr(connection, 'close'):
             connection.close()
@@ -695,12 +924,53 @@ def update_student_levels():
         if not student_id:
             return jsonify({'error': 'student_id is required'}), 400
 
+        # Prerequisite check: both must be 'Lulus' if either is 'Lulus'
+        is_eng_lulus = (kelas_eng == 'Lulus')
+        is_math_lulus = (kelas_math == 'Lulus')
+        if (is_eng_lulus and not is_math_lulus) or (is_math_lulus and not is_eng_lulus):
+            return jsonify({
+                'error': 'Siswa tidak dapat dinyatakan Lulus Alumni hanya pada satu mata pelajaran. Siswa harus menyelesaikan dan lulus dari kedua mata pelajaran (English C dan Math C) untuk dapat menjadi Alumni.'
+            }), 400
+
         connection = get_db_connection()
         cursor = connection.cursor()
         cursor.execute(
             "UPDATE students SET kelas_english = %s, kelas_math = %s WHERE id = %s",
             (kelas_eng, kelas_math, int(student_id))
         )
+        try:
+            cursor.execute(
+                "UPDATE users SET kelas_english = %s, kelas_math = %s WHERE student_id = %s",
+                (kelas_eng, kelas_math, int(student_id))
+            )
+        except Exception:
+            pass
+
+        if is_eng_lulus and is_math_lulus:
+            cursor.execute("""
+                UPDATE students 
+                SET status_siswa = 'alumni',
+                    graduated_at = COALESCE(graduated_at, NOW()),
+                    alumni_access_until = COALESCE(alumni_access_until, DATE_ADD(NOW(), INTERVAL 6 MONTH))
+                WHERE id = %s
+            """, (int(student_id),))
+            try:
+                pass
+            except Exception:
+                pass
+        else:
+            cursor.execute("""
+                UPDATE students 
+                SET status_siswa = 'aktif'
+                WHERE id = %s AND status_siswa = 'alumni'
+            """, (int(student_id),))
+            try:
+                pass
+            except Exception:
+                pass
+            except Exception:
+                pass
+
         # Also sync current evaluations for this student
         try:
             cursor.execute(
@@ -716,6 +986,75 @@ def update_student_levels():
         return jsonify({'status': 'success', 'message': 'Level siswa berhasil diupdate!'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        if connection and hasattr(connection, 'close'):
+            connection.close()
+
+# =====================================================
+# GRADUATION (ALUMNI WITH 90-DAY ACCESS)
+# =====================================================
+@students_bp.route('/api/students/<student_id>/graduate', methods=['POST'])
+def graduate_student(student_id):
+    """
+    POST /api/students/<student_id>/graduate
+    Marks a student as graduated (alumni):
+    - status_siswa = 'alumni'
+    - graduated_at = NOW()
+    - alumni_access_until = DATE_ADD(NOW(), INTERVAL 90 DAY)
+    - kelas_english = 'Lulus'
+    - kelas_math = 'Lulus'
+    Also updates users table credentials and class assignments.
+    """
+    connection = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+
+        # Check student existence
+        cursor.execute("SELECT id, nis, full_name FROM students WHERE id = %s OR nis = %s", (student_id, student_id))
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({"error": "Siswa tidak ditemukan."}), 404
+
+        s_id = row['id'] if isinstance(row, dict) else row[0]
+        s_nis = row['nis'] if isinstance(row, dict) else row[1]
+        s_name = row['full_name'] if isinstance(row, dict) else row[2]
+
+        cursor.execute("""
+            UPDATE students
+            SET status_siswa = 'alumni',
+                graduated_at = NOW(),
+                alumni_access_until = DATE_ADD(NOW(), INTERVAL 6 MONTH),
+                kelas_english = 'Lulus',
+                kelas_math = 'Lulus'
+            WHERE id = %s OR nis = %s
+        """, (s_id, s_nis))
+
+        cursor.execute("""
+            UPDATE users
+            SET kelas_english = 'Lulus',
+                kelas_math = 'Lulus'
+            WHERE student_id = %s OR id = %s OR id = %s
+        """, (s_id, s_nis, str(s_id)))
+
+        if not getattr(connection, 'autocommit', False):
+            connection.commit()
+
+        cursor.close()
+        return jsonify({
+            "status": "success",
+            "message": f"Siswa {s_name} berhasil dinyatakan Lulus sebagai Alumni!",
+            "data": {
+                "id": s_id,
+                "nis": s_nis,
+                "full_name": s_name,
+                "status_siswa": "alumni",
+                "kelas_english": "Lulus",
+                "kelas_math": "Lulus"
+            }
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
     finally:
         if connection and hasattr(connection, 'close'):
             connection.close()

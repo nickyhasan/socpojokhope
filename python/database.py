@@ -1,4 +1,9 @@
 import datetime
+import os
+import re
+import base64
+import time
+import shutil
 
 # Import database connector with fallbacks
 try:
@@ -57,31 +62,192 @@ get_db = get_db_connection
 def normalize_short_class_name(name):
     """
     Strips descriptive UI suffixes from class names to guarantee that only canonical
-    short class codes are stored in the database ('English A'..'Math D', 'Semua').
+    short class codes are stored in the database ('Calistung', 'English A'..'English C', 'Math A'..'Math C', 'Semua').
+    Migrates legacy 'English D' and 'Math D' to 'English C' and 'Math C'.
     """
     if not name:
         return name
     name_str = str(name).strip()
     upper = name_str.upper()
+    if 'CALISTUNG' in upper:
+        return 'Calistung'
     if 'ENGLISH A' in upper:
         return 'English A'
     if 'ENGLISH B' in upper:
         return 'English B'
-    if 'ENGLISH C' in upper:
+    if 'ENGLISH C' in upper or 'ENGLISH D' in upper:
         return 'English C'
-    if 'ENGLISH D' in upper:
-        return 'English D'
     if 'MATH A' in upper:
         return 'Math A'
     if 'MATH B' in upper:
         return 'Math B'
-    if 'MATH C' in upper:
+    if 'MATH C' in upper or 'MATH D' in upper:
         return 'Math C'
-    if 'MATH D' in upper:
-        return 'Math D'
+    if 'LULUS' in upper:
+        return 'Lulus'
     if 'SEMUA' in upper:
         return 'Semua'
     return name_str
+
+def normalize_schedule_date(val):
+    """
+    Converts any incoming date format from Excel or forms into strict YYYY-MM-DD format (zero-padded).
+    Handles datetime objects, Excel numeric serials, YYYY-MM-DD, DD/MM/YYYY, MM/DD/YYYY, DD-MM-YYYY, YYYY/MM/DD.
+    """
+    if not val:
+        return None
+    if isinstance(val, (datetime.date, datetime.datetime)):
+        return val.strftime('%Y-%m-%d')
+    s = str(val).strip()
+    if not s or s.lower() in ('null', 'none', '-', '', 'undefined'):
+        return None
+    # Check numeric Excel serial date (e.g. 46320)
+    try:
+        f_val = float(s)
+        if 1000 < f_val < 100000:
+            dt = datetime.datetime(1899, 12, 30) + datetime.timedelta(days=f_val)
+            return dt.strftime('%Y-%m-%d')
+    except (ValueError, OverflowError):
+        pass
+
+    if 'T' in s:
+        s = s.split('T')[0].strip()
+    elif ' ' in s:
+        s = s.split(' ')[0].strip()
+
+    # Match YYYY-MM-DD or YYYY/MM/DD
+    m_iso = re.match(r'^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$', s)
+    if m_iso:
+        y, m, d = int(m_iso.group(1)), int(m_iso.group(2)), int(m_iso.group(3))
+        return f"{y:04d}-{m:02d}-{d:02d}"
+
+    # Match DD/MM/YYYY, MM/DD/YYYY, DD-MM-YYYY, etc.
+    m_slash = re.match(r'^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$', s)
+    if m_slash:
+        p1, p2, y = int(m_slash.group(1)), int(m_slash.group(2)), int(m_slash.group(3))
+        if p2 > 12 and p1 <= 12:
+            m, d = p1, p2
+        else:
+            d, m = p1, p2
+        return f"{y:04d}-{m:02d}-{d:02d}"
+
+    return None
+
+def normalize_subject_name(subject):
+    """
+    Normalizes subject name to one of canonical names:
+    'Calistung', 'English', 'Matematika', 'Karakter', 'Outdoor Learning'.
+    """
+    if not subject:
+        return 'Karakter'
+    s = str(subject).strip()
+    s_upper = s.upper()
+    if 'CAL' in s_upper or 'BACA' in s_upper or 'TULIS' in s_upper or 'HITUNG' in s_upper:
+        return 'Calistung'
+    if 'ENG' in s_upper or 'INGGRIS' in s_upper:
+        return 'English'
+    if 'MAT' in s_upper or 'MATH' in s_upper:
+        return 'Matematika'
+    if 'OUT' in s_upper:
+        return 'Outdoor Learning'
+    if 'KAR' in s_upper or 'CHAR' in s_upper:
+        return 'Karakter'
+    return s
+
+def normalize_schedule_class(kelas, subject=None):
+    """
+    Subject-Aware Class Name Normalization:
+    - If subject is 'Karakter' or 'Outdoor Learning', or kelas contains 'Semua', returns 'Semua'.
+    - If subject is 'Calistung' or kelas contains 'Calistung', returns 'Calistung'.
+    - If kelas is 'A', 'B', 'C', 'D' or 'Kelas A'..'Kelas D':
+        - If subject is 'Matematika'/'Math' -> 'Math A'..'Math C' (D mapped to C)
+        - If subject is 'English' -> 'English A'..'English C' (D mapped to C)
+    - Strips descriptive suffixes like ' (Beginner)' to canonical short names.
+    """
+    s_norm = normalize_subject_name(subject) if subject else ''
+    if s_norm in ('Karakter', 'Outdoor Learning'):
+        return 'Semua'
+
+    if not kelas:
+        return 'Calistung' if s_norm == 'Calistung' else 'Semua'
+
+    k_str = str(kelas).strip()
+    k_upper = k_str.upper()
+
+    if 'SEMUA' in k_upper:
+        return 'Semua'
+
+    if s_norm == 'Calistung' or 'CALISTUNG' in k_upper:
+        return 'Calistung'
+
+    # Check if already prefixed with canonical subject
+    if 'ENGLISH A' in k_upper:
+        return 'English A'
+    if 'ENGLISH B' in k_upper:
+        return 'English B'
+    if 'ENGLISH C' in k_upper or 'ENGLISH D' in k_upper:
+        return 'English C'
+    if 'MATH A' in k_upper:
+        return 'Math A'
+    if 'MATH B' in k_upper:
+        return 'Math B'
+    if 'MATH C' in k_upper or 'MATH D' in k_upper:
+        return 'Math C'
+
+    # Check for single letter or 'Kelas X'
+    m = re.search(r'(?:KELAS\s+)?([A-D])\b', k_upper)
+    if m:
+        letter = m.group(1)
+        if letter == 'D':
+            letter = 'C'
+        if s_norm == 'Matematika':
+            return f"Math {letter}"
+        elif s_norm == 'English':
+            return f"English {letter}"
+        else:
+            return f"Kelas {letter}"
+
+    return normalize_short_class_name(k_str)
+
+def save_profile_image_file(entity_id, photo_data):
+    """
+    Decodes base64 photo_data, verifies magic bytes, optimizes/compresses via Pillow (max 400px, quality=82),
+    and writes it directly to disk at static/src/assets/profiles/{entity_id}.jpg.
+    Returns clean path 'static/src/assets/profiles/{entity_id}.jpg?v={timestamp}'.
+    If photo_data is not base64, returns it as-is.
+    """
+    if not photo_data or not isinstance(photo_data, str):
+        return photo_data
+    if photo_data.startswith('data:image/'):
+        try:
+            # Expected format: data:image/jpeg;base64,...
+            header, encoded = photo_data.split(',', 1)
+            img_bytes = base64.b64decode(encoded)
+
+            try:
+                from image_utils import is_valid_image_bytes, optimize_image_bytes
+            except ImportError:
+                from .image_utils import is_valid_image_bytes, optimize_image_bytes
+
+            if not is_valid_image_bytes(img_bytes):
+                print(f"Invalid image magic bytes for entity {entity_id}")
+                return photo_data
+
+            optimized_bytes = optimize_image_bytes(img_bytes, max_dim=400, quality=82)
+
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            profiles_dir = os.path.join(base_dir, 'static', 'src', 'assets', 'profiles')
+            os.makedirs(profiles_dir, exist_ok=True)
+            clean_id = str(entity_id).strip()
+            filepath = os.path.join(profiles_dir, f"{clean_id}.jpg")
+            with open(filepath, 'wb') as f:
+                f.write(optimized_bytes)
+            ts = int(time.time())
+            return f"static/src/assets/profiles/{clean_id}.jpg?v={ts}"
+        except Exception as e:
+            print(f"Error saving profile image file for {entity_id}: {e}")
+            return photo_data
+    return photo_data
 
 def init_db():
     """Initializes tables and seeds default user & student accounts if missing."""
@@ -104,6 +270,10 @@ def init_db():
                 parent_phone VARCHAR(20),
                 kelas_english VARCHAR(50) DEFAULT 'Belum Ditentukan',
                 kelas_math VARCHAR(50) DEFAULT 'Belum Ditentukan',
+                photo_url LONGTEXT,
+                status_siswa VARCHAR(20) DEFAULT 'aktif',
+                graduated_at DATETIME NULL,
+                alumni_access_until DATETIME NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
@@ -116,11 +286,17 @@ def init_db():
             ("birth_place", "VARCHAR(100)"),
             ("birth_date", "DATE"),
             ("parents_name", "VARCHAR(100)"),
+            ("parent_name", "VARCHAR(150)"),
+            ("nama_ortu", "VARCHAR(150)"),
             ("student_phone", "VARCHAR(20)"),
             ("parent_phone", "VARCHAR(20)"),
             ("kelas_english", "VARCHAR(50) DEFAULT 'Belum Ditentukan'"),
             ("kelas_math", "VARCHAR(50) DEFAULT 'Belum Ditentukan'"),
             ("photo_url", "LONGTEXT"),
+            ("status_siswa", "VARCHAR(20) DEFAULT 'aktif'"),
+            ("graduated_at", "DATETIME NULL"),
+            ("alumni_access_until", "DATETIME NULL"),
+            ("stars", "INT DEFAULT 0"),
             ("created_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
         ]:
             try:
@@ -137,6 +313,14 @@ def init_db():
         # Safe ALTER TABLE to drop old 'current_grade' column if it exists
         try:
             cursor.execute("ALTER TABLE students DROP COLUMN current_grade")
+        except Exception:
+            pass
+
+        # Synchronize parents_name, parent_name, and nama_ortu columns
+        try:
+            cursor.execute("UPDATE students SET parent_name = parents_name WHERE (parent_name IS NULL OR parent_name = '') AND parents_name IS NOT NULL AND parents_name != ''")
+            cursor.execute("UPDATE students SET nama_ortu = parents_name WHERE (nama_ortu IS NULL OR nama_ortu = '') AND parents_name IS NOT NULL AND parents_name != ''")
+            cursor.execute("UPDATE students SET parents_name = COALESCE(parent_name, nama_ortu) WHERE (parents_name IS NULL OR parents_name = '') AND (parent_name IS NOT NULL OR nama_ortu IS NOT NULL)")
         except Exception:
             pass
 
@@ -305,6 +489,41 @@ def init_db():
         except Exception:
             pass
 
+        # Migration: Normalize schedule dates and class names in classes table
+        try:
+            # Delete orphaned records where date is NULL
+            cursor.execute("DELETE FROM classes WHERE date IS NULL")
+            cursor.execute("SELECT id, date, mata_pelajaran, kelas FROM classes")
+            c_rows = cursor.fetchall()
+            for r in c_rows:
+                r_id = r['id'] if isinstance(r, dict) else r[0]
+                r_date = r['date'] if isinstance(r, dict) else r[1]
+                r_subj = r['mata_pelajaran'] if isinstance(r, dict) else r[2]
+                r_cls = r['kelas'] if isinstance(r, dict) else r[3]
+
+                norm_date = normalize_schedule_date(r_date)
+                norm_subj = normalize_subject_name(r_subj)
+                norm_cls = normalize_schedule_class(r_cls, norm_subj)
+
+                if norm_date:
+                    cursor.execute(
+                        "UPDATE classes SET date = %s, mata_pelajaran = %s, kelas = %s WHERE id = %s",
+                        (norm_date, norm_subj, norm_cls, r_id)
+                    )
+
+            # Deduplicate existing schedule rows keeping the lowest id
+            cursor.execute("""
+                DELETE c1 FROM classes c1
+                INNER JOIN classes c2 
+                WHERE c1.id > c2.id 
+                  AND c1.date = c2.date 
+                  AND c1.mata_pelajaran = c2.mata_pelajaran 
+                  AND c1.kelas = c2.kelas 
+                  AND c1.start_time = c2.start_time
+            """)
+        except Exception as e:
+            print("Error in classes normalization startup migration:", e)
+
         # 5. Create evaluations table
         try:
             cursor.execute("SHOW COLUMNS FROM evaluations LIKE 'bulan'")
@@ -351,66 +570,69 @@ def init_db():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS class_assignments (
                 class_name VARCHAR(100) PRIMARY KEY,
-                teacher_name VARCHAR(100)
+                teacher_name VARCHAR(100),
+                category VARCHAR(50) DEFAULT 'Umum',
+                display_label VARCHAR(120) NULL
             )
         """)
 
-        # Migration Point 5 & 7: Deduplicate and normalize class_assignments to exactly 8 canonical rows
-        canonical_classes = [
-            ('English A', 'Miss Dela, S.Pd.'),
-            ('English B', 'Miss Dela, S.Pd.'),
-            ('English C', 'Miss Nisa, S.Pd.'),
-            ('English D', 'Miss Nisa, S.Pd.'),
-            ('Math A', 'Sir Nicky, S.Kom.'),
-            ('Math B', 'Sir Nicky, S.Kom.'),
-            ('Math C', 'Miss Fidya, S.Pd.'),
-            ('Math D', 'Miss Fidya, S.Pd.')
-        ]
+        for col, col_def in [
+            ("category", "VARCHAR(50) DEFAULT 'Umum'"),
+            ("display_label", "VARCHAR(120) NULL")
+        ]:
+            try:
+                cursor.execute(f"ALTER TABLE class_assignments ADD COLUMN {col} {col_def}")
+            except Exception:
+                pass
 
-        # Read existing assignments to preserve assigned teachers if any
-        existing_assignments = {}
+        # Migration: Remove English D and Math D from class_assignments
         try:
-            cursor.execute("SELECT class_name, teacher_name FROM class_assignments")
-            ca_rows = cursor.fetchall()
-            for r in ca_rows:
-                c_raw = r['class_name'] if isinstance(r, dict) else r[0]
-                t_raw = r['teacher_name'] if isinstance(r, dict) else r[1]
-                norm_c = normalize_short_class_name(c_raw)
-                # Normalize legacy teacher names
-                t_norm = t_raw or ''
-                t_lower = t_norm.lower()
-                if 'nicky' in t_lower:
-                    t_norm = 'Sir Nicky, S.Kom.'
-                elif 'dela' in t_lower or 'nadhila' in t_lower:
-                    t_norm = 'Miss Dela, S.Pd.'
-                elif 'nisa' in t_lower or 'anisa' in t_lower:
-                    t_norm = 'Miss Nisa, S.Pd.'
-                elif 'fidya' in t_lower:
-                    t_norm = 'Miss Fidya, S.Pd.'
-                elif 'sity' in t_lower or 'djabar' in t_lower:
-                    t_norm = ''
-                if norm_c and t_norm:
-                    existing_assignments[norm_c] = t_norm
+            cursor.execute("DELETE FROM class_assignments WHERE class_name IN ('English D', 'Math D')")
         except Exception:
             pass
 
-        # Clear and repopulate class_assignments with strictly the 8 canonical rows
-        cursor.execute("DELETE FROM class_assignments")
-        for c_code, default_teacher in canonical_classes:
-            assigned_teacher = existing_assignments.get(c_code) or default_teacher
-            cursor.execute(
-                "INSERT INTO class_assignments (class_name, teacher_name) VALUES (%s, %s)",
-                (c_code, assigned_teacher)
-            )
+        # Canonical default 7 classes (Calistung + English A,B,C + Math A,B,C)
+        canonical_classes = [
+            ('Calistung', 'Sir Nicky, S.Kom.', 'Calistung', 'Calistung (Baca Tulis Hitung)'),
+            ('English A', 'Miss Nisa, S.Pd.', 'English', 'English A (Beginner)'),
+            ('English B', 'Miss Dela, S.Pd.', 'English', 'English B (Intermediate)'),
+            ('English C', 'Miss Fidya, S.Pd.', 'English', 'English C (Advanced)'),
+            ('Math A', 'Miss Nisa, S.Pd.', 'Matematika', 'Math A (Beginner)'),
+            ('Math B', 'Miss Dela, S.Pd.', 'Matematika', 'Math B (Intermediate)'),
+            ('Math C', 'Miss Fidya, S.Pd.', 'Matematika', 'Math C (Advanced)')
+        ]
 
-        # Migration Point 7: Strip descriptive UI suffixes in students, evaluations, and classes
+        for c_code, default_teacher, c_cat, c_label in canonical_classes:
+            cursor.execute("""
+                INSERT INTO class_assignments (class_name, teacher_name, category, display_label)
+                VALUES (%s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    category = VALUES(category),
+                    display_label = VALUES(display_label),
+                    teacher_name = COALESCE(NULLIF(class_assignments.teacher_name, ''), VALUES(teacher_name))
+            """, (c_code, default_teacher, c_cat, c_label))
+
+        # Migration: Migrate any English D and Math D to English C and Math C across students, users, evaluations, and classes
         try:
-            for c_code in ['English A', 'English B', 'English C', 'English D']:
+            # English D -> English C
+            cursor.execute("UPDATE students SET kelas_english = 'English C' WHERE kelas_english LIKE '%English D%' OR kelas_english = 'D'")
+            cursor.execute("UPDATE users SET kelas_english = 'English C' WHERE role = 'siswa' AND (kelas_english LIKE '%English D%' OR kelas_english = 'D')")
+            cursor.execute("UPDATE evaluations SET kelas_english = 'English C' WHERE kelas_english LIKE '%English D%' OR kelas_english = 'D'")
+            cursor.execute("UPDATE classes SET kelas = 'English C' WHERE kelas LIKE '%English D%' OR (kelas = 'D' AND UPPER(mata_pelajaran) LIKE '%ENG%')")
+
+            # Math D -> Math C
+            cursor.execute("UPDATE students SET kelas_math = 'Math C' WHERE kelas_math LIKE '%Math D%' OR kelas_math = 'D'")
+            cursor.execute("UPDATE users SET kelas_math = 'Math C' WHERE role = 'siswa' AND (kelas_math LIKE '%Math D%' OR kelas_math = 'D')")
+            cursor.execute("UPDATE evaluations SET kelas_math = 'Math C' WHERE kelas_math LIKE '%Math D%' OR kelas_math = 'D'")
+            cursor.execute("UPDATE classes SET kelas = 'Math C' WHERE kelas LIKE '%Math D%' OR (kelas = 'D' AND UPPER(mata_pelajaran) LIKE '%MAT%')")
+
+            # Canonical short names
+            for c_code in ['English A', 'English B', 'English C']:
                 cursor.execute("UPDATE students SET kelas_english = %s WHERE kelas_english LIKE %s", (c_code, f"%{c_code}%"))
                 cursor.execute("UPDATE evaluations SET kelas_english = %s WHERE kelas_english LIKE %s", (c_code, f"%{c_code}%"))
                 cursor.execute("UPDATE classes SET kelas = %s WHERE (UPPER(mata_pelajaran) LIKE '%ENG%' OR UPPER(kelas) LIKE '%ENG%') AND kelas LIKE %s", (c_code, f"%{c_code}%"))
 
-            for c_code in ['Math A', 'Math B', 'Math C', 'Math D']:
+            for c_code in ['Math A', 'Math B', 'Math C']:
                 cursor.execute("UPDATE students SET kelas_math = %s WHERE kelas_math LIKE %s", (c_code, f"%{c_code}%"))
                 cursor.execute("UPDATE evaluations SET kelas_math = %s WHERE kelas_math LIKE %s", (c_code, f"%{c_code}%"))
                 cursor.execute("UPDATE classes SET kelas = %s WHERE (UPPER(mata_pelajaran) LIKE '%MAT%' OR UPPER(kelas) LIKE '%MAT%') AND kelas LIKE %s", (c_code, f"%{c_code}%"))
@@ -418,6 +640,20 @@ def init_db():
             cursor.execute("UPDATE classes SET kelas = 'Semua' WHERE UPPER(kelas) LIKE '%SEMUA%'")
         except Exception as e:
             print(f"Error normalizing class names across tables: {e}")
+
+        # Migration: Reset legacy dummy stars > 5 and sync students.stars with evaluations.stars
+        try:
+            cursor.execute("UPDATE evaluations SET stars = 0 WHERE stars > 5")
+            cursor.execute("""
+                UPDATE students s
+                SET s.stars = COALESCE((
+                    SELECT SUM(COALESCE(e.stars, 0))
+                    FROM evaluations e
+                    WHERE e.student_id = s.id
+                ), 0)
+            """)
+        except Exception as e:
+            print(f"Error synchronizing stars in database: {e}")
 
         cursor.execute("SELECT COUNT(*) as count FROM classes")
         cres = cursor.fetchone()
@@ -450,6 +686,7 @@ def init_db():
         default_settings = [
             ('alamat_soc', 'Jln Pasar Minggu, Kec Kabila, Desa Dutohe, Gorontalo.'),
             ('jam_operasional', 'Senin - Sabtu (14:00 - 17:30 WITA)'),
+            ('alumni_certificate_drive_url', 'https://drive.google.com/drive/folders/1U_VJDr6YXV-3bVslE6TSRA6hd7D16SFh?usp=drive_link'),
             ('sponsors_json', '[{"name": "Allies Youth Development", "url": "https://alliesyouth.org/", "icon": "fas fa-hand-holding-heart"}, {"name": "Peacemakers Indonesia", "url": "https://www.instagram.com/pismovement/", "icon": "fab fa-instagram"}]'),
             ('reg_siswa_open', 'true'),
             ('reg_siswa_url', 'https://docs.google.com/forms/d/e/1FAIpQLScb42Ck9syRCpdjbPYyQdnheEpfDlES66TnP3cVtMfkzevC3g/viewform?usp=header'),
@@ -698,9 +935,11 @@ def init_db():
             cursor.execute("UPDATE users SET kelas_english = NULL, kelas_math = NULL WHERE LOWER(role) IN ('founder', 'manager', 'guru', 'admin')")
 
             # Normalize kelas_english & kelas_math in users for role = 'siswa'
-            for c_code in ['English A', 'English B', 'English C', 'English D']:
+            cursor.execute("UPDATE users SET kelas_english = 'English C' WHERE role = 'siswa' AND (kelas_english LIKE '%English D%' OR kelas_english = 'D')")
+            cursor.execute("UPDATE users SET kelas_math = 'Math C' WHERE role = 'siswa' AND (kelas_math LIKE '%Math D%' OR kelas_math = 'D')")
+            for c_code in ['Calistung', 'English A', 'English B', 'English C']:
                 cursor.execute("UPDATE users SET kelas_english = %s WHERE role = 'siswa' AND kelas_english LIKE %s", (c_code, f"%{c_code}%"))
-            for c_code in ['Math A', 'Math B', 'Math C', 'Math D']:
+            for c_code in ['Calistung', 'Math A', 'Math B', 'Math C']:
                 cursor.execute("UPDATE users SET kelas_math = %s WHERE role = 'siswa' AND kelas_math LIKE %s", (c_code, f"%{c_code}%"))
 
             # Safe drop of redundant columns
@@ -753,6 +992,49 @@ def init_db():
             """)
         except Exception:
             pass
+
+        # Fix Existing Teacher Photos in static/src/assets/profiles/ & Clean test rows
+        try:
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            profiles_dir = os.path.join(base_dir, 'static', 'src', 'assets', 'profiles')
+            # 1. Copy 0225002.jpg to 0225001.jpg if 0225001.jpg does not exist
+            p_0225001 = os.path.join(profiles_dir, '0225001.jpg')
+            p_0225002 = os.path.join(profiles_dir, '0225002.jpg')
+            if not os.path.exists(p_0225001) and os.path.exists(p_0225002):
+                shutil.copyfile(p_0225002, p_0225001)
+
+            # 2. Copy 0326005.jpg to 0325005.jpg if 0325005.jpg does not exist
+            p_0325005 = os.path.join(profiles_dir, '0325005.jpg')
+            p_0326005 = os.path.join(profiles_dir, '0326005.jpg')
+            if not os.path.exists(p_0325005) and os.path.exists(p_0326005):
+                shutil.copyfile(p_0326005, p_0325005)
+
+            # 3. Copy 0326006.jpg to 0325006.jpg if 0325006.jpg does not exist
+            p_0325006 = os.path.join(profiles_dir, '0325006.jpg')
+            p_0326006 = os.path.join(profiles_dir, '0326006.jpg')
+            if not os.path.exists(p_0325006) and os.path.exists(p_0326006):
+                shutil.copyfile(p_0326006, p_0325006)
+
+            # Update users.photo_url and tutors.photo_url if currently NULL or empty
+            teacher_ids = ['0125001', '0225001', '0325003', '0325004', '0325005', '0325006']
+            for t_id in teacher_ids:
+                local_path = os.path.join(profiles_dir, f"{t_id}.jpg")
+                if os.path.exists(local_path):
+                    clean_rel_path = f"static/src/assets/profiles/{t_id}.jpg"
+                    cursor.execute("""
+                        UPDATE users SET photo_url = %s 
+                        WHERE id = %s AND (photo_url IS NULL OR photo_url = '' OR photo_url LIKE '%%placeholder%%')
+                    """, (clean_rel_path, t_id))
+                    cursor.execute("""
+                        UPDATE tutors SET photo_url = %s 
+                        WHERE (id = %s OR teacher_code = %s) AND (photo_url IS NULL OR photo_url = '' OR photo_url LIKE '%%placeholder%%')
+                    """, (clean_rel_path, t_id, t_id))
+
+            # Delete the two accidental test rows ('Ayam goreng tepung' 0326007 and 'Bebek rebus kuah' 0326008)
+            cursor.execute("DELETE FROM users WHERE id IN ('0326007', '0326008') OR full_name LIKE '%Ayam goreng%' OR full_name LIKE '%Bebek rebus%'")
+            cursor.execute("DELETE FROM tutors WHERE id IN ('0326007', '0326008') OR teacher_code IN ('0326007', '0326008') OR full_name LIKE '%Ayam goreng%' OR full_name LIKE '%Bebek rebus%'")
+        except Exception as e:
+            print(f"Error migrating teacher profile photos/cleaning test rows: {e}")
 
         try:
             conn.commit()
