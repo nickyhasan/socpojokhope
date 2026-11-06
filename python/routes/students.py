@@ -1025,15 +1025,15 @@ def graduate_student(student_id):
             SET status_siswa = 'alumni',
                 graduated_at = NOW(),
                 alumni_access_until = DATE_ADD(NOW(), INTERVAL 6 MONTH),
-                kelas_english = 'Lulus',
-                kelas_math = 'Lulus'
+                kelas_english = 'Tamat English C',
+                kelas_math = 'Tamat Math C'
             WHERE id = %s OR nis = %s
         """, (s_id, s_nis))
 
         cursor.execute("""
             UPDATE users
-            SET kelas_english = 'Lulus',
-                kelas_math = 'Lulus'
+            SET kelas_english = 'Tamat English C',
+                kelas_math = 'Tamat Math C'
             WHERE student_id = %s OR id = %s OR id = %s
         """, (s_id, s_nis, str(s_id)))
 
@@ -1049,8 +1049,8 @@ def graduate_student(student_id):
                 "nis": s_nis,
                 "full_name": s_name,
                 "status_siswa": "alumni",
-                "kelas_english": "Lulus",
-                "kelas_math": "Lulus"
+                "kelas_english": "Tamat English C",
+                "kelas_math": "Tamat Math C"
             }
         }), 200
     except Exception as e:

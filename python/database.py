@@ -828,15 +828,30 @@ def init_db():
                 print(f"Admin id migration note: {e_mig}")
 
             # 0. Administrator: Administrator SoC (1001001)
-            cursor.execute("SELECT id, password FROM users WHERE id IN ('1001001', '0025001') OR username = 'admin'")
+            cursor.execute("SELECT id, password, email FROM users WHERE id IN ('1001001', '0025001') OR username = 'admin'")
             admin_row = cursor.fetchone()
             if not admin_row:
                 cursor.execute("""
                     INSERT INTO users (id, username, full_name, nickname, gender, contact, email, jurusan, role, password)
-                    VALUES ('1001001', 'admin', 'Administrator SoC', 'Admin', 'Laki-laki', '081111111111', 'admin@soc.org', 'Sistem Administrator', 'admin', 'admin123')
+                    VALUES ('1001001', 'admin', 'Administrator SoC', 'Admin', 'Laki-laki', '081111111111', 'SchoolofCharacter.Gorontalo@gmail.com', 'Sistem Administrator', 'admin', 'admin123')
                 """)
             else:
-                cursor.execute("UPDATE users SET id = '1001001', role = 'admin' WHERE id IN ('1001001', '0025001') OR username = 'admin'")
+                cursor.execute("""
+                    UPDATE users 
+                    SET id = '1001001', role = 'admin',
+                        email = CASE 
+                            WHEN email = 'admin@soc.org' OR email IS NULL OR email = '' THEN 'SchoolofCharacter.Gorontalo@gmail.com' 
+                            ELSE email 
+                        END
+                    WHERE id IN ('1001001', '0025001') OR username = 'admin'
+                """)
+            
+            # Explicitly ensure Administrator email is SchoolofCharacter.Gorontalo@gmail.com if previously set to admin@soc.org
+            cursor.execute("""
+                UPDATE users 
+                SET email = 'SchoolofCharacter.Gorontalo@gmail.com' 
+                WHERE id = '1001001' AND (email = 'admin@soc.org' OR email IS NULL OR email = '')
+            """)
             
             # Ensure admin is removed from tutors table
             cursor.execute("DELETE FROM tutors WHERE id IN ('0025001', '1001001') OR teacher_code IN ('0025001', '1001001') OR LOWER(role) = 'admin'")

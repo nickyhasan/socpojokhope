@@ -16,37 +16,72 @@ def login():
     connection = None
     try:
         data = request.get_json() or {}
-        username = (data.get('username') or '').strip().lower()
-        password = (data.get('password') or '').strip()
+        raw_identifier = str(data.get('username') or data.get('identifier') or '').strip()
+        identifier = raw_identifier.lower()
+        password = str(data.get('password') or '').strip()
 
-        if not username or not password:
-            return jsonify({"error": "Username dan Kata Sandi tidak boleh kosong."}), 400
+        if not raw_identifier or not password:
+            return jsonify({"error": "NIS / ID / Email dan Kata Sandi tidak boleh kosong."}), 400
+
+        # Security Hardening for Admin:
+        # Do NOT allow logging into the Admin account using the generic word 'admin'!
+        # Never reveal the official Admin ID or credential hints.
+        if identifier == 'admin':
+            return jsonify({
+                "error": "NIS / ID / Email atau Kata Sandi salah. Silakan coba lagi."
+            }), 401
 
         connection = get_db_connection()
         cursor = connection.cursor()
 
+        # Multi-identifier search across ID, Email, Student NIS, and Tutor records
         query = """
-            SELECT id, username, password, full_name, role, student_id 
-            FROM users 
-            WHERE LOWER(username) = %s 
-               OR id = %s 
-               OR LOWER(email) = %s 
-               OR LOWER(full_name) = %s
+            SELECT u.id, u.username, u.password, u.full_name, u.role, u.email, u.student_id,
+                   COALESCE(NULLIF(u.photo_url, ''), NULLIF(s.photo_url, ''), '') AS photo_url
+            FROM users u
+            LEFT JOIN students s ON (s.id = u.student_id OR s.nis = u.id)
+            WHERE u.id = %s 
+               OR LOWER(u.email) = %s 
+               OR (LOWER(u.username) = %s AND LOWER(u.role) != 'admin')
+               OR u.student_id IN (SELECT id FROM students WHERE LOWER(nis) = %s)
+               OR u.id IN (SELECT nis FROM students WHERE LOWER(nis) = %s)
+               OR u.id IN (SELECT id FROM tutors WHERE LOWER(email) = %s OR id = %s OR teacher_code = %s)
+            ORDER BY (u.id = %s) DESC, (LOWER(u.email) = %s) DESC
+            LIMIT 1
         """
-        cursor.execute(query, (username, username, username, username))
+        cursor.execute(query, (
+            raw_identifier,
+            identifier,
+            identifier,
+            identifier,
+            identifier,
+            identifier, raw_identifier, raw_identifier,
+            raw_identifier, identifier
+        ))
 
         user = cursor.fetchone()
         cursor.close()
 
         if not user:
-            return jsonify({"error": "Akun tidak ditemukan. Periksa username Anda."}), 401
+            return jsonify({"error": "NIS / ID / Email atau Kata Sandi salah. Silakan coba lagi."}), 401
+
+        # Additional security guard for Admin role
+        user_role = str(user['role'] if isinstance(user, dict) else user[4]).strip().lower()
+        user_id = str(user['id'] if isinstance(user, dict) else user[0]).strip()
+        user_email = str((user['email'] if isinstance(user, dict) else user[5]) or '').strip().lower()
+
+        if user_role == 'admin':
+            if raw_identifier != user_id and identifier != user_email:
+                return jsonify({
+                    "error": "NIS / ID / Email atau Kata Sandi salah. Silakan coba lagi."
+                }), 401
 
         # Strictly verify submitted password against the exact database password
         db_pass = user['password'] if isinstance(user, dict) else user[2]
         is_valid = (str(password) == str(db_pass))
 
         if not is_valid:
-            return jsonify({"error": "Kata sandi yang Anda masukkan salah."}), 401
+            return jsonify({"error": "NIS / ID / Email atau Kata Sandi salah. Silakan coba lagi."}), 401
 
         if isinstance(user, dict):
             user_info = {
@@ -54,7 +89,8 @@ def login():
                 "username": user.get('username') or str(user['id']),
                 "full_name": user['full_name'],
                 "role": user['role'],
-                "student_id": user.get('student_id')
+                "student_id": user.get('student_id'),
+                "photo_url": user.get('photo_url') or ''
             }
         else:
             user_info = {
@@ -62,7 +98,8 @@ def login():
                 "username": user[1] or str(user[0]),
                 "full_name": user[3],
                 "role": user[4],
-                "student_id": user[5]
+                "student_id": user[6],
+                "photo_url": user[7] if len(user) > 7 and user[7] else ''
             }
 
         # 90-Day Alumni Login Grace Period Verification
@@ -260,14 +297,21 @@ def update_profile():
                 WHERE id = %s OR nis = %s
             """, (full_name, nickname, gender, birth_place, birth_date, parents_name, student_phone, parent_phone, final_photo, student_id, user_id))
 
-        # If staff, update tutors table if row exists
+        # If staff, update tutors table if row exists (including password if changed)
         if role in ('guru', 'manager', 'founder'):
             try:
-                cursor.execute("""
-                    UPDATE tutors 
-                    SET full_name = %s, nickname = %s, gender = %s, contact = %s, email = %s, jurusan = %s, photo_url = %s
-                    WHERE id = %s OR teacher_code = %s
-                """, (full_name, nickname, gender, contact, email, jurusan, final_photo, user_id, user_id))
+                if password:
+                    cursor.execute("""
+                        UPDATE tutors 
+                        SET full_name = %s, nickname = %s, gender = %s, contact = %s, email = %s, jurusan = %s, photo_url = %s, password = %s
+                        WHERE id = %s OR teacher_code = %s
+                    """, (full_name, nickname, gender, contact, email, jurusan, final_photo, password, user_id, user_id))
+                else:
+                    cursor.execute("""
+                        UPDATE tutors 
+                        SET full_name = %s, nickname = %s, gender = %s, contact = %s, email = %s, jurusan = %s, photo_url = %s
+                        WHERE id = %s OR teacher_code = %s
+                    """, (full_name, nickname, gender, contact, email, jurusan, final_photo, user_id, user_id))
             except Exception:
                 pass
 

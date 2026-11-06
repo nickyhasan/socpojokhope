@@ -22,21 +22,24 @@ DEFAULT_SETTINGS = {
         {"name": "Peacemakers Indonesia", "url": "https://www.instagram.com/pismovement/", "icon": "fab fa-instagram"}
     ]),
     'gallery_json': json.dumps([
-        {"id": 1, "image_url": "static/src/assets/ui/gallery1.jpg", "category": "matematika", "caption": "Kelas Matematika Menyenangkan"},
+        {"id": 1, "image_url": "static/src/assets/ui/gallery1.jpg", "category": "calistung", "caption": "Fondasi Membaca & Menulis Calistung"},
         {"id": 2, "image_url": "static/src/assets/ui/gallery2.jpg", "category": "karakter", "caption": "Praktik Kelas Karakter"},
-        {"id": 3, "image_url": "static/src/assets/ui/gallery3.jpg", "category": "outdoor", "caption": "Aktivitas Outdoor Learning"},
-        {"id": 4, "image_url": "static/src/assets/ui/gallery4.jpg", "category": "inggris", "caption": "Pentas Dongeng Bahasa Inggris"},
-        {"id": 5, "image_url": "static/src/assets/ui/gallery5.jpg", "category": "matematika", "caption": "Logika & Puzzle Matematika"},
-        {"id": 6, "image_url": "static/src/assets/ui/gallery6.jpg", "category": "karakter", "caption": "Diskusi Karakter & Berbagi"},
-        {"id": 7, "image_url": "static/src/assets/ui/gallery7.jpg", "category": "outdoor", "caption": "Aktivitas Peduli Lingkungan"},
-        {"id": 8, "image_url": "static/src/assets/ui/gallery8.jpg", "category": "inggris", "caption": "Membaca & Pemahaman Inggris"}
+        {"id": 3, "image_url": "static/src/assets/ui/gallery4.jpg", "category": "inggris", "caption": "Pentas Dongeng Bahasa Inggris"},
+        {"id": 4, "image_url": "static/src/assets/ui/gallery5.jpg", "category": "matematika", "caption": "Logika & Puzzle Matematika"},
+        {"id": 5, "image_url": "static/src/assets/ui/gallery3.jpg", "category": "outdoor", "caption": "Aktivitas Outdoor Learning"},
+        {"id": 6, "image_url": "static/src/assets/ui/gallery2.jpg", "category": "calistung", "caption": "Aktivitas Berhitung Ceria Calistung"},
+        {"id": 7, "image_url": "static/src/assets/ui/gallery6.jpg", "category": "karakter", "caption": "Diskusi Karakter & Berbagi"},
+        {"id": 8, "image_url": "static/src/assets/ui/gallery8.jpg", "category": "inggris", "caption": "Membaca & Pemahaman Inggris"},
+        {"id": 9, "image_url": "static/src/assets/ui/gallery1.jpg", "category": "matematika", "caption": "Kelas Matematika Menyenangkan"},
+        {"id": 10, "image_url": "static/src/assets/ui/gallery7.jpg", "category": "outdoor", "caption": "Aktivitas Peduli Lingkungan"}
     ]),
     'reg_siswa_open': 'true',
     'reg_siswa_url': 'https://docs.google.com/forms/d/e/1FAIpQLScb42Ck9syRCpdjbPYyQdnheEpfDlES66TnP3cVtMfkzevC3g/viewform?usp=header',
     'reg_guru_open': 'true',
     'reg_guru_url': 'https://docs.google.com/forms/d/e/1FAIpQLScb42Ck9syRCpdjbPYyQdnheEpfDlES66TnP3cVtMfkzevC3g/viewform?usp=header',
     'reg_volunteer_open': 'true',
-    'reg_volunteer_url': 'https://docs.google.com/forms/d/e/1FAIpQLScb42Ck9syRCpdjbPYyQdnheEpfDlES66TnP3cVtMfkzevC3g/viewform?usp=header'
+    'reg_volunteer_url': 'https://docs.google.com/forms/d/e/1FAIpQLScb42Ck9syRCpdjbPYyQdnheEpfDlES66TnP3cVtMfkzevC3g/viewform?usp=header',
+    'rapor_student_access_open': 'true'
 }
 
 @settings_bp.route('/api/settings', methods=['GET'])
@@ -58,7 +61,16 @@ def get_settings():
             if v is not None:
                 settings[k] = v
 
-        if 'gallery_json' not in settings or not settings['gallery_json']:
+        # Ensure gallery_json contains all 10 slots (including calistung)
+        existing_gallery = []
+        if 'gallery_json' in settings and settings['gallery_json']:
+            try:
+                existing_gallery = json.loads(settings['gallery_json']) if isinstance(settings['gallery_json'], str) else settings['gallery_json']
+            except Exception:
+                existing_gallery = []
+
+        has_calistung = any(isinstance(item, dict) and item.get('category') == 'calistung' for item in existing_gallery) if existing_gallery else False
+        if not existing_gallery or len(existing_gallery) < 10 or not has_calistung:
             settings['gallery_json'] = DEFAULT_SETTINGS['gallery_json']
             try:
                 cursor.execute("""
