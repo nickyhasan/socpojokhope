@@ -48,6 +48,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+    // FAQ Accordion Interaction
+  const faqItems = document.querySelectorAll('.faq-item');
+  faqItems.forEach(item => {
+    const btn = item.querySelector('.faq-question');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        const isActive = item.classList.contains('active');
+        faqItems.forEach(other => {
+          other.classList.remove('active');
+          const otherBtn = other.querySelector('.faq-question');
+          if (otherBtn) otherBtn.setAttribute('aria-expanded', 'false');
+        });
+        if (!isActive) {
+          item.classList.add('active');
+          btn.setAttribute('aria-expanded', 'true');
+        }
+      });
+    }
+  });
+
   // 5. Interactive dynamic program card click helper (Redirect to Program tab)
   const homeCards = document.querySelectorAll('.value-card');
   homeCards.forEach(card => {
@@ -67,13 +87,26 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.classList.add('active');
 
         const filterValue = btn.getAttribute('data-filter');
+        const grid = document.getElementById('home-gallery-grid');
+        if (grid) {
+          if (filterValue !== 'all') {
+            grid.classList.add('filtered-category');
+          } else {
+            grid.classList.remove('filtered-category');
+          }
+        }
+
         const currentItems = document.querySelectorAll('#home-gallery-grid .gallery-item');
         currentItems.forEach(item => {
           const category = item.getAttribute('data-category');
           if (filterValue === 'all' || category === filterValue) {
             item.classList.remove('hidden');
+            item.classList.remove('animate__animated', 'animate__fadeIn');
+            void item.offsetWidth;
+            item.classList.add('animate__animated', 'animate__fadeIn');
           } else {
             item.classList.add('hidden');
+            item.classList.remove('animate__animated', 'animate__fadeIn');
           }
         });
       };
@@ -98,6 +131,10 @@ document.addEventListener('DOMContentLoaded', () => {
               </div>
             `).join('');
           }
+        }
+        const sponsorImg = document.getElementById('sponsorship-showcase-img');
+        if (sponsorImg) {
+          sponsorImg.src = `static/src/assets/ui/sponsorship-photo.jpg?t=${Date.now()}`;
         }
       }
     } catch (e) {
@@ -127,6 +164,143 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
+
+
+  // 6b. Mobile-friendly Gallery Lightbox Modal
+  function setupGalleryLightbox() {
+    const lightboxModal = document.getElementById('gallery-lightbox-modal');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxCaption = document.getElementById('lightbox-caption');
+    const lightboxCounter = document.getElementById('lightbox-counter');
+    const closeBtn = document.getElementById('lightbox-close-btn');
+    const prevBtn = document.getElementById('lightbox-prev-btn');
+    const nextBtn = document.getElementById('lightbox-next-btn');
+    const overlay = document.getElementById('lightbox-overlay');
+    const galleryGrid = document.getElementById('home-gallery-grid');
+
+    if (!lightboxModal || !galleryGrid) return;
+
+    let activeItems = [];
+    let currentIndex = 0;
+
+    function getVisibleItems() {
+      const items = Array.from(galleryGrid.querySelectorAll('.gallery-item'));
+      return items.filter(el => !el.classList.contains('hidden'));
+    }
+
+    function openLightbox(index) {
+      activeItems = getVisibleItems();
+      if (!activeItems.length) return;
+
+      currentIndex = (index >= 0 && index < activeItems.length) ? index : 0;
+      updateLightboxContent();
+
+      lightboxModal.style.display = 'flex';
+      void lightboxModal.offsetWidth;
+      lightboxModal.classList.add('active');
+      lightboxModal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function updateLightboxContent() {
+      if (!activeItems.length || currentIndex < 0 || currentIndex >= activeItems.length) return;
+      const currentItem = activeItems[currentIndex];
+      const img = currentItem.querySelector('img');
+      const captionEl = currentItem.querySelector('.gallery-caption');
+      const captionText = captionEl ? captionEl.textContent.trim() : (img ? img.alt : '');
+
+      if (img && lightboxImg) {
+        lightboxImg.src = img.getAttribute('src') || '';
+        lightboxImg.alt = captionText || 'Galeri Foto';
+      }
+      if (lightboxCaption) {
+        lightboxCaption.textContent = captionText;
+      }
+      if (lightboxCounter) {
+        lightboxCounter.textContent = `${currentIndex + 1} / ${activeItems.length}`;
+      }
+    }
+
+    function closeLightbox() {
+      lightboxModal.classList.remove('active');
+      lightboxModal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      setTimeout(() => {
+        if (!lightboxModal.classList.contains('active')) {
+          lightboxModal.style.display = 'none';
+        }
+      }, 300);
+    }
+
+    function showPrev() {
+      if (!activeItems.length) return;
+      currentIndex = (currentIndex - 1 + activeItems.length) % activeItems.length;
+      updateLightboxContent();
+    }
+
+    function showNext() {
+      if (!activeItems.length) return;
+      currentIndex = (currentIndex + 1) % activeItems.length;
+      updateLightboxContent();
+    }
+
+    // Event delegation on galleryGrid so dynamic loads work automatically
+    galleryGrid.addEventListener('click', (e) => {
+      const item = e.target.closest('.gallery-item');
+      if (!item || item.classList.contains('hidden')) return;
+
+      const items = getVisibleItems();
+      const idx = items.indexOf(item);
+      openLightbox(idx >= 0 ? idx : 0);
+    });
+
+    if (closeBtn) closeBtn.onclick = closeLightbox;
+    if (overlay) overlay.onclick = closeLightbox;
+    if (prevBtn) prevBtn.onclick = (e) => { e.stopPropagation(); showPrev(); };
+    if (nextBtn) nextBtn.onclick = (e) => { e.stopPropagation(); showNext(); };
+
+    // Keyboard navigation
+    window.addEventListener('keydown', (e) => {
+      if (!lightboxModal.classList.contains('active')) return;
+      if (e.key === 'Escape') {
+        closeLightbox();
+      } else if (e.key === 'ArrowLeft') {
+        showPrev();
+      } else if (e.key === 'ArrowRight') {
+        showNext();
+      }
+    });
+
+    // Touch swipe navigation
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    lightboxModal.addEventListener('touchstart', (e) => {
+      if (e.touches && e.touches.length > 0) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    lightboxModal.addEventListener('touchend', (e) => {
+      if (e.changedTouches && e.changedTouches.length > 0) {
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = touchEndY - touchStartY;
+
+        if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY)) {
+          if (deltaX > 0) {
+            showPrev();
+          } else {
+            showNext();
+          }
+        }
+      }
+    }, { passive: true });
+  }
+
+  setupGalleryLightbox();
 
   // 8. Dynamic Site Location & Settings Loader
   async function loadSiteSettings() {

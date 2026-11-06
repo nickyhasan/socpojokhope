@@ -139,6 +139,12 @@ body.dark-mode .btn-outline:hover {
   letter-spacing: 0.5px;
 }
 
+
+.badge-amber {
+  background-color: #FEF3C7;
+  color: #B45309;
+}
+
 .badge-orange {
   background-color: var(--accent-orange-tint);
   color: var(--accent-orange);
@@ -245,44 +251,105 @@ body.dark-mode .btn-outline:hover {
 
 .programs-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 2rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
   margin-top: 2rem;
 }
 
 .program-card {
   background-color: var(--bg-card);
-  border-radius: var(--border-radius-md);
-  padding: 2.5rem 2rem;
-  box-shadow: var(--shadow-md);
-  transition: var(--transition-smooth);
+  border-radius: var(--border-radius-lg);
+  padding: 2.25rem 1.6rem;
+  box-shadow: 0 4px 20px -2px rgba(12, 74, 96, 0.05);
+  border: 1px solid var(--border-color);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
+  text-align: center;
+  height: 100%;
 }
 
 .program-card:hover {
-  transform: translateY(-5px);
-  box-shadow: var(--shadow-lg);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px -4px rgba(12, 74, 96, 0.12);
+  border-color: var(--color-secondary-tint);
 }
 
-.program-card .program-icon {
-  font-size: 2.5rem;
+.program-icon-box {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
   margin-bottom: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.program-card:hover .program-icon-box {
+  transform: scale(1.08);
+}
+
+.program-icon-box.amber {
+  background-color: #FEF3C7;
+  color: #D97706;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.program-icon-box.orange {
+  background-color: var(--accent-orange-tint);
+  color: var(--accent-orange);
+  border: 1px solid rgba(255, 107, 53, 0.25);
+}
+
+.program-icon-box.green {
+  background-color: var(--accent-green-tint);
+  color: var(--accent-green);
+  border: 1px solid rgba(76, 175, 80, 0.25);
+}
+
+.program-icon-box.teal {
+  background-color: var(--color-secondary-tint);
+  color: var(--color-secondary);
+  border: 1px solid rgba(12, 74, 96, 0.2);
 }
 
 .program-card h3 {
   color: var(--color-secondary-dark);
+  font-size: 1.22rem;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  line-height: 1.35;
+  min-height: 2.8em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 0.75rem;
-  font-size: 1.35rem;
+}
+
+.program-level-tag {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .program-card p {
   color: var(--text-muted);
-  font-size: 0.95rem;
-  margin-bottom: 1.5rem;
+  font-size: 0.92rem;
   line-height: 1.6;
+  margin-bottom: 1rem;
   flex-grow: 1;
+}
+
+.program-card.card-amber {
+  border-top: 6px solid #F59E0B;
 }
 
 .program-card.card-orange {
@@ -585,17 +652,39 @@ body.dark-mode .btn-outline:hover {
   border-color: var(--color-secondary-tint);
 }
 
-.portal-icon {
-  font-size: 3.5rem;
-  margin-bottom: 1.5rem;
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
+.portal-icon-box {
+  width: 76px;
+  height: 76px;
+  border-radius: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-sm);
-  color: var(--color-secondary-dark);
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 6px 16px -2px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.portal-card:hover .portal-icon-box {
+  transform: scale(1.08);
+}
+
+.portal-icon-box.orange {
+  background-color: var(--accent-orange-tint);
+  color: var(--accent-orange);
+  border: 1.5px solid rgba(255, 107, 53, 0.25);
+}
+
+.portal-icon-box.green {
+  background-color: var(--accent-green-tint);
+  color: var(--accent-green);
+  border: 1.5px solid rgba(76, 175, 80, 0.25);
+}
+
+.portal-icon-box.teal {
+  background-color: var(--color-secondary-tint);
+  color: var(--color-secondary);
+  border: 1.5px solid rgba(12, 74, 96, 0.2);
 }
 
 .portal-card h3 {
@@ -655,6 +744,10 @@ body.dark-mode .btn-outline:hover {
 /* ==================== GLOBAL RESPONSIVE ADJUSTMENTS ==================== */
 
 @media (max-width: 992px) {
+  .programs-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .vision-mission-grid {
     grid-template-columns: 1fr;
     gap: 2rem;
@@ -1166,3 +1259,9 @@ body.dark-mode .btn-outline:hover {
   }
 }
 
+
+@media (max-width: 540px) {
+  .programs-grid {
+    grid-template-columns: 1fr;
+  }
+}

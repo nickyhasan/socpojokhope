@@ -42,7 +42,8 @@ async function handleLogin(e) {
       const studentId = data.user.student_id || '';
 
       let redirectUrl = `dashboard.html?role=${role}`;
-      if (studentId) {
+      // Only append &student_id= when role is strictly 'siswa' (never for staff)
+      if (role === 'siswa' && studentId) {
         redirectUrl += `&student_id=${studentId}`;
       }
 
@@ -71,3 +72,106 @@ async function handleLogin(e) {
 
 // Make handleLogin available globally for form submission
 window.handleLogin = handleLogin;
+
+// ==========================================
+// FORGOT PASSWORD RECOVERY MODAL CONTROLLER
+// ==========================================
+function initForgotPasswordModal() {
+  const modal = document.getElementById('forgot-password-modal');
+  const overlay = document.getElementById('forgot-modal-overlay');
+  const closeBtn = document.getElementById('forgot-modal-close');
+  const forgotLinks = document.querySelectorAll('.forgot-link');
+  const btnWa = document.getElementById('btn-forgot-whatsapp');
+  const btnEmail = document.getElementById('btn-forgot-email');
+  const inputName = document.getElementById('forgot-input-name');
+  const inputId = document.getElementById('forgot-input-id');
+  const errorMsg = document.getElementById('forgot-error-msg');
+  const loginUserInput = document.getElementById('login-username');
+
+  if (!modal) return;
+
+  function openModal(e) {
+    if (e) e.preventDefault();
+    if (loginUserInput && inputId && loginUserInput.value.trim() && !inputId.value.trim()) {
+      inputId.value = loginUserInput.value.trim();
+    }
+    if (errorMsg) errorMsg.style.display = 'none';
+    modal.style.display = 'flex';
+    void modal.offsetWidth;
+    modal.classList.add('active');
+    modal.setAttribute('aria-hidden', 'false');
+    if (inputName) inputName.focus();
+  }
+
+  function closeModal() {
+    modal.classList.remove('active');
+    modal.setAttribute('aria-hidden', 'true');
+    setTimeout(() => {
+      if (!modal.classList.contains('active')) {
+        modal.style.display = 'none';
+      }
+    }, 250);
+  }
+
+  forgotLinks.forEach(link => {
+    link.addEventListener('click', openModal);
+  });
+
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  if (overlay) overlay.addEventListener('click', closeModal);
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('active')) {
+      closeModal();
+    }
+  });
+
+  function validateInputs() {
+    const name = (inputName ? inputName.value : '').trim();
+    const id = (inputId ? inputId.value : '').trim();
+    if (!name || !id) {
+      if (errorMsg) errorMsg.style.display = 'block';
+      return null;
+    }
+    if (errorMsg) errorMsg.style.display = 'none';
+    return { name, id };
+  }
+
+  if (btnWa) {
+    btnWa.addEventListener('click', () => {
+      const vals = validateInputs();
+      if (!vals) return;
+      const message = `Halo Admin/Manager School of Character - Pojok Hope, saya *${vals.name}* dengan NIS/ID/Email *${vals.id}* lupa kata sandi akun portal SoC saya. Mohon bantuannya untuk melakukan reset kata sandi. Terima kasih.`;
+      const waUrl = `https://wa.me/6282190029889?text=${encodeURIComponent(message)}`;
+      window.open(waUrl, '_blank');
+      closeModal();
+    });
+  }
+
+  if (btnEmail) {
+    btnEmail.addEventListener('click', () => {
+      const vals = validateInputs();
+      if (!vals) return;
+      const subject = "Permohonan Reset Kata Sandi Akun SoC";
+      const body = `Halo Tim School of Character - Pojok Hope,
+
+Saya ingin mengajukan permohonan reset kata sandi akun portal SoC saya dengan rincian sebagai berikut:
+
+- Nama Lengkap: ${vals.name}
+- NIS / ID / Email: ${vals.id}
+
+Mohon bantuannya untuk melakukan verifikasi dan pengaturan ulang kata sandi akun saya.
+
+Terima kasih.`;
+      const mailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=SchoolofCharacter.Gorontalo@gmail.com&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.open(mailUrl, '_blank');
+      closeModal();
+    });
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initForgotPasswordModal);
+} else {
+  initForgotPasswordModal();
+}

@@ -9,6 +9,12 @@ if (!window.allStudents) window.allStudents = [];
 if (!window.allSchedulesData) window.allSchedulesData = [];
 window.allStudentsLoaded = false;
 
+export function getTodayDateString() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+window.getTodayDateString = getTodayDateString;
+
 export async function loadAllStudents() {
   try {
     const res = await fetch('http://localhost:5000/api/students');

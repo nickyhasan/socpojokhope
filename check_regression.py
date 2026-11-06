@@ -64,6 +64,15 @@ def run_test_suite():
             menu_items = re.findall(r'<a\s+[^>]*data-view="([^"]+)"[^>]*id="([^"]+)"', sidebar_html)
             menu_items = [(m[1], m[0]) for m in menu_items]
 
+        # Also check sidebar user profile trigger: #sidebar-user-profile-trigger[data-view="data-diri"]
+        user_trigger = re.search(r'id="(sidebar-user-profile-trigger)"[^>]*data-view="([^"]+)"', html_content)
+        if not user_trigger:
+            user_trigger = re.search(r'data-view="([^"]+)"[^>]*id="(sidebar-user-profile-trigger)"', html_content)
+            if user_trigger:
+                menu_items.append((user_trigger.group(2), user_trigger.group(1)))
+        else:
+            menu_items.append((user_trigger.group(1), user_trigger.group(2)))
+
         print(f"\n       Found {len(menu_items)} sidebar menu items with data-view:")
         for menu_id, data_view in menu_items:
             tests_run += 1

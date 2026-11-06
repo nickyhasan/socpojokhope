@@ -47,7 +47,7 @@ export async function renderGuruSummary() {
 
     // Fallback if data is empty or undefined
     if (schedules.length === 0 && jadwalContainer) {
-      jadwalContainer.innerHTML = '<div class="alert alert-info" style="margin:1rem;">Belum ada data untuk ditampilkan.</div>';
+      jadwalContainer.innerHTML = '<div style="padding: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.9rem;">Belum ada jadwal kelas mendatang yang terdaftar.</div>';
     }
     if (students.length === 0 && topSiswaContainer) {
       topSiswaContainer.innerHTML = '<div class="alert alert-info" style="margin:1rem;">Belum ada data untuk ditampilkan.</div>';
@@ -158,9 +158,10 @@ export async function renderGuruSummary() {
       classesMonthEl.textContent = count;
     }
 
-    // 1. Render Guru's Jadwal
-    if (jadwalContainer && schedules.length > 0) {
-      const todayTime = new Date().setHours(0, 0, 0, 0);
+    // 1. Render Guru's Jadwal (strictly today and future, no past fallback)
+    if (jadwalContainer) {
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
       const subjectColors = {
         'Karakter': { color: 'orange', badge: 'badge-orange' },
@@ -170,37 +171,29 @@ export async function renderGuruSummary() {
       };
 
       const upcoming = guruSchedules.filter(item => {
-        if (!item || !item.date) return false;
-        const [y, m, d] = String(item.date).split('T')[0].split('-').map(Number);
-        return new Date(y, m - 1, d).setHours(0, 0, 0, 0) >= todayTime;
+        if (!item) return false;
+        const dStr = String(item.tanggal || item.date || '').slice(0, 10);
+        return dStr >= todayStr;
       });
 
-      let topUpcoming = [];
-      if (upcoming.length > 0) {
-        upcoming.sort((a, b) => {
-          const dComp = String(a.date || '').localeCompare(String(b.date || ''));
-          if (dComp !== 0) return dComp;
-          return String(a.start_time || '').localeCompare(String(b.start_time || ''));
-        });
-        topUpcoming = upcoming.slice(0, 4);
-      } else {
-        // Fallback: 4 most recent schedules sorted descending
-        const recent = [...guruSchedules].sort((a, b) => {
-          const dComp = String(b.date || '').localeCompare(String(a.date || ''));
-          if (dComp !== 0) return dComp;
-          return String(b.start_time || '').localeCompare(String(a.start_time || ''));
-        });
-        topUpcoming = recent.slice(0, 4);
-      }
+      upcoming.sort((a, b) => {
+        const aDate = String(a.tanggal || a.date || '').slice(0, 10);
+        const bDate = String(b.tanggal || b.date || '').slice(0, 10);
+        const dComp = aDate.localeCompare(bDate);
+        if (dComp !== 0) return dComp;
+        return String(a.start_time || '').localeCompare(String(b.start_time || ''));
+      });
+
+      const topUpcoming = upcoming.slice(0, 4);
 
       if (topUpcoming.length === 0) {
-        jadwalContainer.innerHTML = '<div class="alert alert-info" style="margin:1rem;">Belum ada data untuk ditampilkan.</div>';
+        jadwalContainer.innerHTML = '<div style="padding: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.9rem;">Belum ada jadwal kelas mendatang yang terdaftar.</div>';
       } else {
         let html = '';
         topUpcoming.forEach(item => {
           if (!item) return;
           const subject = item.mata_pelajaran || 'Karakter';
-          const dateStr = item.date ? String(item.date).split('T')[0] : '';
+          const dateStr = String(item.tanggal || item.date || '').slice(0, 10);
           const kelasLabel = item.kelas ? (String(item.kelas).toUpperCase() === 'SEMUA' ? 'Semua Kelas' : item.kelas) : 'Semua Kelas';
 
           let day = '--';

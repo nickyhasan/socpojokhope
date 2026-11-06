@@ -296,20 +296,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.currentRole = currentRole;
 
     if (urlRole && ['guru', 'siswa', 'manager', 'founder', 'admin'].includes(urlRole)) {
-      if (urlRole === 'admin') {
+      if (window.currentUser && window.currentUser.role === urlRole) {
+        // Keep authenticated user with real photo and credentials from localStorage
+      } else if (urlRole === 'admin') {
         window.currentUser = { id: '1001001', username: 'admin', full_name: 'Administrator SoC', nama: 'Administrator SoC', role: 'admin' };
       } else if (urlRole === 'manager') {
         window.currentUser = { id: '0225001', username: 'sity', full_name: 'Sity Djabar, M.Pd.', nama: 'Sity Djabar, M.Pd.', role: 'manager' };
       } else if (urlRole === 'founder') {
         window.currentUser = { id: '0125001', username: 'founder', full_name: 'Minarti Monoarfa', nama: 'Minarti Monoarfa', role: 'founder' };
       } else if (urlRole === 'guru') {
-        if (!window.currentUser || window.currentUser.role !== 'guru') {
-          window.currentUser = { id: '0326001', full_name: 'Sir Nicky, S.Kom.', nama: 'Sir Nicky, S.Kom.', role: 'guru' };
-        }
+        window.currentUser = { id: '0326001', full_name: 'Sir Nicky, S.Kom.', nama: 'Sir Nicky, S.Kom.', role: 'guru' };
       } else {
-        if (!window.currentUser || window.currentUser.role !== 'siswa') {
-          window.currentUser = { id: '1', full_name: 'Muhammad Raffa', nama: 'Muhammad Raffa', nickname: 'Raffa', role: 'siswa' };
-        }
+        window.currentUser = { id: '1', full_name: 'Muhammad Raffa', nama: 'Muhammad Raffa', nickname: 'Raffa', role: 'siswa' };
       }
     }
 
@@ -333,6 +331,27 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.currentUser = getDefaultUserForRole(currentRole);
     }
     loggedInUser = window.currentUser;
+
+    // Immediately sync bottom-left sidebar avatar photo from current user
+    const sbAvatar = document.getElementById('sidebar-avatar-img');
+    if (sbAvatar && window.currentUser && window.currentUser.photo_url) {
+      sbAvatar.src = window.currentUser.photo_url;
+    }
+
+    // Asynchronously fetch latest profile to guarantee fresh avatar across tabs
+    if (window.currentUser && window.currentUser.id) {
+      fetch(`http://localhost:5000/api/profile/${window.currentUser.id}`)
+        .then(res => res.ok ? res.json() : null)
+        .then(prof => {
+          if (prof && prof.photo_url) {
+            window.currentUser.photo_url = prof.photo_url;
+            try { localStorage.setItem('user', JSON.stringify(window.currentUser)); } catch (e) {}
+            const av = document.getElementById('sidebar-avatar-img');
+            if (av) av.src = prof.photo_url;
+          }
+        })
+        .catch(() => {});
+    }
 
     if (window.currentUser && window.currentUser.student_id) {
       window.selectedStudentKey = window.currentUser.student_id;
@@ -410,6 +429,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (window.innerWidth <= 768) {
       dashboardLayout.classList.remove('sidebar-collapsed');
     }
+  }
+
+  // Sidebar user card profile trigger
+  const userProfileTrigger = document.getElementById('sidebar-user-profile-trigger');
+  if (userProfileTrigger && !userProfileTrigger._profileListenerAttached) {
+    userProfileTrigger._profileListenerAttached = true;
+    userProfileTrigger.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (window.location.hash === '#data-diri') {
+        switchView('data-diri');
+      } else {
+        window.location.hash = 'data-diri';
+      }
+      if (dashboardLayout && dashboardLayout.classList.contains('sidebar-mobile-open')) {
+        dashboardLayout.classList.remove('sidebar-mobile-open');
+      }
+    });
   }
 
   if (sidebarToggle && dashboardLayout) {
@@ -1388,6 +1424,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       const inputVolunteerUrl = document.getElementById('input-reg-volunteer-url');
       if (inputVolunteerUrl && data.reg_volunteer_url) inputVolunteerUrl.value = data.reg_volunteer_url;
 
+      // Tab: Akses Rapor Siswa
+      const raporOpen = (data.rapor_student_access_open === undefined || data.rapor_student_access_open === null || data.rapor_student_access_open === true || data.rapor_student_access_open === 'true' || data.rapor_student_access_open === 1 || data.rapor_student_access_open === '1');
+      const switchRaporSettings = document.getElementById('switch-settings-rapor-publish');
+      if (switchRaporSettings) {
+        switchRaporSettings.checked = raporOpen;
+      }
+      const toggleRaporHeader = document.getElementById('toggle-rapor-publish');
+      if (toggleRaporHeader) {
+        toggleRaporHeader.checked = raporOpen;
+      }
+
       // Tab 4: Mode Tampilan
       const switchDarkMode = document.getElementById('switch-dark-mode');
       if (switchDarkMode) {
@@ -1395,14 +1442,32 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       // Tab 5: Galeri & Media Web
+      const default10GalleryItems = [
+        { id: 1, image_url: "static/src/assets/ui/gallery1.jpg", category: "calistung", caption: "Fondasi Membaca & Menulis Calistung" },
+        { id: 2, image_url: "static/src/assets/ui/gallery2.jpg", category: "karakter", caption: "Praktik Kelas Karakter" },
+        { id: 3, image_url: "static/src/assets/ui/gallery4.jpg", category: "inggris", caption: "Pentas Dongeng Bahasa Inggris" },
+        { id: 4, image_url: "static/src/assets/ui/gallery5.jpg", category: "matematika", caption: "Logika & Puzzle Matematika" },
+        { id: 5, image_url: "static/src/assets/ui/gallery3.jpg", category: "outdoor", caption: "Aktivitas Outdoor Learning" },
+        { id: 6, image_url: "static/src/assets/ui/gallery2.jpg", category: "calistung", caption: "Aktivitas Berhitung Ceria Calistung" },
+        { id: 7, image_url: "static/src/assets/ui/gallery6.jpg", category: "karakter", caption: "Diskusi Karakter & Berbagi" },
+        { id: 8, image_url: "static/src/assets/ui/gallery8.jpg", category: "inggris", caption: "Membaca & Pemahaman Inggris" },
+        { id: 9, image_url: "static/src/assets/ui/gallery1.jpg", category: "matematika", caption: "Kelas Matematika Menyenangkan" },
+        { id: 10, image_url: "static/src/assets/ui/gallery7.jpg", category: "outdoor", caption: "Aktivitas Peduli Lingkungan" }
+      ];
+
       if (data.gallery_json) {
         try {
-          window.currentGalleryItems = typeof data.gallery_json === 'string' ? JSON.parse(data.gallery_json) : (data.gallery_json || []);
+          const parsed = typeof data.gallery_json === 'string' ? JSON.parse(data.gallery_json) : (data.gallery_json || []);
+          if (Array.isArray(parsed) && parsed.length >= 10 && parsed.some(i => i.category === 'calistung')) {
+            window.currentGalleryItems = parsed;
+          } else {
+            window.currentGalleryItems = default10GalleryItems;
+          }
         } catch (e) {
-          window.currentGalleryItems = [];
+          window.currentGalleryItems = default10GalleryItems;
         }
       } else {
-        window.currentGalleryItems = [];
+        window.currentGalleryItems = default10GalleryItems;
       }
       renderAdminGalleryList();
 
@@ -1415,6 +1480,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (founderPrev) founderPrev.src = `static/src/assets/ui/founder.jpg?t=${ts}`;
       const team2Prev = document.getElementById('preview-media-team2');
       if (team2Prev) team2Prev.src = `static/src/assets/ui/team2.jpg?t=${ts}`;
+      const sponsorshipPrev = document.getElementById('preview-media-sponsorship');
+      if (sponsorshipPrev) {
+        sponsorshipPrev.onerror = () => { sponsorshipPrev.src = 'static/src/assets/ui/gallery3.jpg'; };
+        sponsorshipPrev.src = `static/src/assets/ui/sponsorship-photo.jpg?t=${ts}`;
+      }
     } catch (e) {
       console.warn('Gagal memuat pengaturan sistem:', e);
     }
@@ -1428,6 +1498,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const tabLokasi = document.querySelector('.settings-tab-btn[data-tab="tab-settings-lokasi"]');
     const tabMitra = document.querySelector('.settings-tab-btn[data-tab="tab-settings-mitra"]');
     const tabPendaftaran = document.querySelector('.settings-tab-btn[data-tab="tab-settings-pendaftaran"]');
+    const tabRapor = document.querySelector('.settings-tab-btn[data-tab="tab-settings-rapor"]');
     const tabTampilan = document.querySelector('.settings-tab-btn[data-tab="tab-settings-tampilan"]');
     const tabMedia = document.querySelector('.settings-tab-btn[data-tab="tab-settings-media"]');
 
@@ -1436,16 +1507,18 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (tabLokasi) tabLokasi.style.display = 'none';
       if (tabMitra) tabMitra.style.display = 'none';
       if (tabPendaftaran) tabPendaftaran.style.display = 'none';
+      if (tabRapor) tabRapor.style.display = 'none';
       if (tabMedia) tabMedia.style.display = 'none';
       if (tabTampilan) {
         tabTampilan.style.display = 'inline-flex';
         tabTampilan.click();
       }
     } else {
-      // Admin, Founder, Manager: Show all 5 tabs
+      // Admin, Founder, Manager: Show all tabs
       if (tabLokasi) tabLokasi.style.display = 'inline-flex';
       if (tabMitra) tabMitra.style.display = 'inline-flex';
       if (tabPendaftaran) tabPendaftaran.style.display = 'inline-flex';
+      if (tabRapor) tabRapor.style.display = 'inline-flex';
       if (tabTampilan) tabTampilan.style.display = 'inline-flex';
       if (tabMedia) tabMedia.style.display = 'inline-flex';
       if (tabLokasi) tabLokasi.click();
@@ -1725,6 +1798,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (res.ok) {
         const prev = document.getElementById(previewElemId);
         if (prev) prev.src = resData.file_url;
+        if (targetName === 'sponsorship-photo.jpg') {
+          const landingSponsor = document.getElementById('sponsorship-showcase-img');
+          if (landingSponsor) landingSponsor.src = resData.file_url;
+        }
         if (typeof window.showSoCModal === 'function') {
           window.showSoCModal(`Foto ${targetName} berhasil diperbarui!`, 'success', 'Berhasil');
         } else if (typeof window.socAlert === 'function') {
@@ -1767,6 +1844,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div style="flex:1; min-width:220px; display:flex; flex-direction:column; gap:0.5rem;">
           <div style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">
             <select class="custom-select" style="max-width:200px; font-size:0.86rem; padding:0.45rem 0.8rem; border-radius:8px;" onchange="updateGalleryItemCategory(${idx}, this.value)">
+              <option value="calistung" ${item.category === 'calistung' ? 'selected' : ''}>Calistung</option>
               <option value="matematika" ${item.category === 'matematika' ? 'selected' : ''}>Matematika</option>
               <option value="karakter" ${item.category === 'karakter' ? 'selected' : ''}>Karakter</option>
               <option value="outdoor" ${item.category === 'outdoor' ? 'selected' : ''}>Outdoor Learning</option>
@@ -2039,7 +2117,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           if (res.ok) {
             const resData = await res.json();
-            alert('Data diri Anda berhasil diperbarui!');
+            alert('Profil Anda berhasil diperbarui!');
             
             // Update localStorage and currentUser
             const updatedUser = { ...user, ...resData.user };
@@ -2066,11 +2144,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             loadMyProfileData();
           } else {
             const err = await res.json().catch(() => ({}));
-            alert(err.error || 'Gagal menyimpan perubahan data diri.');
+            alert(err.error || 'Gagal menyimpan perubahan profil.');
           }
         } catch (err) {
           console.error('Error updating profile:', err);
-          alert('Terjadi kesalahan saat menyimpan data diri: ' + err.message);
+          alert('Terjadi kesalahan saat menyimpan profil: ' + err.message);
         }
       };
 
@@ -2356,3 +2434,34 @@ export async function downloadMyIdCard() {
   }
 }
 window.downloadMyIdCard = downloadMyIdCard;
+
+
+export async function toggleRaporPublishState(isOpen) {
+  const valStr = isOpen ? 'true' : 'false';
+  if (!window.siteSettings) window.siteSettings = {};
+  window.siteSettings.rapor_student_access_open = valStr;
+
+  const toggleInHeader = document.getElementById('toggle-rapor-publish');
+  const toggleInModal = document.getElementById('switch-settings-rapor-publish');
+  if (toggleInHeader) toggleInHeader.checked = isOpen;
+  if (toggleInModal) toggleInModal.checked = isOpen;
+
+  try {
+    const res = await fetch('http://localhost:5000/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rapor_student_access_open: valStr })
+    });
+    if (res.ok) {
+      if (typeof window.socAlert === 'function') {
+        await window.socAlert(
+          isOpen ? 'Rapor semester aktif berhasil dipublikasikan untuk siswa. Siswa kini dapat meninjau dan mengunduh rapor.' : 'Publikasi rapor ditutup sementara untuk siswa.',
+          'Pengaturan Akses Rapor'
+        );
+      }
+    }
+  } catch (err) {
+    console.error('Error saving rapor publish state:', err);
+  }
+}
+window.toggleRaporPublishState = toggleRaporPublishState;

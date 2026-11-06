@@ -43,7 +43,9 @@ export const CLASS_NAME_MAP = {
   'English C': 'English C (Advanced)',
   'Math A': 'Math A (Beginner)',
   'Math B': 'Math B (Intermediate)',
-  'Math C': 'Math C (Advanced)'
+  'Math C': 'Math C (Advanced)',
+  'Tamat English C': '✅ Tamat / Lulus English C',
+  'Tamat Math C': '✅ Tamat / Lulus Math C'
 };
 window.CLASS_NAME_MAP = CLASS_NAME_MAP;
 
@@ -84,6 +86,8 @@ export function formatClassName(rawName) {
   const trimmed = String(rawName).trim();
   if (trimmed === 'English D') return 'English C (Advanced)';
   if (trimmed === 'Math D') return 'Math C (Advanced)';
+  if (trimmed === 'Tamat English C' || trimmed.toLowerCase() === 'tamat english c' || trimmed.toLowerCase() === 'lulus english c') return '✅ Tamat / Lulus English C';
+  if (trimmed === 'Tamat Math C' || trimmed.toLowerCase() === 'tamat math c' || trimmed.toLowerCase() === 'lulus math c') return '✅ Tamat / Lulus Math C';
 
   // Check window.allClassAssignments first if available
   if (window.allClassAssignments && Array.isArray(window.allClassAssignments)) {
@@ -124,6 +128,8 @@ export function getRawClassName(name) {
   }
 
   if (lower.includes('calistung') || lower.includes('baca tulis hitung')) return 'Calistung';
+  if (lower.includes('tamat english c') || lower.includes('lulus english c')) return 'Tamat English C';
+  if (lower.includes('tamat math c') || lower.includes('lulus math c')) return 'Tamat Math C';
 
   for (const [raw, formatted] of Object.entries(CLASS_NAME_MAP)) {
     if (raw.toLowerCase() === lower || formatted.toLowerCase() === lower) {
@@ -342,6 +348,11 @@ export function switchView(viewId) {
     item.classList.toggle('active', item.getAttribute('data-view') === viewId);
   });
 
+  const userTrigger = document.getElementById('sidebar-user-profile-trigger');
+  if (userTrigger) {
+    userTrigger.classList.toggle('active', viewId === 'data-diri');
+  }
+
   const isStaff = ['guru', 'manager', 'founder', 'admin'].includes(window.currentRole);
   const titles = {
     ringkasan:            'Panel Dashboard',
@@ -355,7 +366,7 @@ export function switchView(viewId) {
     'data-siswa':         'Data Siswa',
     'detail-siswa':       'Detail Siswa',
     'detail-guru':        'Detail Pengajar',
-    'data-diri':          'Data Diri Saya',
+    'data-diri':          'Profil Saya',
     'my-idcard':          'Kartu ID Saya',
     'data-alumni':        'Data Alumni Siswa',
     kehadiran:            (window.currentRole === 'guru') ? 'Daftar Hadir' : (isStaff ? 'Kelola Absensi' : 'Kehadiran Saya'),
@@ -849,9 +860,19 @@ export function applyRole(role) {
       try { if (typeof window.loadDashboardData === 'function') window.loadDashboardData(); } catch(e) {}
     }
 
-    // Sidebar tabs: "Data Diri" (ALL 5 roles), "ID Card" (Guru & Siswa only, not Alumni), "Data Alumni" (Admin/Manager/Founder)
+    // Sidebar tabs: "Profil" (ALL 5 roles), "ID Card" (Guru & Siswa only, not Alumni), "Data Alumni" (Admin/Manager/Founder)
     const menuDataDiri = document.getElementById('menu-data-diri');
-    if (menuDataDiri) menuDataDiri.style.setProperty('display', 'flex');
+    if (menuDataDiri) {
+      menuDataDiri.style.setProperty('display', 'flex');
+      menuDataDiri.setAttribute('title', 'Profil');
+      const lbl = menuDataDiri.querySelector('.menu-label');
+      if (lbl) lbl.textContent = 'Profil';
+    }
+    const userProfileTrigger = document.getElementById('sidebar-user-profile-trigger');
+    if (userProfileTrigger) {
+      userProfileTrigger.style.setProperty('display', 'flex');
+      userProfileTrigger.setAttribute('title', 'Klik untuk membuka Profil Saya');
+    }
 
     const isAlumni = (loggedInUser && loggedInUser.status_siswa === 'alumni');
 
@@ -971,6 +992,40 @@ export function applyRole(role) {
       document.querySelectorAll('#view-rapor input[type="range"]').forEach(input => input.disabled = true);
       document.querySelectorAll('#view-rapor input.score-manual-input').forEach(input => input.readOnly = true);
       document.getElementById('btn-save-score')?.style.setProperty('display', 'none');
+    }
+
+    // Rapor publish controls & student visibility
+    const raporPublishToggle = document.getElementById('container-rapor-publish-toggle');
+    const raporStudentUnpublishedBanner = document.getElementById('rapor-student-unpublished-banner');
+    const btnPrintRapor = document.getElementById('btn-print-rapor');
+    const btnDownloadRaporPDF = document.getElementById('btn-download-rapor-pdf');
+
+    const isRaporOpen = (window.siteSettings?.rapor_student_access_open !== 'false');
+
+    if (raporPublishToggle) {
+      if (role === 'admin' || role === 'manager') {
+        raporPublishToggle.style.display = 'flex';
+        const chk = document.getElementById('toggle-rapor-publish');
+        if (chk) chk.checked = isRaporOpen;
+      } else {
+        raporPublishToggle.style.display = 'none';
+      }
+    }
+
+    if (role === 'siswa') {
+      if (!isRaporOpen) {
+        if (raporStudentUnpublishedBanner) raporStudentUnpublishedBanner.style.display = 'flex';
+        if (btnPrintRapor) btnPrintRapor.style.display = 'none';
+        if (btnDownloadRaporPDF) btnDownloadRaporPDF.style.display = 'none';
+      } else {
+        if (raporStudentUnpublishedBanner) raporStudentUnpublishedBanner.style.display = 'none';
+        if (btnPrintRapor) btnPrintRapor.style.display = 'inline-flex';
+        if (btnDownloadRaporPDF) btnDownloadRaporPDF.style.display = 'inline-flex';
+      }
+    } else {
+      if (raporStudentUnpublishedBanner) raporStudentUnpublishedBanner.style.display = 'none';
+      if (btnPrintRapor) btnPrintRapor.style.display = 'inline-flex';
+      if (btnDownloadRaporPDF) btnDownloadRaporPDF.style.display = 'inline-flex';
     }
 
     try {

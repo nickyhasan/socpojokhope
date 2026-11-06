@@ -280,7 +280,8 @@ export async function renderJadwalSiswa(student) {
     await loadAllSchedulesData();
   }
 
-  const todayTime = new Date().setHours(0, 0, 0, 0);
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
   const subjectColors = {
     'Karakter': { color: 'orange', badge: 'badge-orange' },
@@ -297,32 +298,33 @@ export async function renderJadwalSiswa(student) {
   const isCalistungStudent = rawEng.toUpperCase().includes('CALISTUNG') || rawMath.toUpperCase().includes('CALISTUNG');
 
   const upcoming = (window.allSchedulesData || []).filter(item => {
-    if (!item || !item.date) return false;
+    if (!item) return false;
     const subj = item.mata_pelajaran || 'Karakter';
     const normK = (typeof window.normalizeScheduleClass === 'function' ? window.normalizeScheduleClass(item.kelas, subj) : (item.kelas || '')).trim().toUpperCase();
     const isUniversal = !normK || normK === 'SEMUA' || normK === 'SEMUA KELAS' || subj === 'Karakter' || subj === 'Outdoor Learning';
     const isCalistungMatch = (subj === 'Calistung' || normK === 'CALISTUNG') && isCalistungStudent;
     const matches = isUniversal || isCalistungMatch || (engLevel && normK === engLevel) || (mathLevel && normK === mathLevel);
     if (!matches) return false;
-    const [y, m, d] = String(item.date).split('T')[0].split('-').map(Number);
-    const schedDate = new Date(y, m - 1, d).setHours(0, 0, 0, 0);
-    return schedDate >= todayTime;
+    const dStr = String(item.tanggal || item.date || '').slice(0, 10);
+    return dStr >= todayStr;
   });
 
   upcoming.sort((a, b) => {
-    const dComp = String(a.date || '').localeCompare(String(b.date || ''));
+    const aDate = String(a.tanggal || a.date || '').slice(0, 10);
+    const bDate = String(b.tanggal || b.date || '').slice(0, 10);
+    const dComp = aDate.localeCompare(bDate);
     if (dComp !== 0) return dComp;
     return String(a.start_time || '').localeCompare(String(b.start_time || ''));
   });
 
   const top3 = upcoming.slice(0, 3);
   if (top3.length === 0) {
-    schedContainer.innerHTML = '<p style="padding:1.5rem; color:var(--text-muted); text-align:center;"><i class="fas fa-calendar-check" style="font-size:2rem; display:block; margin-bottom:0.5rem; opacity:0.5;"></i>Belum ada jadwal kelas mendatang untuk Anda.</p>';
+    schedContainer.innerHTML = '<div style="padding: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.9rem;">Belum ada jadwal kelas mendatang yang terdaftar.</div>';
   } else {
     let html = '';
     top3.forEach(item => {
       const subject = item.mata_pelajaran || 'Karakter';
-      const dateStr = item.date ? String(item.date).split('T')[0] : '';
+      const dateStr = String(item.tanggal || item.date || '').slice(0, 10);
       const kelasRaw = item.kelas ? String(item.kelas) : '';
       const kelasLabel = kelasRaw ? (kelasRaw.toUpperCase() === 'SEMUA' ? 'Semua Kelas' : kelasRaw) : 'Semua Kelas';
 

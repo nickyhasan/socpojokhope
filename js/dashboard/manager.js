@@ -5,6 +5,114 @@ import { formatStudentDisplayName, findStudentByInputValue, switchView, formatTe
 import { loadAllStudents, loadAllSchedulesData, loadSchedules, loadManagerSchedules, loadRaporData } from './api.js';
 import { renderJadwalKelas } from './teacher.js';
 
+export function getStudentRegPeriod(student) {
+  let year = null;
+  let semester = null;
+  const nisStr = String(student.nis || '').trim();
+  if (/^\d{4,}/.test(nisStr)) {
+    const yy = parseInt(nisStr.slice(0, 2), 10);
+    const mm = parseInt(nisStr.slice(2, 4), 10);
+    if (!isNaN(yy) && yy >= 20 && yy <= 40) {
+      year = 2000 + yy;
+    }
+    if (!isNaN(mm) && mm >= 1 && mm <= 12) {
+      semester = (mm >= 7) ? 'Semester Ganjil' : 'Semester Genap';
+    }
+  }
+  if (!year || !semester) {
+    if (student.created_at) {
+      try {
+        const d = new Date(student.created_at);
+        if (!isNaN(d.getTime())) {
+          if (!year) year = d.getFullYear();
+          if (!semester) semester = (d.getMonth() + 1 >= 7) ? 'Semester Ganjil' : 'Semester Genap';
+        }
+      } catch (e) {}
+    }
+  }
+  if (!year) year = 2025;
+  if (!semester) semester = 'Semester Ganjil';
+
+  const sortKey = (year * 10) + (semester === 'Semester Ganjil' ? 2 : 1);
+  return {
+    year,
+    semester,
+    label: `${year} - ${semester}`,
+    sortKey
+  };
+}
+window.getStudentRegPeriod = getStudentRegPeriod;
+
+export function getAlumniGradPeriod(alumni) {
+  let year = null;
+  let semester = null;
+  let gradDate = '-';
+  if (alumni.graduated_at) {
+    try {
+      const d = new Date(alumni.graduated_at);
+      if (!isNaN(d.getTime())) {
+        year = d.getFullYear();
+        semester = (d.getMonth() + 1 >= 7) ? 'Semester Ganjil' : 'Semester Genap';
+        gradDate = d.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
+      }
+    } catch (e) {}
+  }
+  if (!year) year = 2026;
+  if (!semester) semester = 'Semester Genap';
+  const sortKey = (year * 10) + (semester === 'Semester Ganjil' ? 2 : 1);
+  return {
+    year,
+    semester,
+    label: `${year} - ${semester}`,
+    gradDate,
+    sortKey
+  };
+}
+window.getAlumniGradPeriod = getAlumniGradPeriod;
+
+export function handleBackFromDetailSiswa() {
+  window.isAlumniDetailView = false;
+  const target = window.detailSiswaReturnView || 'data-siswa';
+  if (typeof window.switchView === 'function') {
+    window.switchView(target);
+  }
+}
+window.handleBackFromDetailSiswa = handleBackFromDetailSiswa;
+
+export function updateGraduateButtonState(student) {
+  const btn = document.getElementById('btn-graduate-student');
+  if (!btn) return;
+
+  const stageSel = document.getElementById('plotting-stage-selector');
+  const engSel   = document.getElementById('plotting-english-level');
+  const mathSel  = document.getElementById('plotting-math-level');
+
+  const stageVal = stageSel ? stageSel.value : 'reguler';
+  const engVal = (engSel && engSel.value ? engSel.value : (student?.kelas_english || '')).toLowerCase();
+  const mathVal = (mathSel && mathSel.value ? mathSel.value : (student?.kelas_math || '')).toLowerCase();
+
+  const isEngTamat = engVal === 'tamat english c' || (engVal.includes('tamat') && engVal.includes('english c')) || engVal === 'lulus';
+  const isMathTamat = mathVal === 'tamat math c' || (mathVal.includes('tamat') && (mathVal.includes('math c') || mathVal.includes('matematika c'))) || mathVal === 'lulus';
+  // Note: Graduation prerequisites require student to complete both English C and Math C (Tamat English C & Tamat Math C)
+  const canGraduate = (stageVal === 'reguler') && isEngTamat && isMathTamat;
+
+  if (canGraduate) {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+    btn.style.pointerEvents = 'auto';
+    btn.title = 'Luluskan siswa menjadi Alumni School of Character';
+  } else {
+    btn.disabled = true;
+    btn.style.opacity = '0.4';
+    btn.style.cursor = 'not-allowed';
+    btn.style.pointerEvents = 'none';
+    btn.title = 'Siswa harus menyelesaikan kedua kelas tertinggi (English C dan Math C) terlebih dahulu dengan status Tamat English C dan Tamat Math C';
+  }
+}
+window.updateGraduateButtonState = updateGraduateButtonState;
+
+
 export async function renderManagerSummary() {
   const upcomingContainer = document.getElementById('manager-upcoming-schedules') || document.getElementById('manager-ringkasan-jadwal-list');
   const top10Container = document.getElementById('top10-students-list');
@@ -27,15 +135,16 @@ export async function renderManagerSummary() {
     const students = Array.isArray(window.allStudents) ? window.allStudents : [];
 
     if (schedules.length === 0 && upcomingContainer) {
-      upcomingContainer.innerHTML = '<div class="alert alert-info" style="margin:1rem;">Belum ada data untuk ditampilkan.</div>';
+      upcomingContainer.innerHTML = '<div style="padding: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.9rem;">Belum ada jadwal kelas mendatang yang terdaftar.</div>';
     }
     if (students.length === 0 && top10Container) {
       top10Container.innerHTML = '<div class="alert alert-info" style="margin:1rem;">Belum ada data untuk ditampilkan.</div>';
     }
 
-    // 1. Render upcoming schedules (or 4 most recent fallback)
-    if (upcomingContainer && schedules.length > 0) {
-      const todayTime = new Date().setHours(0, 0, 0, 0);
+    // 1. Render upcoming schedules (strictly today and future, no past fallback)
+    if (upcomingContainer) {
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
       const subjectColors = {
         'Karakter': { color: 'orange', badge: 'badge-orange' },
@@ -45,37 +154,29 @@ export async function renderManagerSummary() {
       };
 
       const upcoming = schedules.filter(s => {
-        if (!s || !s.date) return false;
-        const [y, m, d] = String(s.date).split('T')[0].split('-').map(Number);
-        return new Date(y, m - 1, d).setHours(0, 0, 0, 0) >= todayTime;
+        if (!s) return false;
+        const dStr = String(s.tanggal || s.date || '').slice(0, 10);
+        return dStr >= todayStr;
       });
 
-      let displaySchedules = [];
-      if (upcoming.length > 0) {
-        upcoming.sort((a, b) => {
-          const dComp = String(a.date || '').localeCompare(String(b.date || ''));
-          if (dComp !== 0) return dComp;
-          return String(a.start_time || '').localeCompare(String(b.start_time || ''));
-        });
-        displaySchedules = upcoming.slice(0, 4);
-      } else {
-        // Fallback: 4 most recent schedules sorted descending
-        const recent = [...schedules].sort((a, b) => {
-          const dComp = String(b.date || '').localeCompare(String(a.date || ''));
-          if (dComp !== 0) return dComp;
-          return String(b.start_time || '').localeCompare(String(a.start_time || ''));
-        });
-        displaySchedules = recent.slice(0, 4);
-      }
+      upcoming.sort((a, b) => {
+        const aDate = String(a.tanggal || a.date || '').slice(0, 10);
+        const bDate = String(b.tanggal || b.date || '').slice(0, 10);
+        const dComp = aDate.localeCompare(bDate);
+        if (dComp !== 0) return dComp;
+        return String(a.start_time || '').localeCompare(String(b.start_time || ''));
+      });
+
+      const displaySchedules = upcoming.slice(0, 4);
 
       if (displaySchedules.length === 0) {
-        upcomingContainer.innerHTML = '<div class="alert alert-info" style="margin:1rem;">Belum ada data untuk ditampilkan.</div>';
+        upcomingContainer.innerHTML = '<div style="padding: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.9rem;">Belum ada jadwal kelas mendatang yang terdaftar.</div>';
       } else {
         let html = '';
         displaySchedules.forEach(item => {
           if (!item) return;
           const subject = item.mata_pelajaran || 'Karakter';
-          const dateStr = item.date ? String(item.date).split('T')[0] : '';
+          const dateStr = String(item.tanggal || item.date || '').slice(0, 10);
           const kelasLabel = item.kelas ? (String(item.kelas).toUpperCase() === 'SEMUA' ? 'Semua Kelas' : item.kelas) : 'Semua Kelas';
 
           let day = '--';
@@ -269,24 +370,70 @@ export async function renderDataSiswaTable() {
     await loadAllStudents();
   }
 
-  const students = window.allStudents || [];
+  const allActiveStudents = (window.allStudents || []).filter(s => {
+    if (s.status_siswa === 'alumni') return false;
+    if ((s.role && s.role.toLowerCase() === 'admin') || ['0025001', '1001001'].includes(String(s.id)) || ['0025001', '1001001'].includes(String(s.nis)) || (s.username && s.username.toLowerCase() === 'admin')) return false;
+    return true;
+  });
+
+  const badgeTotal = document.getElementById('badge-total-siswa');
+  if (badgeTotal) {
+    badgeTotal.textContent = `${allActiveStudents.length} Siswa Aktif`;
+  }
+
+  // Wire search input once
   const searchInput = document.getElementById('search-data-siswa');
   const query = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  if (searchInput && !searchInput._filterListenerAttached) {
+    searchInput._filterListenerAttached = true;
+    searchInput.addEventListener('input', () => renderDataSiswaTable());
+  }
 
-  const filtered = students.filter(s => {
-    if (s.status_siswa === 'alumni') {
-      return false;
-    }
-    if ((s.role && s.role.toLowerCase() === 'admin') || ['0025001', '1001001'].includes(String(s.id)) || ['0025001', '1001001'].includes(String(s.nis)) || (s.username && s.username.toLowerCase() === 'admin')) {
-      return false;
-    }
-    if (!query) return true;
+  const angkatanSelect = document.getElementById('filter-angkatan-siswa');
+  const kelasSelect = document.getElementById('filter-kelas-siswa');
+  const selectedAngkatan = angkatanSelect ? angkatanSelect.value : '';
+  const selectedKelas = kelasSelect ? kelasSelect.value : '';
+
+  const filtered = allActiveStudents.filter(s => {
     const idStr = String(s.id || '');
-    const nisStr = String(s.nis || '').toLowerCase();
+    const nisStr = String(s.nis || '').trim();
     const nameStr = String(s.full_name || s.name || '').toLowerCase();
     const engStr = String(s.kelas_english || '').toLowerCase();
     const mathStr = String(s.kelas_math || '').toLowerCase();
-    return idStr.includes(query) || nisStr.includes(query) || nameStr.includes(query) || engStr.includes(query) || mathStr.includes(query);
+    const regPeriod = getStudentRegPeriod(s);
+    const periodStr = regPeriod.label.toLowerCase();
+
+    if (query) {
+      const matchQuery = idStr.includes(query) ||
+        nisStr.toLowerCase().includes(query) ||
+        nameStr.includes(query) ||
+        engStr.includes(query) ||
+        mathStr.includes(query) ||
+        periodStr.includes(query);
+      if (!matchQuery) return false;
+    }
+
+    if (selectedAngkatan) {
+      if (!nisStr.startsWith(selectedAngkatan)) return false;
+    }
+
+    if (selectedKelas) {
+      const selKLower = selectedKelas.toLowerCase();
+      if (selKLower.includes('calistung')) {
+        if (!engStr.includes('calistung') && !mathStr.includes('calistung')) return false;
+      } else if (selKLower.includes('tamat english c')) {
+        if (!engStr.includes('tamat') && !engStr.includes('lulus')) return false;
+      } else if (selKLower.includes('tamat math c')) {
+        if (!mathStr.includes('tamat') && !mathStr.includes('lulus')) return false;
+      } else {
+        const rawSelected = getRawClassName(selectedKelas).toLowerCase();
+        if (engStr !== selKLower && mathStr !== selKLower && engStr !== rawSelected && mathStr !== rawSelected) {
+          return false;
+        }
+      }
+    }
+
+    return true;
   });
 
   if (filtered.length === 0) {
@@ -309,8 +456,15 @@ export async function renderDataSiswaTable() {
     const hasEng = rawEng && rawEng !== 'Belum Ditentukan' && rawEng !== 'null' && String(rawEng).trim() !== '';
     const hasMath = rawMath && rawMath !== 'Belum Ditentukan' && rawMath !== 'null' && String(rawMath).trim() !== '';
 
-    const engBadge = hasEng ? `<span class="badge badge-teal" style="font-size:0.75rem;">${formatClassName(rawEng)}</span>` : `<span class="badge badge-outline">Belum Ditentukan</span>`;
-    const mathBadge = hasMath ? `<span class="badge badge-green" style="font-size:0.75rem;">${formatClassName(rawMath)}</span>` : `<span class="badge badge-outline">Belum Ditentukan</span>`;
+    let engBadge = hasEng ? `<span class="badge badge-teal" style="font-size:0.75rem;">${formatClassName(rawEng)}</span>` : `<span class="badge badge-outline">Belum Ditentukan</span>`;
+    let mathBadge = hasMath ? `<span class="badge badge-green" style="font-size:0.75rem;">${formatClassName(rawMath)}</span>` : `<span class="badge badge-outline">Belum Ditentukan</span>`;
+
+    if (String(rawEng).toLowerCase().includes('tamat') || String(rawEng).toLowerCase().includes('lulus english')) {
+      engBadge = `<span class="badge" style="background:#dcfce7; color:#15803d; border:1px solid #86efac; font-size:0.75rem; font-weight:700;"><i class="fas fa-check-circle"></i> Tamat English C</span>`;
+    }
+    if (String(rawMath).toLowerCase().includes('tamat') || String(rawMath).toLowerCase().includes('lulus math')) {
+      mathBadge = `<span class="badge" style="background:#dcfce7; color:#15803d; border:1px solid #86efac; font-size:0.75rem; font-weight:700;"><i class="fas fa-check-circle"></i> Tamat Math C</span>`;
+    }
 
     const sNameSafe = String(sName).split("'").join("\\'");
 
@@ -332,7 +486,7 @@ export async function renderDataSiswaTable() {
       <tr style="border-bottom: 1px solid var(--border-color); font-size: 0.9rem;">
         <td style="padding: 0.75rem 1rem; text-align: center !important; vertical-align: middle; font-weight: 600;">${sNo}</td>
         <td style="padding: 0.75rem 1rem; text-align: center !important; vertical-align: middle; font-family: monospace; font-size: 0.85rem; font-weight: 600; color: var(--color-primary-dark);">${sNis}</td>
-        <td style="padding: 0.75rem 1rem; vertical-align: middle; font-weight: 600; color: var(--color-secondary-dark);">
+        <td style="padding: 0.75rem 1rem 0.75rem 1.5rem; text-align: left !important; vertical-align: middle; font-weight: 600; color: var(--color-secondary-dark);">
           <div style="display: flex; align-items: center; gap: 0.65rem;">
             <img src="${student.photo_url || 'static/src/assets/profiles/' + student.id + '.jpg'}" onerror="this.src='static/src/assets/ui/logo.png'" alt="Foto" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--color-secondary); flex-shrink: 0; background: #fff;">
             <span>${sName}</span>
@@ -399,6 +553,9 @@ export async function confirmDeleteStudent(studentId, studentName) {
 window.confirmDeleteStudent = confirmDeleteStudent;
 
 export async function viewDetailSiswa(studentId) {
+  if (!window.isAlumniDetailView && !window.detailSiswaReturnView) {
+    window.detailSiswaReturnView = 'data-siswa';
+  }
   let student = (window.allStudents || []).find(s => s.id === parseInt(studentId, 10));
   if (!student) {
     try {
@@ -465,8 +622,9 @@ export async function viewDetailSiswa(studentId) {
     if (titleEl) titleEl.innerHTML = '<i class="fas fa-graduation-cap text-teal"></i> Detail Data Alumni (Read-Only)';
     if (subtitleEl) subtitleEl.textContent = 'Informasi profil pribadi dan riwayat kelulusan alumni.';
     if (backBtn) {
-      backBtn.setAttribute('onclick', "window.isAlumniDetailView = false; switchView('data-alumni');");
-      backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> Kembali ke Data Alumni';
+      window.detailSiswaReturnView = 'data-alumni';
+      backBtn.setAttribute('onclick', "handleBackFromDetailSiswa();");
+      backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> <span id="label-back-detail-siswa">Kembali ke Data Alumni</span>';
     }
     if (idCardMockupCard) idCardMockupCard.style.display = 'none';
 
@@ -537,8 +695,10 @@ export async function viewDetailSiswa(studentId) {
     if (titleEl) titleEl.innerHTML = '<i class="fas fa-id-card text-teal"></i> Detail Siswa';
     if (subtitleEl) subtitleEl.textContent = 'Informasi profil, akun login, dan kartu identitas siswa.';
     if (backBtn) {
-      backBtn.setAttribute('onclick', "switchView('data-siswa');");
-      backBtn.innerHTML = '<i class="fas fa-arrow-left"></i> Kembali ke Data Siswa';
+      const returnTarget = window.detailSiswaReturnView || 'data-siswa';
+      const returnLabel = returnTarget === 'data-alumni' ? 'Kembali ke Data Alumni' : 'Kembali ke Data Siswa';
+      backBtn.setAttribute('onclick', "handleBackFromDetailSiswa();");
+      backBtn.innerHTML = `<i class="fas fa-arrow-left"></i> <span id="label-back-detail-siswa">${returnLabel}</span>`;
     }
     if (idCardMockupCard) idCardMockupCard.style.display = 'block';
 
@@ -843,11 +1003,19 @@ export function exportStyledSoCExcel({
 window.exportStyledSoCExcel = exportStyledSoCExcel;
 
 export function exportDataSiswa() {
-  const students = window.allStudents || [];
-  if (!students || students.length === 0) {
-    alert('Tidak ada data siswa untuk diexport.');
+  const rawStudents = (window.allStudents || []).filter(s => s.status_siswa !== 'alumni');
+  if (!rawStudents || rawStudents.length === 0) {
+    alert('Tidak ada data siswa aktif untuk diexport.');
     return;
   }
+
+  // Sort chronologically by registration year and semester
+  const sortedStudents = [...rawStudents].sort((a, b) => {
+    const pA = getStudentRegPeriod(a);
+    const pB = getStudentRegPeriod(b);
+    if (pA.sortKey !== pB.sortKey) return pA.sortKey - pB.sortKey;
+    return String(a.nis || '').localeCompare(String(b.nis || ''));
+  });
 
   const headers = [
     'No',
@@ -855,6 +1023,7 @@ export function exportDataSiswa() {
     'Nama Lengkap',
     'Nama Panggilan',
     'Jenis Kelamin',
+    'Tahun & Semester Daftar',
     'Tempat Lahir',
     'Tanggal Lahir',
     'Nama Orang Tua',
@@ -865,21 +1034,25 @@ export function exportDataSiswa() {
     'Bintang'
   ];
 
-  const rows = students.map((s, idx) => ({
-    'No': idx + 1,
-    'NIS': s.nis ? String(s.nis) : '-',
-    'Nama Lengkap': s.full_name || s.name || '',
-    'Nama Panggilan': s.nickname || '',
-    'Jenis Kelamin': s.gender || '',
-    'Tempat Lahir': s.birth_place || s.tempat_lahir || '',
-    'Tanggal Lahir': s.birth_date ? String(s.birth_date).split('T')[0] : '',
-    'Nama Orang Tua': s.parent_name || s.nama_ortu || '',
-    'No HP Siswa': formatSoCPhone(s.student_phone || s.hp_siswa),
-    'No HP Orang Tua': formatSoCPhone(s.parent_phone || s.hp_ortu),
-    'Kelas English': s.kelas_english || '',
-    'Kelas Matematika': s.kelas_math || '',
-    'Bintang': Number(s.stars) || 0
-  }));
+  const rows = sortedStudents.map((s, idx) => {
+    const regPeriod = getStudentRegPeriod(s);
+    return {
+      'No': idx + 1,
+      'NIS': s.nis ? String(s.nis) : '-',
+      'Nama Lengkap': s.full_name || s.name || '',
+      'Nama Panggilan': s.nickname || '',
+      'Jenis Kelamin': s.gender || '',
+      'Tahun & Semester Daftar': regPeriod.label,
+      'Tempat Lahir': s.birth_place || s.tempat_lahir || '',
+      'Tanggal Lahir': s.birth_date ? String(s.birth_date).split('T')[0] : '',
+      'Nama Orang Tua': s.parent_name || s.nama_ortu || '',
+      'No HP Siswa': formatSoCPhone(s.student_phone || s.hp_siswa),
+      'No HP Orang Tua': formatSoCPhone(s.parent_phone || s.hp_ortu),
+      'Kelas English': s.kelas_english || '',
+      'Kelas Matematika': s.kelas_math || '',
+      'Bintang': Number(s.stars) || 0
+    };
+  });
 
   exportStyledSoCExcel({
     filename: 'Data_Siswa_SoC_Pojok_Hope.xlsx',
@@ -2384,19 +2557,20 @@ export async function renderManajemenKelas() {
     const isFounder = (role === 'founder');
     const actionsContainer = document.getElementById('class-management-actions');
     const saveContainer = document.getElementById('container-btn-simpan-penugasan');
-    if (actionsContainer) actionsContainer.style.display = isFounder ? 'none' : 'flex';
+    if (actionsContainer) actionsContainer.style.display = 'none';
     if (saveContainer) saveContainer.style.display = isFounder ? 'none' : 'block';
 
+    window.isDeleteClassMode = false;
     const thDel = document.getElementById('th-delete-class');
     if (thDel) {
-      thDel.style.display = (!isFounder && window.isDeleteClassMode) ? 'table-cell' : 'none';
+      thDel.style.display = 'none';
     }
 
     // 5. Populate #teacher-assign-tbody dynamically
     const tbody = document.getElementById('teacher-assign-tbody');
     if (tbody) {
       tbody.innerHTML = '';
-      window.allClassAssignments.forEach(item => {
+      window.allClassAssignments.forEach((item, index) => {
         const tr = document.createElement('tr');
         tr.setAttribute('data-kelas-row', item.class_name);
 
@@ -2535,6 +2709,19 @@ export function openAddClassModal() {
         </div>
         <form id="form-add-class-level" onsubmit="event.preventDefault(); window.submitAddClassLevel();">
           <div class="form-group" style="margin-bottom:1rem;">
+            <label style="font-weight:600; font-size:0.88rem; display:block; margin-bottom:0.35rem;">Induk Level / Kurikulum (Opsional untuk Sub-Kelas Paralel):</label>
+            <select id="add-class-parent-level" class="form-control custom-select" onchange="window.onParentClassLevelChange(this.value)">
+              <option value="">— Kelas Mandiri / Utama —</option>
+              <option value="Calistung">Calistung (Tahap Dasar)</option>
+              <option value="English A">English A (Beginner)</option>
+              <option value="English B">English B (Intermediate)</option>
+              <option value="English C">English C (Advanced)</option>
+              <option value="Math A">Matematika A (Level 1 - Operasi Dasar)</option>
+              <option value="Math B">Matematika B (Level 2 - Soal Cerita & Logika)</option>
+              <option value="Math C">Matematika C (Level 3 - Pre-Aljabar & Penalaran)</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:1rem;">
             <label style="font-weight:600; font-size:0.88rem; display:block; margin-bottom:0.35rem;">Kategori / Mata Pelajaran:</label>
             <select id="add-class-category" class="form-control custom-select" required>
               <option value="Calistung">Calistung</option>
@@ -2545,11 +2732,11 @@ export function openAddClassModal() {
           </div>
           <div class="form-group" style="margin-bottom:1rem;">
             <label style="font-weight:600; font-size:0.88rem; display:block; margin-bottom:0.35rem;">Kode / Nama Kelas (Singkat):</label>
-            <input type="text" id="add-class-name" class="form-control" placeholder="Contoh: English D atau Robotika" required>
+            <input type="text" id="add-class-name" class="form-control" placeholder="Contoh: English A1 atau Robotika" required>
           </div>
           <div class="form-group" style="margin-bottom:1rem;">
             <label style="font-weight:600; font-size:0.88rem; display:block; margin-bottom:0.35rem;">Label Tampilan (Lengkap):</label>
-            <input type="text" id="add-class-display-label" class="form-control" placeholder="Contoh: English D (Mastery)" required>
+            <input type="text" id="add-class-display-label" class="form-control" placeholder="Contoh: English A1 (Beginner Group 1)" required>
           </div>
           <div class="form-group" style="margin-bottom:1.25rem;">
             <label style="font-weight:600; font-size:0.88rem; display:block; margin-bottom:0.35rem;">Pengajar / Guru Pengampu (Opsional):</label>
@@ -2585,12 +2772,37 @@ export function openAddClassModal() {
 
   const nameInp = document.getElementById('add-class-name');
   const labelInp = document.getElementById('add-class-display-label');
+  const parentSel = document.getElementById('add-class-parent-level');
+  if (parentSel) parentSel.value = '';
   if (nameInp) nameInp.value = '';
   if (labelInp) labelInp.value = '';
 
   modal.style.display = 'flex';
 }
 window.openAddClassModal = openAddClassModal;
+
+window.onParentClassLevelChange = function(parentVal) {
+  const catEl = document.getElementById('add-class-category');
+  const nameEl = document.getElementById('add-class-name');
+  const labelEl = document.getElementById('add-class-display-label');
+  if (!parentVal) return;
+
+  if (parentVal.includes('Calistung')) {
+    if (catEl) catEl.value = 'Calistung';
+    if (nameEl && !nameEl.value) nameEl.placeholder = 'Contoh: Calistung Pagi';
+    if (labelEl && !labelEl.value) labelEl.placeholder = 'Contoh: Calistung Pagi (Persiapan Dasar)';
+  } else if (parentVal.includes('English')) {
+    if (catEl) catEl.value = 'English';
+    const sub = parentVal.replace('English', '').trim();
+    if (nameEl && !nameEl.value) nameEl.placeholder = `Contoh: English ${sub}1`;
+    if (labelEl && !labelEl.value) labelEl.placeholder = `Contoh: English ${sub}1 (Paralel)`;
+  } else if (parentVal.includes('Math')) {
+    if (catEl) catEl.value = 'Matematika';
+    const sub = parentVal.replace('Math', '').trim();
+    if (nameEl && !nameEl.value) nameEl.placeholder = `Contoh: Math ${sub}1`;
+    if (labelEl && !labelEl.value) labelEl.placeholder = `Contoh: Math ${sub}1 (Paralel)`;
+  }
+};
 
 export async function submitAddClassLevel() {
   const catEl = document.getElementById('add-class-category');
@@ -2673,6 +2885,8 @@ export function syncStudentPlottingUI(student) {
 
   if (engSel) engSel.value = isCal ? '' : (getRawClassName(rawEng) || rawEng || '');
   if (mathSel) mathSel.value = isCal ? '' : (getRawClassName(rawMath) || rawMath || '');
+
+  updateGraduateButtonState(student);
 }
 window.syncStudentPlottingUI = syncStudentPlottingUI;
 
@@ -2686,7 +2900,20 @@ export function attachKelasListeners() {
       const calistungInfo = document.getElementById('plotting-calistung-info-row');
       if (regulerRow) regulerRow.style.display = isCal ? 'none' : 'flex';
       if (calistungInfo) calistungInfo.style.display = isCal ? 'block' : 'none';
+      updateGraduateButtonState();
     });
+  }
+
+  const engLevelSel = document.getElementById('plotting-english-level');
+  if (engLevelSel && !engLevelSel._graduateListenerAttached) {
+    engLevelSel._graduateListenerAttached = true;
+    engLevelSel.addEventListener('change', () => updateGraduateButtonState());
+  }
+
+  const mathLevelSel = document.getElementById('plotting-math-level');
+  if (mathLevelSel && !mathLevelSel._graduateListenerAttached) {
+    mathLevelSel._graduateListenerAttached = true;
+    mathLevelSel.addEventListener('change', () => updateGraduateButtonState());
   }
 
   const plottingSel = document.getElementById('plotting-student-selector');
@@ -2756,10 +2983,13 @@ export function attachKelasListeners() {
             window.allStudents[idx].kelas_math    = rawMath;
           }
           await loadAllStudents();
+          const updatedStudent = (window.allStudents || []).find(s => s.id === studentId) || { kelas_english: rawEng, kelas_math: rawMath };
+          updateGraduateButtonState(updatedStudent);
           const engBadge = document.getElementById('rapor-student-level-eng');
           const mathBadge = document.getElementById('rapor-student-level-math');
           if (engBadge) engBadge.innerHTML = `<i class="fas fa-language"></i> English: ${formatClassName(rawEng)}`;
           if (mathBadge) mathBadge.innerHTML = `<i class="fas fa-calculator"></i> Math: ${formatClassName(rawMath)}`;
+          if (typeof window.renderDataSiswaTable === 'function') window.renderDataSiswaTable();
           alert('Level siswa berhasil diupdate!');
         } else {
           const err = await res.json();
@@ -2780,6 +3010,8 @@ export function attachKelasListeners() {
     btnGraduateStudent.addEventListener('click', async () => {
       const raporSel     = document.getElementById('rapor-student-selector');
       const plottingSel2 = document.getElementById('plotting-student-selector');
+      const engSel       = document.getElementById('plotting-english-level');
+      const mathSel      = document.getElementById('plotting-math-level');
 
       const student = (window.allStudents || []).find(s => s.id === parseInt(window.selectedStudentKey, 10))
         || findStudentByInputValue(raporSel ? raporSel.value : '')
@@ -2794,11 +3026,14 @@ export function attachKelasListeners() {
       // Strict Prerequisite Check: Student MUST have completed English C AND Math C
       const currEng = String(student.kelas_english || '').toLowerCase();
       const currMath = String(student.kelas_math || '').toLowerCase();
-      const hasEngC = currEng.includes('english c') || currEng === 'c' || currEng === 'lulus';
-      const hasMathC = currMath.includes('math c') || currMath.includes('matematika c') || currMath === 'c' || currMath === 'lulus';
+      const engSelVal = (engSel ? engSel.value : '').toLowerCase();
+      const mathSelVal = (mathSel ? mathSel.value : '').toLowerCase();
+
+      const hasEngC = engSelVal === 'tamat english c' || (engSelVal.includes('tamat') && engSelVal.includes('english c')) || currEng === 'tamat english c' || (currEng.includes('tamat') && currEng.includes('english c')) || currEng === 'lulus';
+      const hasMathC = mathSelVal === 'tamat math c' || (mathSelVal.includes('tamat') && (mathSelVal.includes('math c') || mathSelVal.includes('matematika c'))) || currMath === 'tamat math c' || (currMath.includes('tamat') && (currMath.includes('math c') || currMath.includes('matematika c'))) || currMath === 'lulus';
 
       if (!hasEngC || !hasMathC) {
-        const msg = "Siswa hanya dapat dinyatakan Lulus (Alumni) setelah mencapai dan menyelesaikan kelas English C (Advanced) dan Math C (Advanced).";
+        const msg = "Siswa belum dapat diluluskan menjadi Alumni karena harus menyelesaikan kedua kelas tertinggi (English C dan Math C) terlebih dahulu. Jika siswa baru lulus di salah satu mata pelajaran, pilih opsi '✅ Tamat / Lulus C' pada mata pelajaran tersebut lalu klik Simpan Penempatan.";
         if (typeof window.socAlert === 'function') {
           await window.socAlert(msg, 'Prasyarat Kelulusan Belum Terpenuhi');
         } else if (typeof window.showSoCModal === 'function') {
@@ -3287,7 +3522,16 @@ export async function renderDataAlumniTable() {
     const idStr = String(s.id || '');
     const nisStr = String(s.nis || '').toLowerCase();
     const nameStr = String(s.full_name || s.name || '').toLowerCase();
-    return idStr.includes(query) || nisStr.includes(query) || nameStr.includes(query);
+    const gradPeriod = getAlumniGradPeriod(s);
+    const gradLabel = String(gradPeriod.label || '').toLowerCase();
+    const gradYearStr = String(gradPeriod.year || '');
+    const gradSemStr = String(gradPeriod.semester || '').toLowerCase();
+    return idStr.includes(query) ||
+           nisStr.includes(query) ||
+           nameStr.includes(query) ||
+           gradLabel.includes(query) ||
+           gradYearStr.includes(query) ||
+           gradSemStr.includes(query);
   });
 
   const countBadge = document.getElementById('badge-total-alumni') || document.getElementById('alumni-count-badge');
@@ -3356,7 +3600,7 @@ export async function renderDataAlumniTable() {
       `;
     } else {
       actionButtons = `
-        <button onclick="window.viewAlumniRapor(${s.id})" class="btn btn-sm btn-outline"><i class="fas fa-file-invoice"></i> Rapor</button>
+        <button onclick="openStudentRapor(${s.id})" class="btn btn-sm btn-outline"><i class="fas fa-file-invoice"></i> Rapor</button>
         <button onclick="window.viewAlumniProfile(${s.id})" class="btn btn-sm btn-primary"><i class="fas fa-id-card"></i> Data Siswa</button>
         ${isStaff ? `
           <button onclick="window.restoreAlumniStudent(${s.id})" class="btn btn-sm btn-success" style="background:#10b981; border:1px solid #059669; color:#fff;" title="Aktifkan Kembali jadi Siswa">
@@ -3400,32 +3644,30 @@ export function exportDataAlumni() {
     }
     return;
   }
+  // Sort alumni chronologically by graduation period
+  const sortedAlumni = [...currentAlumni].sort((a, b) => {
+    const pA = getAlumniGradPeriod(a);
+    const pB = getAlumniGradPeriod(b);
+    if (pA.sortKey !== pB.sortKey) return pA.sortKey - pB.sortKey;
+    return String(a.nis || '').localeCompare(String(b.nis || ''));
+  });
+
   const headers = [
     'No',
     'NIS',
     'Nama Lengkap',
     'Nama Panggilan',
     'Jenis Kelamin',
+    'Tahun & Semester Lulus',
     'Tempat Lahir',
     'Tanggal Lahir',
     'Nama Orang Tua',
     'No HP Siswa',
     'No HP Orang Tua',
-    'Tahun Lulus',
     'Tanggal Kelulusan'
   ];
-  const rows = currentAlumni.map((s, idx) => {
-    let gradYear = '-';
-    let gradDate = '-';
-    if (s.graduated_at) {
-      try {
-        const gd = new Date(s.graduated_at);
-        if (!isNaN(gd.getTime())) {
-          gradYear = gd.getFullYear();
-          gradDate = gd.toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
-        }
-      } catch (e) {}
-    }
+  const rows = sortedAlumni.map((s, idx) => {
+    const gradPeriod = getAlumniGradPeriod(s);
     const bDate = s.birth_date ? String(s.birth_date).split('T')[0] : (s.tanggal_lahir || '-');
     const rawG = String(s.gender || '').trim().toUpperCase();
     const genderStr = rawG.startsWith('P') ? 'Perempuan' : 'Laki-laki';
@@ -3436,13 +3678,13 @@ export function exportDataAlumni() {
       s.full_name || s.nama || '-',
       s.nickname || s.panggilan || '-',
       genderStr,
+      gradPeriod.label,
       s.birth_place || s.tempat_lahir || 'Gorontalo',
       bDate,
       s.parent_name || s.parents_name || s.nama_ortu || '-',
       s.student_phone || s.phone_siswa || s.no_hp_siswa || '-',
       s.parent_phone || s.phone_ortu || s.no_hp_ortu || '-',
-      gradYear,
-      gradDate
+      gradPeriod.gradDate
     ];
   });
 
@@ -3504,191 +3746,406 @@ window.restoreAlumniStudent = restoreAlumniStudent;
 
 export function viewAlumniProfile(studentId) {
   window.isAlumniDetailView = true;
+  window.detailSiswaReturnView = 'data-alumni';
   viewDetailSiswa(studentId);
 }
 window.viewAlumniProfile = viewAlumniProfile;
 
 export function viewAlumniRapor(studentId) {
+  openStudentRapor(studentId);
+}
+window.viewAlumniRapor = viewAlumniRapor;
+
+export function openStudentRapor(studentId) {
   window.isViewingAlumniRapor = true;
   window.selectedStudentKey = studentId;
   const sel1 = document.getElementById('student-selector');
   const sel2 = document.getElementById('rapor-student-selector');
-  const student = (window.allStudents || []).find(s => s.id === studentId);
+  const student = (window.allStudents || []).find(s => s.id === parseInt(studentId, 10));
   if (student) {
     if (sel1) sel1.value = student.id;
     if (sel2) sel2.value = formatStudentDisplayName(student);
   }
   switchView('rapor');
+  if (typeof loadRaporData === 'function') {
+    loadRaporData(studentId);
+  }
 }
-window.viewAlumniRapor = viewAlumniRapor;
+window.openStudentRapor = openStudentRapor;
 
-export function downloadRaporSiswaPDF() {
-  const studentId = window.selectedStudentKey || (window.currentUser && (window.currentUser.student_id || window.currentUser.id));
-  const student = (window.allStudents || []).find(s => s.id === parseInt(studentId, 10)) || window.currentUser || {};
+export function getSafeRaporTargetStudent() {
+  const targetId = parseInt(window.selectedStudentKey || (window.currentUser && (window.currentUser.student_id || window.currentUser.id)), 10);
+  let student = (window.allStudents || []).find(s => s.id === targetId);
+  if (!student) {
+    if (window.currentRole === 'siswa' && window.currentUser) {
+      student = window.currentUser;
+    } else {
+      student = (window.allStudents || []).find(s => s.status_siswa !== 'alumni' && s.role !== 'admin') || (window.allStudents && window.allStudents[0]) || {};
+    }
+  }
+  return student;
+}
 
+function buildRaporPrintHtml(student, semLabel, dateFormatted, founderName, managerName, traits, tableRows) {
   const sName = student.full_name || student.name || 'Siswa SoC';
   const sNis = student.nis || '-';
   const sGender = (student.gender && student.gender.startsWith('P')) ? 'Perempuan' : 'Laki-laki';
+  const engLevel = formatClassName(student.kelas_english || '') || '-';
+  const mathLevel = formatClassName(student.kelas_math || '') || '-';
 
+  return `<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Rapor Siswa - ${sName} (${sNis})</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @page { size: A4 portrait; margin: 1.2cm; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; background: #fff; margin: 0; padding: 20px; font-size: 11pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #0c4a60; padding-bottom: 12px; margin-bottom: 18px; }
+    .logo-wrap { display: flex; align-items: center; gap: 14px; }
+    .logo-wrap img { width: 56px; height: 56px; object-fit: contain; }
+    .school-info h1 { margin: 0; font-size: 16pt; font-weight: 800; color: #0c4a60; letter-spacing: 0.5px; }
+    .school-info p { margin: 2px 0 0; font-size: 9pt; color: #64748b; }
+    .report-title { text-align: center; margin-bottom: 18px; }
+    .report-title h2 { margin: 0; font-size: 13pt; font-weight: 800; color: #ff6b35; text-transform: uppercase; letter-spacing: 0.5px; }
+    .report-title span { font-size: 9.5pt; color: #475569; font-weight: 600; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; font-size: 10pt; }
+    .info-item { display: flex; }
+    .info-label { width: 130px; font-weight: 600; color: #475569; }
+    .info-val { font-weight: 700; color: #0c4a60; }
+    .section-heading { font-size: 11pt; font-weight: 700; color: #0c4a60; margin: 16px 0 8px; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+    .scores-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+    .score-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px; text-align: center; }
+    .score-box .label { font-size: 8.5pt; font-weight: 600; color: #64748b; margin-bottom: 4px; }
+    .score-box .val { font-size: 13pt; font-weight: 800; color: #0c4a60; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 22px; font-size: 9.5pt; }
+    th, td { border: 1px solid #cbd5e1; padding: 7px 10px; }
+    th { background: #0c4a60; color: #fff; font-weight: 700; text-align: center; }
+    td { text-align: center; }
+    .sig-container { display: flex; justify-content: space-between; margin-top: 35px; page-break-inside: avoid; }
+    .sig-box { text-align: center; width: 200px; font-size: 9.5pt; }
+    .sig-space { height: 60px; }
+    .sig-name { font-weight: 700; border-top: 1px solid #94a3b8; padding-top: 4px; color: #0c4a60; }
+    .sig-title { font-size: 8.5pt; color: #64748b; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo-wrap">
+      <img src="static/src/assets/ui/logo.png" alt="Logo SoC" onerror="this.style.display='none'">
+      <div class="school-info">
+        <h1>SCHOOL OF CHARACTER</h1>
+        <p>Pojok Hope Gorontalo • Karakter • Literasi • Masa Depan Cemerlang</p>
+      </div>
+    </div>
+    <div style="text-align:right; font-size:8.5pt; color:#64748b;">
+      Dokumen Resmi<br>Sistem Akademik Terpadu
+    </div>
+  </div>
+
+  <div class="report-title">
+    <h2>Laporan Hasil Belajar &amp; Evaluasi Karakter</h2>
+    <span>${semLabel}</span>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-item"><span class="info-label">Nama Siswa:</span><span class="info-val">${sName}</span></div>
+    <div class="info-item"><span class="info-label">Level English:</span><span class="info-val">${engLevel}</span></div>
+    <div class="info-item"><span class="info-label">NIS (No. Induk):</span><span class="info-val">${sNis}</span></div>
+    <div class="info-item"><span class="info-label">Level Matematika:</span><span class="info-val">${mathLevel}</span></div>
+    <div class="info-item"><span class="info-label">Jenis Kelamin:</span><span class="info-val">${sGender}</span></div>
+    <div class="info-item"><span class="info-label">Status Siswa:</span><span class="info-val">${student.status_siswa === 'alumni' ? 'Lulus (Alumni)' : 'Siswa Aktif'}</span></div>
+  </div>
+
+  <div class="section-heading"><i class="fas fa-star text-orange"></i> Ringkasan Nilai Karakter &amp; Kemampuan</div>
+  <div class="scores-grid">
+    <div class="score-box"><div class="label">Empati</div><div class="val">${traits.traitEmp}</div></div>
+    <div class="score-box"><div class="label">Kejujuran</div><div class="val">${traits.traitHon}</div></div>
+    <div class="score-box"><div class="label">Tanggung Jawab</div><div class="val">${traits.traitResp}</div></div>
+    <div class="score-box"><div class="label">Respek</div><div class="val">${traits.traitRespct}</div></div>
+    <div class="score-box"><div class="label">English Fluency</div><div class="val">${traits.engFlu}</div></div>
+    <div class="score-box"><div class="label">English Reading</div><div class="val">${traits.engRead}</div></div>
+    <div class="score-box"><div class="label">Math Logic</div><div class="val">${traits.mathLog}</div></div>
+    <div class="score-box"><div class="label">Math Arithmetic</div><div class="val">${traits.mathArith}</div></div>
+  </div>
+
+  <div class="section-heading"><i class="fas fa-table text-teal"></i> Tabel Raport Nilai Semester</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Bulan</th>
+        <th>Empati</th>
+        <th>Kejujuran</th>
+        <th>Tanggung Jawab</th>
+        <th>Respek</th>
+        <th>Eng Fluency</th>
+        <th>Eng Reading</th>
+        <th>Math Logic</th>
+        <th>Math Arith</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${tableRows}
+    </tbody>
+  </table>
+
+  <div class="sig-container">
+    <div class="sig-box">
+      <p style="margin:0 0 4px 0; color:#64748b;">Mengetahui,</p>
+      <p style="margin:0; font-weight:600;">Founder SoC</p>
+      <div class="sig-space"></div>
+      <p class="sig-name">${founderName}</p>
+      <p class="sig-title">Pendiri SoC Pojok Hope</p>
+    </div>
+    <div class="sig-box">
+      <p style="margin:0 0 4px 0; color:#64748b;">Gorontalo, ${dateFormatted}</p>
+      <p style="margin:0; font-weight:600;">Manager Operasional</p>
+      <div class="sig-space"></div>
+      <p class="sig-name">${managerName}</p>
+      <p class="sig-title">Kepala / Manager Sekolah</p>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+async function getStudentSemesterEvaluationData(student) {
   const semSel = document.getElementById('rapor-semester-selector');
+  const activeSemesterKey = semSel ? semSel.value : (window.activeSemesterKey || '2026-2');
   const activeSemLabel = semSel ? semSel.options[semSel.selectedIndex]?.text : 'Semester Genap (Jul – Des 2026)';
 
-  const engLevel = document.getElementById('rapor-student-level-eng')?.textContent.replace(/.*English:\s*/i, '').trim() || student.kelas_english || '-';
-  const mathLevel = document.getElementById('rapor-student-level-math')?.textContent.replace(/.*Math:\s*/i, '').trim() || student.kelas_math || '-';
+  let year = 2026;
+  let isHalf1 = false;
+  if (activeSemesterKey) {
+    const parts = activeSemesterKey.split('-');
+    year = parseInt(parts[0], 10) || 2026;
+    isHalf1 = (parts[1] === '1');
+  }
 
-  // Read traits scores
-  const getTraitVal = (id) => {
-    const el = document.getElementById(id);
-    return el ? el.textContent.replace('/ 100', '').trim() : '0';
+  const fullMonths = isHalf1
+    ? ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni']
+    : ['Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+
+  let allEvals = [];
+  try {
+    const res = await fetch(`http://localhost:5000/api/evaluations?student_id=${student.id}`);
+    if (res.ok) {
+      const data = await res.json();
+      allEvals = Array.isArray(data) ? data : [];
+    }
+  } catch (err) {
+    console.error('Error fetching student evaluations for export:', err);
+  }
+
+  const semEvals = allEvals.filter(ev => {
+    const evYear = parseInt(ev.tahun || 2026, 10);
+    if (evYear !== year) return false;
+    const m = (ev.bulan || '').trim().toLowerCase();
+    const mIsHalf1 = ['januari', 'februari', 'maret', 'april', 'mei', 'juni'].includes(m);
+    return isHalf1 ? mIsHalf1 : !mIsHalf1;
+  });
+
+  return {
+    year,
+    isHalf1,
+    fullMonths,
+    activeSemLabel,
+    semEvals
+  };
+}
+
+export async function printRaporSiswa() {
+  const student = getSafeRaporTargetStudent();
+  const sName = student.full_name || student.name || 'Siswa SoC';
+  const sNis = student.nis || '-';
+
+  const { fullMonths, activeSemLabel, semEvals } = await getStudentSemesterEvaluationData(student);
+
+  if (!semEvals || semEvals.length === 0) {
+    const msg = "Belum ada data nilai evaluasi dari pengajar pada semester ini untuk diunduh.";
+    if (typeof window.socAlert === 'function') {
+      await window.socAlert(msg, "Data Evaluasi Kosong");
+    } else {
+      alert(msg);
+    }
+    return;
+  }
+
+  const getTraitAvg = (key) => {
+    const vals = semEvals.map(e => e[key]).filter(v => v !== null && v !== undefined && v !== '' && !isNaN(v) && Number(v) > 0);
+    if (vals.length === 0) return '-';
+    const sum = vals.reduce((a, b) => a + Number(b), 0);
+    return Math.round((sum / vals.length) * 10) / 10;
   };
 
-  const traitEmp = getTraitVal('score-empathy');
-  const traitHon = getTraitVal('score-honesty');
-  const traitResp = getTraitVal('score-responsibility');
-  const traitRespct = getTraitVal('score-respect');
-  const engFlu = getTraitVal('score-eng-fluency');
-  const engRead = getTraitVal('score-eng-reading');
-  const mathLog = getTraitVal('score-math-logic');
-  const mathArith = getTraitVal('score-math-arith');
+  const traits = {
+    traitEmp: getTraitAvg('score_empathy'),
+    traitHon: getTraitAvg('score_honesty'),
+    traitResp: getTraitAvg('score_responsibility'),
+    traitRespct: getTraitAvg('score_respect'),
+    engFlu: getTraitAvg('score_fluency'),
+    engRead: getTraitAvg('score_reading'),
+    mathLog: getTraitAvg('score_logic'),
+    mathArith: getTraitAvg('score_arithmetic')
+  };
 
-  // Clone evaluations table
-  const evalTbody = document.getElementById('rapor-evaluations-tbody');
-  const tableRowsHtml = evalTbody ? evalTbody.innerHTML : '<tr><td colspan="9" style="text-align:center;">Belum ada evaluasi nilai</td></tr>';
+  const monthEvalMap = {};
+  semEvals.forEach(e => {
+    if (e && e.bulan) {
+      monthEvalMap[e.bulan.trim().toLowerCase()] = e;
+    }
+  });
+
+  const tableRowsHtml = fullMonths.map(mName => {
+    const ev = monthEvalMap[mName.toLowerCase()];
+    if (!ev) {
+      return `<tr><td style="font-weight:600; text-align:left; color:#94a3b8;">${mName}</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>`;
+    }
+    return `<tr>
+      <td style="font-weight:600; text-align:left;">${mName}</td>
+      <td>${ev.score_empathy ?? '-'}</td>
+      <td>${ev.score_honesty ?? '-'}</td>
+      <td>${ev.score_responsibility ?? '-'}</td>
+      <td>${ev.score_respect ?? '-'}</td>
+      <td>${ev.score_fluency ?? '-'}</td>
+      <td>${ev.score_reading ?? '-'}</td>
+      <td>${ev.score_logic ?? '-'}</td>
+      <td>${ev.score_arithmetic ?? '-'}</td>
+    </tr>`;
+  }).join('');
 
   const now = new Date();
   const dateFormatted = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
 
+  const founder = (window.allUsers || []).find(u => (u.role || '').toLowerCase() === 'founder');
+  const manager = (window.allUsers || []).find(u => (u.role || '').toLowerCase() === 'manager');
+  const founderName = founder ? (founder.full_name || founder.nama || 'Minarti Monoarfa') : 'Minarti Monoarfa';
+  const managerName = manager ? (manager.full_name || manager.nama || 'Sity Djabar, M.Pd.') : 'Sity Djabar, M.Pd.';
+
   const printWin = window.open('', '_blank', 'width=1000,height=850');
   if (!printWin) {
-    alert('Pop-up terblokir oleh browser. Silakan izinkan pop-up untuk mendownload/mencetak Rapor PDF.');
+    alert('Pop-up terblokir oleh browser. Silakan izinkan pop-up untuk mencetak Rapor.');
     return;
   }
 
-  printWin.document.write(`
-    <!DOCTYPE html>
-    <html lang="id">
-    <head>
-      <meta charset="UTF-8">
-      <title>Rapor Siswa - ${sName} (${sNis})</title>
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-      <style>
-        @page { size: A4 portrait; margin: 1.2cm; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b; background: #fff; margin: 0; padding: 20px; font-size: 11pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2.5px solid #0c4a60; padding-bottom: 12px; margin-bottom: 18px; }
-        .logo-wrap { display: flex; align-items: center; gap: 14px; }
-        .logo-wrap img { width: 56px; height: 56px; object-fit: contain; }
-        .school-info h1 { margin: 0; font-size: 16pt; font-weight: 800; color: #0c4a60; letter-spacing: 0.5px; }
-        .school-info p { margin: 2px 0 0; font-size: 9pt; color: #64748b; }
-        .report-title { text-align: center; margin-bottom: 18px; }
-        .report-title h2 { margin: 0; font-size: 13pt; font-weight: 800; color: #ff6b35; text-transform: uppercase; letter-spacing: 0.5px; }
-        .report-title span { font-size: 9.5pt; color: #475569; font-weight: 600; }
-        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; font-size: 10pt; }
-        .info-item { display: flex; }
-        .info-label { width: 130px; font-weight: 600; color: #475569; }
-        .info-val { font-weight: 700; color: #0c4a60; }
-        .section-heading { font-size: 11pt; font-weight: 700; color: #0c4a60; margin: 16px 0 8px; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 4px; display: flex; align-items: center; gap: 6px; }
-        .scores-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
-        .score-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px; text-align: center; }
-        .score-box .label { font-size: 8.5pt; font-weight: 600; color: #64748b; margin-bottom: 4px; }
-        .score-box .val { font-size: 13pt; font-weight: 800; color: #0c4a60; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 22px; font-size: 9.5pt; }
-        th, td { border: 1px solid #cbd5e1; padding: 7px 10px; }
-        th { background: #0c4a60; color: #fff; font-weight: 700; text-align: center; }
-        td { text-align: center; }
-        .sig-container { display: flex; justify-content: space-between; margin-top: 35px; page-break-inside: avoid; }
-        .sig-box { text-align: center; width: 200px; font-size: 9.5pt; }
-        .sig-space { height: 60px; }
-        .sig-name { font-weight: 700; border-top: 1px solid #94a3b8; padding-top: 4px; color: #0c4a60; }
-        .sig-title { font-size: 8.5pt; color: #64748b; }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <div class="logo-wrap">
-          <img src="static/src/assets/ui/logo.png" alt="Logo SoC" onerror="this.style.display='none'">
-          <div class="school-info">
-            <h1>SCHOOL OF CHARACTER</h1>
-            <p>Pojok Hope Gorontalo • Karakter • Literasi • Masa Depan Cemerlang</p>
-          </div>
-        </div>
-        <div style="text-align:right; font-size:8.5pt; color:#64748b;">
-          Dokumen Resmi<br>Sistem Akademik Terpadu
-        </div>
-      </div>
-
-      <div class="report-title">
-        <h2>Laporan Hasil Belajar &amp; Evaluasi Karakter</h2>
-        <span>${activeSemLabel}</span>
-      </div>
-
-      <div class="info-grid">
-        <div class="info-item"><span class="info-label">Nama Siswa:</span><span class="info-val">${sName}</span></div>
-        <div class="info-item"><span class="info-label">Level English:</span><span class="info-val">${engLevel}</span></div>
-        <div class="info-item"><span class="info-label">NIS (No. Induk):</span><span class="info-val">${sNis}</span></div>
-        <div class="info-item"><span class="info-label">Level Matematika:</span><span class="info-val">${mathLevel}</span></div>
-        <div class="info-item"><span class="info-label">Jenis Kelamin:</span><span class="info-val">${sGender}</span></div>
-        <div class="info-item"><span class="info-label">Status Siswa:</span><span class="info-val">${student.status_siswa === 'alumni' ? 'Lulus (Alumni)' : 'Siswa Aktif'}</span></div>
-      </div>
-
-      <div class="section-heading"><i class="fas fa-star text-orange"></i> Ringkasan Nilai Karakter &amp; Kemampuan</div>
-      <div class="scores-grid">
-        <div class="score-box"><div class="label">Empati</div><div class="val">${traitEmp}</div></div>
-        <div class="score-box"><div class="label">Kejujuran</div><div class="val">${traitHon}</div></div>
-        <div class="score-box"><div class="label">Tanggung Jawab</div><div class="val">${traitResp}</div></div>
-        <div class="score-box"><div class="label">Respek</div><div class="val">${traitRespct}</div></div>
-        <div class="score-box"><div class="label">English Fluency</div><div class="val">${engFlu}</div></div>
-        <div class="score-box"><div class="label">English Reading</div><div class="val">${engRead}</div></div>
-        <div class="score-box"><div class="label">Math Logic</div><div class="val">${mathLog}</div></div>
-        <div class="score-box"><div class="label">Math Arithmetic</div><div class="val">${mathArith}</div></div>
-      </div>
-
-      <div class="section-heading"><i class="fas fa-table text-teal"></i> Tabel Raport Nilai Semester</div>
-      <table>
-        <thead>
-          <tr>
-            <th>Bulan</th>
-            <th>Empati</th>
-            <th>Kejujuran</th>
-            <th>Tanggung Jawab</th>
-            <th>Respek</th>
-            <th>Eng Fluency</th>
-            <th>Eng Reading</th>
-            <th>Math Logic</th>
-            <th>Math Arith</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${tableRowsHtml}
-        </tbody>
-      </table>
-
-      <div class="sig-container">
-        <div class="sig-box">
-          <p style="margin:0 0 4px 0; color:#64748b;">Mengetahui,</p>
-          <p style="margin:0; font-weight:600;">Founder SoC</p>
-          <div class="sig-space"></div>
-          <p class="sig-name">Minarti Monoarfa</p>
-          <p class="sig-title">Pendiri SoC Pojok Hope</p>
-        </div>
-        <div class="sig-box">
-          <p style="margin:0 0 4px 0; color:#64748b;">Gorontalo, ${dateFormatted}</p>
-          <p style="margin:0; font-weight:600;">Manager Operasional</p>
-          <div class="sig-space"></div>
-          <p class="sig-name">Sity Djabar, M.Pd.</p>
-          <p class="sig-title">Kepala / Manager Sekolah</p>
-        </div>
-      </div>
-
-      <script>
-        window.onload = function() {
-          setTimeout(function() {
-            window.print();
-          }, 350);
-        };
-      <\/script>
-    </body>
-    </html>
+  const htmlDoc = buildRaporPrintHtml(student, activeSemLabel, dateFormatted, founderName, managerName, traits, tableRowsHtml);
+  printWin.document.write(htmlDoc + `
+    <script>
+      window.onload = function() {
+        setTimeout(function() {
+          window.print();
+        }, 350);
+      };
+    ` + '<' + `/script>
   `);
   printWin.document.close();
+}
+window.printRaporSiswa = printRaporSiswa;
+
+export async function downloadRaporSiswaPDF() {
+  const student = getSafeRaporTargetStudent();
+  const sName = student.full_name || student.name || 'Siswa SoC';
+  const sNis = student.nis || '-';
+
+  const { fullMonths, activeSemLabel, semEvals } = await getStudentSemesterEvaluationData(student);
+
+  if (!semEvals || semEvals.length === 0) {
+    const msg = "Belum ada data nilai evaluasi dari pengajar pada semester ini untuk diunduh.";
+    if (typeof window.socAlert === 'function') {
+      await window.socAlert(msg, "Data Evaluasi Kosong");
+    } else {
+      alert(msg);
+    }
+    return;
+  }
+
+  const getTraitAvg = (key) => {
+    const vals = semEvals.map(e => e[key]).filter(v => v !== null && v !== undefined && v !== '' && !isNaN(v) && Number(v) > 0);
+    if (vals.length === 0) return '-';
+    const sum = vals.reduce((a, b) => a + Number(b), 0);
+    return Math.round((sum / vals.length) * 10) / 10;
+  };
+
+  const traits = {
+    traitEmp: getTraitAvg('score_empathy'),
+    traitHon: getTraitAvg('score_honesty'),
+    traitResp: getTraitAvg('score_responsibility'),
+    traitRespct: getTraitAvg('score_respect'),
+    engFlu: getTraitAvg('score_fluency'),
+    engRead: getTraitAvg('score_reading'),
+    mathLog: getTraitAvg('score_logic'),
+    mathArith: getTraitAvg('score_arithmetic')
+  };
+
+  const monthEvalMap = {};
+  semEvals.forEach(e => {
+    if (e && e.bulan) {
+      monthEvalMap[e.bulan.trim().toLowerCase()] = e;
+    }
+  });
+
+  const tableRowsHtml = fullMonths.map(mName => {
+    const ev = monthEvalMap[mName.toLowerCase()];
+    if (!ev) {
+      return `<tr><td style="font-weight:600; text-align:left; color:#94a3b8;">${mName}</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td></tr>`;
+    }
+    return `<tr>
+      <td style="font-weight:600; text-align:left;">${mName}</td>
+      <td>${ev.score_empathy ?? '-'}</td>
+      <td>${ev.score_honesty ?? '-'}</td>
+      <td>${ev.score_responsibility ?? '-'}</td>
+      <td>${ev.score_respect ?? '-'}</td>
+      <td>${ev.score_fluency ?? '-'}</td>
+      <td>${ev.score_reading ?? '-'}</td>
+      <td>${ev.score_logic ?? '-'}</td>
+      <td>${ev.score_arithmetic ?? '-'}</td>
+    </tr>`;
+  }).join('');
+
+  const now = new Date();
+  const dateFormatted = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const founder = (window.allUsers || []).find(u => (u.role || '').toLowerCase() === 'founder');
+  const manager = (window.allUsers || []).find(u => (u.role || '').toLowerCase() === 'manager');
+  const founderName = founder ? (founder.full_name || founder.nama || 'Minarti Monoarfa') : 'Minarti Monoarfa';
+  const managerName = manager ? (manager.full_name || manager.nama || 'Sity Djabar, M.Pd.') : 'Sity Djabar, M.Pd.';
+
+  if (typeof window.html2pdf === 'function') {
+    const tempContainer = document.createElement('div');
+    tempContainer.id = 'temp-pdf-render-wrapper';
+    tempContainer.style.position = 'fixed';
+    tempContainer.style.top = '0';
+    tempContainer.style.left = '0';
+    tempContainer.style.width = '794px';
+    tempContainer.style.background = '#ffffff';
+    tempContainer.style.zIndex = '99999';
+    tempContainer.style.padding = '32px';
+    tempContainer.style.boxSizing = 'border-box';
+    tempContainer.innerHTML = buildRaporPrintHtml(student, activeSemLabel, dateFormatted, founderName, managerName, traits, tableRowsHtml);
+    document.body.appendChild(tempContainer);
+
+    const filename = `Rapor_SoC_${sName.replace(/[^a-zA-Z0-9]/g, '_')}_${sNis}.pdf`;
+    const opt = {
+      margin: 8,
+      filename: filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, scrollY: 0, windowWidth: 794 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    try {
+      await window.html2pdf().set(opt).from(tempContainer).save();
+    } catch (err) {
+      console.warn('html2pdf error, fallback to print:', err);
+      printRaporSiswa();
+    } finally {
+      if (document.body.contains(tempContainer)) {
+        document.body.removeChild(tempContainer);
+      }
+    }
+  } else {
+    printRaporSiswa();
+  }
 }
 window.downloadRaporSiswaPDF = downloadRaporSiswaPDF;
